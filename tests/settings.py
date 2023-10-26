@@ -1,5 +1,3 @@
-import django
-
 PROJECT_APPS = (
     "django_fsm",
     "testapp",
