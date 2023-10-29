@@ -414,6 +414,4 @@ $ ./manage.py graph_transitions -o blog_transitions.png myapp.Blog
 
 ## Changelog
 
-### django-fsm 2.8.1 2022-08-15
-
--   Improve fix for get_available_FIELD_transition
+See [CHANGELOG](CHANGELOG.md)

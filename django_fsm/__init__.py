@@ -1,18 +1,20 @@
 """
 State tracking functionality for django models
 """
-import inspect
-from functools import partialmethod, wraps
+from __future__ import annotations
 
-import django
+import inspect
+from functools import partialmethod
+from functools import wraps
+
 from django.apps import apps as django_apps
 from django.db import models
 from django.db.models import Field
 from django.db.models.query_utils import DeferredAttribute
 from django.db.models.signals import class_prepared
 
-from django_fsm.signals import pre_transition, post_transition
-
+from django_fsm.signals import post_transition
+from django_fsm.signals import pre_transition
 
 __all__ = [
     "TransitionNotAllowed",
@@ -240,26 +242,9 @@ class FSMFieldMixin:
         return name, path, args, kwargs
 
     def get_state(self, instance):
-        # The state field may be deferred. We delegate the logic of figuring
-        # this out and loading the deferred field on-demand to Django's
-        # built-in DeferredAttribute class. DeferredAttribute's instantiation
-        # signature changed over time, so we need to check Django version
-        # before proceeding to call DeferredAttribute. An alternative to this
-        # would be copying the latest implementation of DeferredAttribute to
-        # django_fsm, but this comes with the added responsibility of keeping
-        # the copied code up to date.
-        if django.VERSION[:3] >= (3, 0, 0):
-            return DeferredAttribute(self).__get__(instance)
-        elif django.VERSION[:3] >= (2, 1, 0):
-            return DeferredAttribute(self.name).__get__(instance)
-        elif django.VERSION[:3] >= (1, 10, 0):
-            return DeferredAttribute(self.name, model=None).__get__(instance)
-        else:
-            # The field was either not deferred (in which case we can return it
-            # right away) or ir was, but we are running on an unknown version
-            # of Django and we do not know the appropriate DeferredAttribute
-            # interface, and accessing the field will raise KeyError.
-            return instance.__dict__[self.name]
+        # The state field may be deferred. We delegate the logic of figuring this out
+        # and loading the deferred field on-demand to Django's built-in DeferredAttribute class.
+        return DeferredAttribute(self).__get__(instance)
 
     def set_state(self, instance, state):
         instance.__dict__[self.name] = state
