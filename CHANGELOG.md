@@ -2,6 +2,8 @@
 
 ## django-fsm unreleased
 
+
+- Remove South support...if exists
 - Add support for django 5.0
 - Remove support for django < 3.2
 - Add support for python 3.12
