@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "django-fsm"
-version = "2.8.1"
+version = "3.0.0"
 description = "Django friendly finite state machine support."
 authors = ["Mikhail Podgurskiy <kmmbvnr@gmail.com>"]
 license = "MIT License"
-readme = "README.rst"
-homepage = "http://github.com/kmmbvnr/django-fsm"
-repository = "http://github.com/kmmbvnr/django-fsm"
-documentation = "http://github.com/kmmbvnr/django-fsm"
+readme = "README.md"
+homepage = "http://github.com/pfouque/django-fsm-2"
+repository = "http://github.com/pfouque/django-fsm-2"
+documentation = "http://github.com/pfouque/django-fsm-2"
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
