@@ -1,6 +1,7 @@
 """
 State tracking functionality for django models
 """
+
 from __future__ import annotations
 
 import inspect

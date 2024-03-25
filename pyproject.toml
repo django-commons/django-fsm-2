@@ -55,6 +55,7 @@ target-version = "py38"
 fix = true
 
 [tool.ruff.lint]
+
 extend-select = [
     "F",  # Pyflakes
     "E",  # pycodestyle
@@ -65,7 +66,7 @@ extend-select = [
 fixable = ["I"]
 
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 force-single-line = true
 required-imports = ["from __future__ import annotations"]
 
