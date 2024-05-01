@@ -8,12 +8,12 @@
 
 django-fsm adds simple declarative state management for django models.
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > Django FSM-2 started as a fork of [Django FSM](https://github.com/viewflow/django-fsm).
 >
 > Big thanks to Mikhail Podgurskiy for starting this awesome project and maintaining it for so many years.
 >
-> Unfortunately, development has stalled for almost 2 years and it was officially announced there will be no new releases. [Viewflow](https://github.com/viewflow/viewflow) is presented as an alternative but the transition is not that easy. 
+> Unfortunately, development has stalled for almost 2 years and it was officially announced there will be no new releases. [Viewflow](https://github.com/viewflow/viewflow) is presented as an alternative but the transition is not that easy.
 >
 > If what you need is just a simple state machine, tailor-made for Django, Django FSM-2 is the successor of Django FSM, with dependencies updates, typing (planned)
 
@@ -22,7 +22,7 @@ django-fsm adds simple declarative state management for django models.
 **FSM really helps to structure the code, and centralize the lifecycle of your Models.**
 
 Instead of adding a CharField field to a django model and manage its
-values by hand everywhere, `FSMFields` offer the ability to declare your 
+values by hand everywhere, `FSMFields` offer the ability to declare your
 `transitions` once with the decorator. These methods could contain side-effects, permissions, or logic to make the lifecycle management easier.
 
 Nice introduction is available here: <https://gist.github.com/Nagyman/9502133>
