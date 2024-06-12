@@ -54,13 +54,17 @@ target-version = "py38"
 fix = true
 
 [tool.ruff.lint]
-
+# select = ["ALL"]
 extend-select = [
     "F",  # Pyflakes
     "E",  # pycodestyle
     "W",  # pycodestyle
     "UP",  # pyupgrade
     "I",  # isort
+    "PERF",
+    "RET",
+    "C",
+    # "B",
 ]
 fixable = ["I"]
 

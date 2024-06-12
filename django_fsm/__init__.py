@@ -71,14 +71,13 @@ class Transition:
     def has_perm(self, instance, user):
         if not self.permission:
             return True
-        elif callable(self.permission):
+        if callable(self.permission):
             return bool(self.permission(instance, user))
-        elif user.has_perm(self.permission, instance):
+        if user.has_perm(self.permission, instance):
             return True
-        elif user.has_perm(self.permission):
+        if user.has_perm(self.permission):
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self):
         return hash(self.name)
@@ -100,7 +99,7 @@ def get_available_FIELD_transitions(instance, field):
     curr_state = field.get_state(instance)
     transitions = field.transitions[instance.__class__]
 
-    for name, transition in transitions.items():
+    for transition in transitions.values():
         meta = transition._django_fsm
         if meta.has_transition(curr_state) and meta.conditions_met(instance, curr_state):
             yield meta.get_transition(curr_state)
@@ -177,18 +176,19 @@ class FSMMeta:
 
         if transition is None:
             return False
-        elif transition.conditions is None:
+
+        if transition.conditions is None:
             return True
-        else:
-            return all(map(lambda condition: condition(instance), transition.conditions))
+
+        return all(condition(instance) for condition in transition.conditions)
 
     def has_transition_perm(self, instance, state, user):
         transition = self.get_transition(state)
 
         if not transition:
             return False
-        else:
-            return transition.has_perm(instance, user)
+
+        return transition.has_perm(instance, user)
 
     def next_state(self, current_state):
         transition = self.get_transition(current_state)
@@ -341,7 +341,7 @@ class FSMFieldMixin:
         """
         transitions = self.transitions[instance_cls]
 
-        for name, transition in transitions.items():
+        for transition in transitions.values():
             meta = transition._django_fsm
 
             for transition in meta.transitions.values():

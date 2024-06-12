@@ -24,11 +24,10 @@ def node_name(field, state):
 def node_label(field, state):
     if isinstance(state, int) or (isinstance(state, bool) and hasattr(field, "choices")):
         return force_str(dict(field.choices).get(state))
-    else:
-        return state
+    return state
 
 
-def generate_dot(fields_data):
+def generate_dot(fields_data):  # noqa: C901
     result = graphviz.Digraph()
 
     for field, model in fields_data:
