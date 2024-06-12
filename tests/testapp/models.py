@@ -121,7 +121,7 @@ class BlogPost(models.Model):
         permission=lambda self, u: u.has_perm("testapp.can_remove_post"),
     )
     def remove(self):
-        raise Exception("No rights to delete %s" % self)
+        raise Exception(f"No rights to delete {self}")
 
     @transition(field=state, source="new", target="restored", on_error="failed", permission=can_restore)
     def restore(self):

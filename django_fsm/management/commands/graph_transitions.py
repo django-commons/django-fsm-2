@@ -135,7 +135,7 @@ class Command(BaseCommand):
             action="store",
             dest="layout",
             default="dot",
-            help=("Layout to be used by GraphViz for visualization. " "Layouts: %s." % " ".join(get_graphviz_layouts())),
+            help=f"Layout to be used by GraphViz for visualization. Layouts: {get_graphviz_layouts()}.",
         )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
