@@ -2,7 +2,9 @@
 name = "django-fsm"
 version = "3.0.0"
 description = "Django friendly finite state machine support."
-authors = ["Mikhail Podgurskiy <kmmbvnr@gmail.com>"]
+authors = [
+    "Mikhail Podgurskiy <kmmbvnr@gmail.com>",
+]
 license = "MIT License"
 readme = "README.md"
 homepage = "http://github.com/pfouque/django-fsm-2"
@@ -15,10 +17,9 @@ classifiers = [
     'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
     "Framework :: Django",
-    "Framework :: Django :: 3.2",
-    "Framework :: Django :: 4.1",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.8',
@@ -32,7 +33,7 @@ packages = [{ include = "django_fsm" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-django = ">=3.2"
+django = ">=4.2"
 
 [tool.poetry.group.graphviz.dependencies]
 graphviz = "*"
@@ -55,13 +56,17 @@ target-version = "py38"
 fix = true
 
 [tool.ruff.lint]
-
+# select = ["ALL"]
 extend-select = [
     "F",  # Pyflakes
     "E",  # pycodestyle
     "W",  # pycodestyle
     "UP",  # pyupgrade
     "I",  # isort
+    "PERF",
+    "RET",
+    "C",
+    # "B",
 ]
 fixable = ["I"]
 

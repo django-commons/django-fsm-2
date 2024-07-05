@@ -24,11 +24,10 @@ def node_name(field, state):
 def node_label(field, state):
     if isinstance(state, int) or (isinstance(state, bool) and hasattr(field, "choices")):
         return force_str(dict(field.choices).get(state))
-    else:
-        return state
+    return state
 
 
-def generate_dot(fields_data):
+def generate_dot(fields_data):  # noqa: C901
     result = graphviz.Digraph()
 
     for field, model in fields_data:
@@ -135,7 +134,7 @@ class Command(BaseCommand):
             action="store",
             dest="layout",
             default="dot",
-            help=("Layout to be used by GraphViz for visualization. " "Layouts: %s." % " ".join(get_graphviz_layouts())),
+            help=f"Layout to be used by GraphViz for visualization. Layouts: {get_graphviz_layouts()}.",
         )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 

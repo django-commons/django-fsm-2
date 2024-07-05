@@ -1,8 +1,18 @@
 Changelog
 =========
 
-django-fsm 3.0.0 2024-03-25
+Unreleased
+~~~~~~~~~~
+
+- Add support for Django 5.1
+- Remove support for Django 3.2
+- Remove support for Django 4.0
+- Remove support for Django 4.1
+
+django-fsm-2 3.0.0 2024-03-26
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+First release of the forked version of django-fsm
 
 - Drop support for Python < 3.8.
 - Add support for python 3.11
