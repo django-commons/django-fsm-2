@@ -4,7 +4,6 @@ version = "3.0.0"
 description = "Django friendly finite state machine support."
 authors = [
     "Mikhail Podgurskiy <kmmbvnr@gmail.com>",
-    "Pascal Fouque <fouquepascal@gmail.com>",
 ]
 license = "MIT License"
 readme = "README.md"
