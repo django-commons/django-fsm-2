@@ -408,11 +408,11 @@ $ ./manage.py graph_transitions -o blog_transitions.png myapp.Blog
 
 ## Extensions
 
-You may also take a look at django-fsm-admin project containing a mixin
-and template tags to integrate django-fsm state transitions into the
+You may also take a look at django-fsm-2-admin project containing a mixin
+and template tags to integrate django-fsm-2 state transitions into the
 django admin.
 
-<https://github.com/gadventures/django-fsm-admin>
+<https://github.com/coral-li/django-fsm-2-admin>
 
 Transition logging support could be achieved with help of django-fsm-log
 package
