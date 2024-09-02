@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "django-fsm"
+name = "django-fsm-2"
 version = "4.0.0"
 description = "Django friendly finite state machine support."
 authors = [
