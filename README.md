@@ -1,9 +1,9 @@
 # Django friendly finite state machine support
 
-[![CI tests](https://github.com/pfouque/django-fsm-2/actions/workflows/test.yml/badge.svg)](https://github.com/pfouque/django-fsm-2/actions/workflows/test.yml)
-[![codecov](https://codecov.io/github/pfouque/django-fsm-2/branch/master/graph/badge.svg?token=GWGDR6AR6D)](https://codecov.io/github/pfouque/django-fsm-2)
-[![Documentation](https://img.shields.io/static/v1?label=Docs&message=READ&color=informational&style=plastic)](https://github.com/pfouque/django-fsm-2#settings)
-[![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/pfouque/anymail-history/LICENSE)
+[![CI tests](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml/badge.svg)](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml)
+[![codecov](https://codecov.io/github/django-commons/django-fsm-2/branch/master/graph/badge.svg?token=GWGDR6AR6D)](https://codecov.io/github/django-commons/django-fsm-2)
+[![Documentation](https://img.shields.io/static/v1?label=Docs&message=READ&color=informational&style=plastic)](https://github.com/django-commons/django-fsm-2#settings)
+[![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/django-commons/anymail-history/LICENSE)
 
 
 django-fsm adds simple declarative state management for django models.
@@ -36,7 +36,7 @@ $ pip install django-fsm-2
 Or, for the latest git version
 
 ``` bash
-$ pip install -e git://github.com/pfouque/django-fsm-2.git#egg=django-fsm
+$ pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
 ```
 
 ## Usage
