@@ -7,9 +7,9 @@ authors = [
 ]
 license = "MIT License"
 readme = "README.md"
-homepage = "http://github.com/pfouque/django-fsm-2"
-repository = "http://github.com/pfouque/django-fsm-2"
-documentation = "http://github.com/pfouque/django-fsm-2"
+homepage = "http://github.com/django-commons/django-fsm-2"
+repository = "http://github.com/django-commons/django-fsm-2"
+documentation = "http://github.com/django-commons/django-fsm-2"
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
