@@ -93,7 +93,7 @@ class BlogPost(models.Model):
 
     state = FSMField(default="new", protected=True)
 
-    def can_restore(self, user):
+    def can_restore(self, user) -> bool:
         return user.is_superuser or user.is_staff
 
     @transition(field=state, source="new", target="published", on_error="failed", permission="testapp.can_publish_post")
