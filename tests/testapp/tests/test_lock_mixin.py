@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import ConcurrentTransition
-from django_fsm import ConcurrentTransitionMixin
-from django_fsm import FSMField
-from django_fsm import transition
+from django_fsm_2 import ConcurrentTransition
+from django_fsm_2 import ConcurrentTransitionMixin
+from django_fsm_2 import FSMField
+from django_fsm_2 import transition
 
 
 class LockedBlogPost(ConcurrentTransitionMixin, models.Model):

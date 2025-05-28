@@ -1,6 +1,11 @@
 Changelog
 =========
 
+django-fsm-2 4.0.1 2024-09-02
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- change folder and labels to `django_fsm_2` to distinguish from original `django_fsm `
+
 django-fsm-2 4.0.0 2024-09-02
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

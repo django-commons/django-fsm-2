@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMKeyField
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
+from django_fsm_2 import FSMKeyField
+from django_fsm_2 import TransitionNotAllowed
+from django_fsm_2 import can_proceed
+from django_fsm_2 import transition
 
 FK_AVAILABLE_STATES = (
     ("New", "_NEW_"),
@@ -27,11 +27,13 @@ class DBState(models.Model):
         return self.label
 
     class Meta:
-        app_label = "django_fsm"
+        app_label = "django_fsm_2"
 
 
 class FKBlogPost(models.Model):
-    state = FSMKeyField(DBState, default="new", protected=True, on_delete=models.CASCADE)
+    state = FSMKeyField(
+        DBState, default="new", protected=True, on_delete=models.CASCADE
+    )
 
     @transition(field=state, source="new", target="published")
     def publish(self):
@@ -58,7 +60,7 @@ class FKBlogPost(models.Model):
         pass
 
     class Meta:
-        app_label = "django_fsm"
+        app_label = "django_fsm_2"
 
 
 class FSMKeyFieldTest(TestCase):
@@ -125,7 +127,7 @@ class BlogPostStatus(models.Model):
     objects = models.Manager()
 
     class Meta:
-        app_label = 'django_fsm'
+        app_label = 'django_fsm_2'
 
 
 class BlogPostWithFKState(models.Model):

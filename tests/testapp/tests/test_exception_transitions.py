@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import can_proceed
-from django_fsm import transition
-from django_fsm.signals import post_transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import can_proceed
+from django_fsm_2 import transition
+from django_fsm_2.signals import post_transition
 
 
 class ExceptionalBlogPost(models.Model):

@@ -3,9 +3,9 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import can_proceed
-from django_fsm import transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import can_proceed
+from django_fsm_2 import transition
 
 
 class BaseAbstractModel(models.Model):
@@ -58,4 +58,7 @@ class TestinheritedModel(TestCase):
 
     def test_field_all_transitions_works(self):
         transitions = self.model.get_all_state_transitions()
-        self.assertEqual({("new", "published"), ("published", "sticked")}, {(data.source, data.target) for data in transitions})
+        self.assertEqual(
+            {("new", "published"), ("published", "sticked")},
+            {(data.source, data.target) for data in transitions},
+        )

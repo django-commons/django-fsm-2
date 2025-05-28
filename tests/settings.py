@@ -3,7 +3,7 @@ from __future__ import annotations
 USE_TZ = True
 
 PROJECT_APPS = (
-    "django_fsm",
+    "django_fsm_2",
     "tests.testapp",
 )
 

@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import unittest
-
-import django
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import FSMModelMixin
-from django_fsm import transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import transition
 
 
-class RefreshableProtectedAccessModel(models.Model):
+class ProtectedAccessModel(models.Model):
     status = FSMField(default="new", protected=True)
 
     @transition(field=status, source="new", target="published")
@@ -19,16 +15,25 @@ class RefreshableProtectedAccessModel(models.Model):
         pass
 
     class Meta:
-        app_label = "django_fsm"
+        app_label = "django_fsm_2"
 
 
-class RefreshableModel(FSMModelMixin, RefreshableProtectedAccessModel):
-    pass
+class MultiProtectedAccessModel(models.Model):
+    status1 = FSMField(default="new", protected=True)
+    status2 = FSMField(default="new", protected=True)
+
+    class Meta:
+        app_label = "django_fsm_2"
 
 
 class TestDirectAccessModels(TestCase):
+    def test_multi_protected_field_create(self):
+        obj = MultiProtectedAccessModel.objects.create()
+        self.assertEqual(obj.status1, "new")
+        self.assertEqual(obj.status2, "new")
+
     def test_no_direct_access(self):
-        instance = RefreshableProtectedAccessModel()
+        instance = ProtectedAccessModel()
         self.assertEqual(instance.status, "new")
 
         def try_change():
@@ -39,10 +44,3 @@ class TestDirectAccessModels(TestCase):
         instance.publish()
         instance.save()
         self.assertEqual(instance.status, "published")
-
-    @unittest.skipIf(django.VERSION < (1, 8), "Django introduced refresh_from_db in 1.8")
-    def test_refresh_from_db(self):
-        instance = RefreshableModel()
-        instance.save()
-
-        instance.refresh_from_db()
