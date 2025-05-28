@@ -3,13 +3,13 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import Transition
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
-from django_fsm.signals import post_transition
-from django_fsm.signals import pre_transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import Transition
+from django_fsm_2 import TransitionNotAllowed
+from django_fsm_2 import can_proceed
+from django_fsm_2 import transition
+from django_fsm_2.signals import post_transition
+from django_fsm_2.signals import pre_transition
 
 
 class BlogPost(models.Model):
@@ -176,7 +176,13 @@ class TestFieldTransitionsInspect(TestCase):
     def test_available_conditions_from_new(self):
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
-        expected = {("*", "moderated"), ("new", "published"), ("new", "removed"), ("*", ""), ("+", "blocked")}
+        expected = {
+            ("*", "moderated"),
+            ("new", "published"),
+            ("new", "removed"),
+            ("*", ""),
+            ("+", "blocked"),
+        }
         self.assertEqual(actual, expected)
 
     def test_available_conditions_from_published(self):
@@ -198,7 +204,12 @@ class TestFieldTransitionsInspect(TestCase):
         self.model.hide()
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
-        expected = {("*", "moderated"), ("hidden", "stolen"), ("*", ""), ("+", "blocked")}
+        expected = {
+            ("*", "moderated"),
+            ("hidden", "stolen"),
+            ("*", ""),
+            ("+", "blocked"),
+        }
         self.assertEqual(actual, expected)
 
     def test_available_conditions_from_stolen(self):

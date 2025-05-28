@@ -3,9 +3,9 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMIntegerField
-from django_fsm import TransitionNotAllowed
-from django_fsm import transition
+from django_fsm_2 import FSMIntegerField
+from django_fsm_2 import TransitionNotAllowed
+from django_fsm_2 import transition
 
 
 class BlogPostStateEnum:
@@ -17,11 +17,15 @@ class BlogPostStateEnum:
 class BlogPostWithIntegerField(models.Model):
     state = FSMIntegerField(default=BlogPostStateEnum.NEW)
 
-    @transition(field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED)
+    @transition(
+        field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED
+    )
     def publish(self):
         pass
 
-    @transition(field=state, source=BlogPostStateEnum.PUBLISHED, target=BlogPostStateEnum.HIDDEN)
+    @transition(
+        field=state, source=BlogPostStateEnum.PUBLISHED, target=BlogPostStateEnum.HIDDEN
+    )
     def hide(self):
         pass
 

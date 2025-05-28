@@ -6,7 +6,7 @@
 [![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/django-commons/anymail-history/LICENSE)
 
 
-django-fsm adds simple declarative state management for django models.
+django-fsm-2 adds simple declarative state management for django models.
 
 > [!IMPORTANT]
 > Django FSM-2 started as a fork of [Django FSM](https://github.com/viewflow/django-fsm).
@@ -44,7 +44,7 @@ $ pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
 Add FSMState field to your model
 
 ``` python
-from django_fsm import FSMField, transition
+from django_fsm_2 import FSMField, transition
 
 class BlogPost(models.Model):
     state = FSMField(default='new')
@@ -141,7 +141,7 @@ on a model instance with a protected FSMField will cause an exception.
 ### `source` state
 
 `source` parameter accepts a list of states, or an individual state or
-`django_fsm.State` implementation.
+`django_fsm_2.State` implementation.
 
 You can use `*` for `source` to allow switching to `target` from any
 state.
@@ -152,10 +152,10 @@ state excluding `target` state.
 ### `target` state
 
 `target` state parameter could point to a specific state or
-`django_fsm.State` implementation
+`django_fsm_2.State` implementation
 
 ``` python
-from django_fsm import FSMField, transition, RETURN_VALUE, GET_STATE
+from django_fsm_2 import FSMField, transition, RETURN_VALUE, GET_STATE
 @transition(field=state,
             source='*',
             target=RETURN_VALUE('for_moderators', 'published'))
@@ -229,7 +229,7 @@ internals](http://schinckel.net/2013/06/13/django-proxy-model-state-machine/)
 ### Permissions
 
 It is common to have permissions attached to each model transition.
-`django-fsm` handles this with `permission` keyword on the `transition`
+`django-fsm-2` handles this with `permission` keyword on the `transition`
 decorator. `permission` accepts a permission string, or callable that
 expects `instance` and `user` arguments and returns True if the user can
 perform the transition.
@@ -249,7 +249,7 @@ def remove(self):
 You can check permission with `has_transition_permission` method
 
 ``` python
-from django_fsm import has_transition_perm
+from django_fsm_2 import has_transition_perm
 def publish_view(request, post_id):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not has_transition_perm(post.publish, request.user):
@@ -340,8 +340,8 @@ class BlogPostWithIntegerField(models.Model):
 
 ### Signals
 
-`django_fsm.signals.pre_transition` and
-`django_fsm.signals.post_transition` are called before and after allowed
+`django_fsm_2.signals.pre_transition` and
+`django_fsm_2.signals.post_transition` are called before and after allowed
 transition. No signals on invalid transition are called.
 
 Arguments sent with these signals:
@@ -358,13 +358,13 @@ Arguments sent with these signals:
 
 ## Optimistic locking
 
-`django-fsm` provides optimistic locking mixin, to avoid concurrent
+`django-fsm-2` provides optimistic locking mixin, to avoid concurrent
 model state changes. If model state was changed in database
-`django_fsm.ConcurrentTransition` exception would be raised on
+`django_fsm_2.ConcurrentTransition` exception would be raised on
 model.save()
 
 ``` python
-from django_fsm import FSMField, ConcurrentTransitionMixin
+from django_fsm_2 import FSMField, ConcurrentTransitionMixin
 
 class BlogPost(ConcurrentTransitionMixin, models.Model):
     state = FSMField(default='new')
@@ -387,13 +387,13 @@ practically negating their effect.
 
 Renders a graphical overview of your models states transitions
 
-You need `pip install "graphviz>=0.4"` library and add `django_fsm` to
+You need `pip install "graphviz>=0.4"` library and add `django_fsm_2` to
 your `INSTALLED_APPS`:
 
 ``` python
 INSTALLED_APPS = (
     ...
-    'django_fsm',
+    'django_fsm_2',
     ...
 )
 ```

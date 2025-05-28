@@ -3,8 +3,8 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import transition
 
 
 class Insect(models.Model):
@@ -12,7 +12,10 @@ class Insect(models.Model):
         CATERPILLAR = "CTR"
         BUTTERFLY = "BTF"
 
-    STATE_CHOICES = ((STATE.CATERPILLAR, "Caterpillar", "Caterpillar"), (STATE.BUTTERFLY, "Butterfly", "Butterfly"))
+    STATE_CHOICES = (
+        (STATE.CATERPILLAR, "Caterpillar", "Caterpillar"),
+        (STATE.BUTTERFLY, "Butterfly", "Butterfly"),
+    )
 
     state = FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
 
@@ -67,4 +70,6 @@ class TestStateProxy(TestCase):
         Insect.objects.create(state=Insect.STATE.BUTTERFLY)
 
         insects = Insect.objects.all()
-        self.assertEqual({Caterpillar, Butterfly}, {insect.__class__ for insect in insects})
+        self.assertEqual(
+            {Caterpillar, Butterfly}, {insect.__class__ for insect in insects}
+        )
