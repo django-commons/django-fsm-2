@@ -58,19 +58,31 @@ target-version = "py38"
 fix = true
 
 [tool.ruff.lint]
-# select = ["ALL"]
-extend-select = [
-    "F",  # Pyflakes
-    "E",  # pycodestyle
-    "W",  # pycodestyle
-    "UP",  # pyupgrade
-    "I",  # isort
-    "PERF",
-    "RET",
-    "C",
-    # "B",
+select = ["ALL"]
+extend-ignore = [
+    "COM812",  # This rule may cause conflicts when used with the formatter
+    "D",  # pydocstyle
+    "DOC",  # pydoclint
+    "B",
+    "PTH",
+    "ANN",  # Missing type annotation
+    "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
+    "PT",  # Use a regular `assert` instead of unittest-style
+    "DJ008",  # Model does not define `__str__` method
+    "ARG001",  # Unused function argument
+    "ARG002",  # Unused method argument
+    "TRY002",  # Create your own exception
+    "TRY003",  # Avoid specifying long messages outside the exception class
+    "EM101",  # Exception must not use a string literal, assign to variable first
+    "EM102",  # Exception must not use an f-string literal, assign to variable first
+    "SLF001",  # Private member accessed
+    "SIM103",  # Return the condition directly
+    "PLR0913",  # Too many arguments in function definition
 ]
-fixable = ["I"]
+fixable = [
+    "I",  # isort
+    "RUF100",  # Unused `noqa` directive
+]
 
 
 [tool.ruff.lint.isort]

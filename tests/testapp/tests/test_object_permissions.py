@@ -14,6 +14,13 @@ from django_fsm import transition
 class ObjectPermissionTestModel(models.Model):
     state = FSMField(default="new")
 
+    class Meta:
+        app_label = "testapp"
+
+        permissions = [
+            ("can_publish_objectpermissiontestmodel", "Can publish ObjectPermissionTestModel"),
+        ]
+
     @transition(
         field=state,
         source="new",
@@ -23,13 +30,6 @@ class ObjectPermissionTestModel(models.Model):
     )
     def publish(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
-
-        permissions = [
-            ("can_publish_objectpermissiontestmodel", "Can publish ObjectPermissionTestModel"),
-        ]
 
 
 @override_settings(

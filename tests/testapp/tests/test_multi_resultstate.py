@@ -14,20 +14,20 @@ from django_fsm.signals import pre_transition
 class MultiResultTest(models.Model):
     state = FSMField(default="new")
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=state, source="new", target=RETURN_VALUE("for_moderators", "published"))
-    def publish(self, is_public=False):
+    def publish(self, *, is_public=False):
         return "published" if is_public else "for_moderators"
 
     @transition(
         field=state,
         source="for_moderators",
-        target=GET_STATE(lambda self, allowed: "published" if allowed else "rejected", states=["published", "rejected"]),
+        target=GET_STATE(lambda _, allowed: "published" if allowed else "rejected", states=["published", "rejected"]),
     )
     def moderate(self, allowed):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class Test(TestCase):

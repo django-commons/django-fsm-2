@@ -18,22 +18,23 @@ class Ticket(models.Model):
         app_label = "testapp"
 
 
-class Task(models.Model):
-    class STATE:
-        NEW = "new"
-        DONE = "done"
+class TaskState(models.TextChoices):
+    NEW = "new", "New"
+    DONE = "done", "Done"
 
+
+class Task(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     causality = GenericForeignKey("content_type", "object_id")
-    state = FSMField(default=STATE.NEW)
-
-    @transition(field=state, source=STATE.NEW, target=STATE.DONE)
-    def do(self):
-        pass
+    state = FSMField(default=TaskState.NEW)
 
     class Meta:
         app_label = "testapp"
+
+    @transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
+    def do(self):
+        pass
 
 
 class Test(TestCase):

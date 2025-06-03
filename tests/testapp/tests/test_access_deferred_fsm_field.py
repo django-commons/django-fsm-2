@@ -11,6 +11,9 @@ from django_fsm import transition
 class DeferrableModel(models.Model):
     state = FSMField(default="new")
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=state, source="new", target="published")
     def publish(self):
         pass
@@ -18,9 +21,6 @@ class DeferrableModel(models.Model):
     @transition(field=state, source="+", target="removed")
     def remove(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class Test(TestCase):

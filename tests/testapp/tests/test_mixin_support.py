@@ -8,6 +8,9 @@ from django_fsm import transition
 
 
 class WorkflowMixin:
+    class Meta:
+        app_label = "testapp"
+
     @transition(field="state", source="*", target="draft")
     def draft(self):
         pass
@@ -15,9 +18,6 @@ class WorkflowMixin:
     @transition(field="state", source="draft", target="published")
     def publish(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class MixinSupportTestModel(WorkflowMixin, models.Model):

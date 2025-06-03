@@ -82,7 +82,7 @@ class DbState(models.Model):
 
     label = models.CharField(max_length=255)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.label
 
 
@@ -92,6 +92,12 @@ class BlogPost(models.Model):
     """
 
     state = FSMField(default="new", protected=True)
+
+    class Meta:
+        permissions = [
+            ("can_publish_post", "Can publish post"),
+            ("can_remove_post", "Can remove post"),
+        ]
 
     def can_restore(self, user):
         return user.is_superuser or user.is_staff
@@ -118,7 +124,7 @@ class BlogPost(models.Model):
         source="new",
         target="removed",
         on_error="failed",
-        permission=lambda self, u: u.has_perm("testapp.can_remove_post"),
+        permission=lambda _, u: u.has_perm("testapp.can_remove_post"),
     )
     def remove(self):
         raise Exception(f"No rights to delete {self}")
@@ -134,9 +140,3 @@ class BlogPost(models.Model):
     @transition(field=state, source="*", target="moderated")
     def moderate(self):
         pass
-
-    class Meta:
-        permissions = [
-            ("can_publish_post", "Can publish post"),
-            ("can_remove_post", "Can remove post"),
-        ]

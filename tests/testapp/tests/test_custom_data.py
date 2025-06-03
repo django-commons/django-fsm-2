@@ -10,6 +10,9 @@ from django_fsm import transition
 class BlogPostWithCustomData(models.Model):
     state = FSMField(default="new")
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=state, source="new", target="published", conditions=[], custom={"label": "Publish", "type": "*"})
     def publish(self):
         pass
@@ -21,9 +24,6 @@ class BlogPostWithCustomData(models.Model):
     @transition(field=state, source="published", target="review", custom={"label": "Periodic review", "type": "automated"})
     def review(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class CustomTransitionDataTest(TestCase):
