@@ -5,6 +5,7 @@ Unreleased
 ~~~~~~~~~~
 
 - Add typing
+- Add AdminMixin
 
 
 django-fsm-2 4.1.0 2025-11-03

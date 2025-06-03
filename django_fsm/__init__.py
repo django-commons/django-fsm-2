@@ -412,9 +412,7 @@ class FSMFieldMixin(_Field):
         """
         Returns [(source, target, name, method)] for all field transitions
         """
-        transitions = self.transitions[instance_cls]
-
-        for transition in transitions.values():
+        for transition in self.transitions[instance_cls].values():
             yield from transition._django_fsm.transitions.values()
 
     @override

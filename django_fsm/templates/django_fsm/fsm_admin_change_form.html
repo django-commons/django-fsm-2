@@ -4,9 +4,11 @@
 
   {% for fsm_object_transition in fsm_object_transitions %}
       <div class="submit-row">
-        <label>{{ fsm_object_transition.block_label }}</label>
+        <label>Transition ({{ fsm_object_transition.fsm_field }})</label>
         {% for transition in fsm_object_transition.available_transitions %}
-          <input type="submit" value="{{ transition.custom.label|default:transition.name }}" name="_fsm_transition_to">
+        <button type="submit" class="button" name="_fsm_transition_to" value="{{ transition.name }}">
+          {{ transition.custom.label|default:transition.name }}
+        </button>
         {% endfor %}
       </div>
   {% endfor %}

@@ -15,6 +15,16 @@ from django_fsm import transition
 if typing.TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
 
+    _P = typing.ParamSpec("_P")
+    _R = typing.TypeVar("_R")
+
+    def fsm_log_by_typed(func: typing.Callable[_P, _R]) -> typing.Callable[_P, _R]: ...
+
+    def fsm_log_description_typed(func: typing.Callable[_P, _R]) -> typing.Callable[_P, _R]: ...
+else:
+    fsm_log_by_typed = fsm_log_by
+    fsm_log_description_typed = fsm_log_description
+
 
 class Application(models.Model):
     """
@@ -297,9 +307,11 @@ class AdminBlogPost(models.Model):
     )
 
     # state transitions
+    def __str__(self) -> str:
+        return f"{self.title} ({self.state})"
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=state,
         source="*",
@@ -308,21 +320,23 @@ class AdminBlogPost(models.Model):
             "admin": False,
         },
     )
-    def secret_transition(self, by=None, description=None):
+    def secret_transition(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=state,
-        source=[AdminBlogPostState.CREATED],
+        source=AdminBlogPostState.CREATED,
         target=AdminBlogPostState.REVIEWED,
     )
-    def moderate(self, by=None, description=None):
+    def moderate(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=state,
         source=[
@@ -331,11 +345,11 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.PUBLISHED,
     )
-    def publish(self, by=None, description=None):
+    def publish(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=state,
         source=[
@@ -344,13 +358,29 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.HIDDEN,
     )
-    def hide(self, by=None, description=None):
+    def hide(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
+
+    @fsm_log_by_typed
+    @fsm_log_description_typed
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename *",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameForm",
+        },
+    )
+    def complex_transition(
+        self, *, new_title: str, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        self.title = new_title
 
     # step transitions
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_1],
@@ -359,21 +389,21 @@ class AdminBlogPost(models.Model):
             "label": "Go to Step 2",
         },
     )
-    def step_two(self, by=None, description=None):
+    def step_two(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_2],
         target=AdminBlogPostStep.STEP_3,
     )
-    def step_three(self, by=None, description=None):
+    def step_three(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
+    @fsm_log_by_typed
+    @fsm_log_description_typed
     @transition(
         field=step,
         source=[
@@ -382,5 +412,5 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostStep.STEP_1,
     )
-    def step_reset(self, by=None, description=None):
+    def step_reset(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
