@@ -9,11 +9,11 @@
 django-fsm adds simple declarative state management for django models.
 
 > [!IMPORTANT]
-> Django FSM-2 started as a fork of [Django FSM](https://github.com/viewflow/django-fsm).
+> Django FSM-2 is a maintained fork of [Django FSM](https://github.com/viewflow/django-fsm).
 >
 > Big thanks to Mikhail Podgurskiy for starting this awesome project and maintaining it for so many years.
 >
-> Unfortunately, development has stalled for almost 2 years and it was officially announced there will be no new releases. [Viewflow](https://github.com/viewflow/viewflow) is presented as an alternative but the transition is not that easy.
+> Unfortunately, after 2 years without any releases, the project was brutally archived. [Viewflow](https://github.com/viewflow/viewflow) is presented as an alternative but the transition is not that easy.
 >
 > If what you need is just a simple state machine, tailor-made for Django, Django FSM-2 is the successor of Django FSM, with dependencies updates, typing (planned)
 
@@ -38,6 +38,16 @@ Or, for the latest git version
 ``` bash
 $ pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
 ```
+
+## Migration from django-fsm
+
+django-fsm-2 is a drop-in replacement, it's actually the same project but from a different source.
+So all you need to do is to replace `django-fsm` dependency with `django-fsm-2`. And voila!
+
+``` bash
+$ pip install django-fsm-2
+```
+
 
 ## Usage
 
