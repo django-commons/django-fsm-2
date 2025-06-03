@@ -20,7 +20,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 DATABASE_ENGINE = "sqlite3"
-SECRET_KEY = "nokey"
+SECRET_KEY = "nokey"  # noqa: S105
 MIDDLEWARE_CLASSES = ()
 DATABASES = {
     "default": {

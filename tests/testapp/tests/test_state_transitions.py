@@ -16,6 +16,9 @@ class Insect(models.Model):
 
     state = FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
     def cocoon(self):
         pass
@@ -26,30 +29,27 @@ class Insect(models.Model):
     def crawl(self):
         raise NotImplementedError
 
-    class Meta:
-        app_label = "testapp"
-
 
 class Caterpillar(Insect):
+    class Meta:
+        app_label = "testapp"
+        proxy = True
+
     def crawl(self):
         """
         Do crawl
         """
 
+
+class Butterfly(Insect):
     class Meta:
         app_label = "testapp"
         proxy = True
 
-
-class Butterfly(Insect):
     def fly(self):
         """
         Do fly
         """
-
-    class Meta:
-        app_label = "testapp"
-        proxy = True
 
 
 class TestStateProxy(TestCase):

@@ -17,12 +17,12 @@ class BaseModel(models.Model):
 
 
 class InheritedModel(BaseModel):
+    class Meta:
+        proxy = True
+
     @transition(field="state", source="published", target="sticked")
     def stick(self):
         pass
-
-    class Meta:
-        proxy = True
 
 
 class TestinheritedModel(TestCase):

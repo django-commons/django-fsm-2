@@ -23,15 +23,18 @@ class DBState(models.Model):
 
     label = models.CharField(max_length=255)
 
-    def __unicode__(self):
-        return self.label
-
     class Meta:
         app_label = "django_fsm"
+
+    def __str__(self):
+        return self.label
 
 
 class FKBlogPost(models.Model):
     state = FSMKeyField(DBState, default="new", protected=True, on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "django_fsm"
 
     @transition(field=state, source="new", target="published")
     def publish(self):
@@ -56,9 +59,6 @@ class FKBlogPost(models.Model):
     @transition(field=state, source="*", target="moderated")
     def moderate(self):
         pass
-
-    class Meta:
-        app_label = "django_fsm"
 
 
 class FSMKeyFieldTest(TestCase):
@@ -119,7 +119,7 @@ class FSMKeyFieldTest(TestCase):
 
 
 """
-TODO FIX it
+# TODO: FIX it
 class BlogPostStatus(models.Model):
     name = models.CharField(max_length=10, unique=True)
     objects = models.Manager()

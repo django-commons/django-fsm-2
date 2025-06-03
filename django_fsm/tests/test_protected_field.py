@@ -10,12 +10,12 @@ from django_fsm import transition
 class ProtectedAccessModel(models.Model):
     status = FSMField(default="new", protected=True)
 
+    class Meta:
+        app_label = "django_fsm"
+
     @transition(field=status, source="new", target="published")
     def publish(self):
         pass
-
-    class Meta:
-        app_label = "django_fsm"
 
 
 class MultiProtectedAccessModel(models.Model):

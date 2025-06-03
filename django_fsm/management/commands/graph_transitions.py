@@ -27,7 +27,7 @@ def node_label(field, state):
     return state
 
 
-def generate_dot(fields_data):  # noqa: C901
+def generate_dot(fields_data):  # noqa: C901, PLR0912
     result = graphviz.Digraph()
 
     for field, model in fields_data:
@@ -88,11 +88,11 @@ def generate_dot(fields_data):  # noqa: C901
             subgraph.node(name, label=label, shape="doublecircle")
         for name, label in (sources | targets) - final_states:
             subgraph.node(name, label=label, shape="circle")
-            if field.default:  # Adding initial state notation
-                if label == field.default:
-                    initial_name = node_name(field, "_initial")
-                    subgraph.node(name=initial_name, label="", shape="point")
-                    subgraph.edge(initial_name, name)
+            # Adding initial state notation
+            if field.default and label == field.default:
+                initial_name = node_name(field, "_initial")
+                subgraph.node(name=initial_name, label="", shape="point")
+                subgraph.edge(initial_name, name)
         for source_name, target_name, attrs in edges:
             subgraph.edge(source_name, target_name, **dict(attrs))
 
@@ -111,10 +111,10 @@ def add_transition(transition_source, transition_target, transition_name, source
 def get_graphviz_layouts():
     try:
         import graphviz
-
-        return graphviz.backend.ENGINES
-    except Exception:
+    except ModuleNotFoundError:
         return {"sfdp", "circo", "twopi", "dot", "neato", "fdp", "osage", "patchwork"}
+    else:
+        return graphviz.backend.ENGINES
 
 
 class Command(BaseCommand):
@@ -139,10 +139,10 @@ class Command(BaseCommand):
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
     def render_output(self, graph, **options):
-        filename, format = options["outputfile"].rsplit(".", 1)
+        filename, graph_format = options["outputfile"].rsplit(".", 1)
 
         graph.engine = options["layout"]
-        graph.format = format
+        graph.format = graph_format
         graph.render(filename)
 
     def handle(self, *args, **options):
@@ -156,10 +156,10 @@ class Command(BaseCommand):
                     models = apps.get_models(app)
                     for model in models:
                         fields_data += all_fsm_fields_data(model)
-                elif len(field_spec) == 2:
+                if len(field_spec) == 2:  # noqa: PLR2004
                     model = apps.get_model(field_spec[0], field_spec[1])
                     fields_data += all_fsm_fields_data(model)
-                elif len(field_spec) == 3:
+                if len(field_spec) == 3:  # noqa: PLR2004
                     model = apps.get_model(field_spec[0], field_spec[1])
                     fields_data += all_fsm_fields_data(model)
         else:
@@ -170,4 +170,4 @@ class Command(BaseCommand):
         if options["outputfile"]:
             self.render_output(dotdata, **options)
         else:
-            print(dotdata)
+            print(dotdata)  # noqa: T201

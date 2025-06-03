@@ -13,6 +13,9 @@ class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
     state = FSMField(default="new")
     text = models.CharField(max_length=50)
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=state, source="new", target="published")
     def publish(self):
         pass
@@ -21,20 +24,17 @@ class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
     def remove(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class ExtendedBlogPost(LockedBlogPost):
     review_state = FSMField(default="waiting", protected=True)
     notes = models.CharField(max_length=50)
 
+    class Meta:
+        app_label = "testapp"
+
     @transition(field=review_state, source="waiting", target="rejected")
     def reject(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class TestLockMixin(TestCase):

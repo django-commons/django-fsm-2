@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Unreleased
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Add support for Django 5.2
+- Add support for python 3.13
+
+
 django-fsm-2 4.0.0 2024-09-02
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
