@@ -130,3 +130,6 @@ dmypy.json
 
 # sqlite
 test.db
+*.sqlite3
+
+tests/testapp/migrations/
