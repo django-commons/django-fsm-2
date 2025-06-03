@@ -114,7 +114,7 @@ def get_graphviz_layouts():
     except ModuleNotFoundError:
         return {"sfdp", "circo", "twopi", "dot", "neato", "fdp", "osage", "patchwork"}
     else:
-        return graphviz.backend.ENGINES
+        return graphviz.ENGINES
 
 
 class Command(BaseCommand):

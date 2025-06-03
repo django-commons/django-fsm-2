@@ -12,7 +12,7 @@ from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
 
-class BlogPost(models.Model):
+class SimpleBlogPost(models.Model):
     state = FSMField(default="new")
 
     @transition(field=state, source="new", target="published")
@@ -50,7 +50,7 @@ class BlogPost(models.Model):
 
 class FSMFieldTest(TestCase):
     def setUp(self):
-        self.model = BlogPost()
+        self.model = SimpleBlogPost()
 
     def test_initial_state_instantiated(self):
         self.assertEqual(self.model.state, "new")
@@ -121,11 +121,11 @@ class FSMFieldTest(TestCase):
 
 class StateSignalsTests(TestCase):
     def setUp(self):
-        self.model = BlogPost()
+        self.model = SimpleBlogPost()
         self.pre_transition_called = False
         self.post_transition_called = False
-        pre_transition.connect(self.on_pre_transition, sender=BlogPost)
-        post_transition.connect(self.on_post_transition, sender=BlogPost)
+        pre_transition.connect(self.on_pre_transition, sender=SimpleBlogPost)
+        post_transition.connect(self.on_post_transition, sender=SimpleBlogPost)
 
     def on_pre_transition(self, sender, instance, name, source, target, **kwargs):
         self.assertEqual(instance.state, source)
@@ -148,7 +148,7 @@ class StateSignalsTests(TestCase):
 
 class TestFieldTransitionsInspect(TestCase):
     def setUp(self):
-        self.model = BlogPost()
+        self.model = SimpleBlogPost()
 
     def test_in_operator_for_available_transitions(self):
         # store the generator in a list, so we can reuse the generator and do multiple asserts
