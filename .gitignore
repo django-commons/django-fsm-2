@@ -130,9 +130,11 @@ dmypy.json
 
 # sqlite
 test.db
+*.sqlite3
 
-# django fsm command tests
+# django fsm
 exports/*
+tests/testapp/migrations/
 
 # Codex
 .codex

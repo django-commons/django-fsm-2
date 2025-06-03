@@ -118,6 +118,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-appconf"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/a2/e58bec8d7941b914af52a67c35b5709eceed2caa2848f28437f1666ed668/django_appconf-1.2.0.tar.gz", hash = "sha256:15a88d60dd942d6059f467412fe4581db632ef03018a3c183fb415d6fc9e5cec", size = 16127, upload-time = "2025-11-08T15:46:27.304Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/e6/4c34d94dfb74bbcbc489606e61f1924933de30d22c593dd1f429f35fbd7f/django_appconf-1.2.0-py3-none-any.whl", hash = "sha256:b81bce5ef0ceb9d84df48dfb623a32235d941c78cc5e45dbb6947f154ea277f4", size = 6500, upload-time = "2025-11-08T15:46:25.957Z" },
+]
+
+[[package]]
 name = "django-fsm-2"
 version = "4.1.0"
 source = { editable = "." }
@@ -134,8 +146,10 @@ graphviz = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "django-fsm-log" },
     { name = "django-guardian" },
     { name = "django-stubs-ext" },
+    { name = "graphviz" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -154,13 +168,29 @@ provides-extras = ["graphviz"]
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage" },
+    { name = "django-fsm-log" },
     { name = "django-guardian" },
     { name = "django-stubs-ext" },
+    { name = "graphviz" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "tox" },
+]
+
+[[package]]
+name = "django-fsm-log"
+version = "5.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-appconf" },
+    { name = "django-fsm-2" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/5f/f59917a2e0abeaf9cf20b7920c3df966c813754c61cb3d6587ace30d5e28/django_fsm_log-5.0.2.tar.gz", hash = "sha256:5276a587bff3112c123c73456f37decf9c1bdc631e005c760e248adc25c8ec97", size = 8758, upload-time = "2026-01-27T11:08:49.532Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/ca/79414e6548d0c2585c7d134250152f12071b6a270367a693e6ea704be011/django_fsm_log-5.0.2-py3-none-any.whl", hash = "sha256:02fbb61a54b21c1640e6360a251e3a07b564307bbdd391bbbf65ca8299f13d9e", size = 13964, upload-time = "2026-01-27T11:08:48.056Z" },
 ]
 
 [[package]]
