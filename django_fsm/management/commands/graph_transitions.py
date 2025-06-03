@@ -126,7 +126,7 @@ class Command(BaseCommand):
             "-o",
             action="store",
             dest="outputfile",
-            help=("Render output file. Type of output dependent on file extensions. " "Use png or jpg to render graph to image."),
+            help=("Render output file. Type of output dependent on file extensions. Use png or jpg to render graph to image."),
         )
         parser.add_argument(
             "--layout",

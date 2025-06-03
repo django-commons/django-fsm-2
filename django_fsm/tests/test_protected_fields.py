@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import unittest
-
-import django
 from django.db import models
 from django.test import TestCase
 
@@ -40,7 +37,6 @@ class TestDirectAccessModels(TestCase):
         instance.save()
         self.assertEqual(instance.status, "published")
 
-    @unittest.skipIf(django.VERSION < (1, 8), "Django introduced refresh_from_db in 1.8")
     def test_refresh_from_db(self):
         instance = RefreshableModel()
         instance.save()
