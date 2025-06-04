@@ -29,7 +29,7 @@ class Test(TestCase):
         model = MixinSupportTestModel()
 
         model.draft()
-        self.assertEqual(model.state, "draft")
+        assert model.state == "draft"
 
         model.publish()
-        self.assertEqual(model.state, "published")
+        assert model.state == "published"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from django.db import models
 from django.test import TestCase
 
@@ -34,14 +35,16 @@ class FSMFieldExceptionTest(TestCase):
         self.post_transition_data = kwargs
 
     def test_state_changed_after_fail(self):
-        self.assertTrue(can_proceed(self.model.publish))
-        self.assertRaises(Exception, self.model.publish)
-        self.assertEqual(self.model.state, "crashed")
-        self.assertEqual(self.post_transition_data["target"], "crashed")
-        self.assertTrue("exception" in self.post_transition_data)
+        assert can_proceed(self.model.publish)
+        with pytest.raises(Exception, match="Upss"):
+            self.model.publish()
+        assert self.model.state == "crashed"
+        assert self.post_transition_data["target"] == "crashed"
+        assert "exception" in self.post_transition_data
 
     def test_state_not_changed_after_fail(self):
-        self.assertTrue(can_proceed(self.model.delete))
-        self.assertRaises(Exception, self.model.delete)
-        self.assertEqual(self.model.state, "new")
-        self.assertIsNone(self.post_transition_data)
+        assert can_proceed(self.model.delete)
+        with pytest.raises(Exception, match="Upss"):
+            self.model.delete()
+        assert self.model.state == "new"
+        assert self.post_transition_data is None

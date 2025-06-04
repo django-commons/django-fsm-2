@@ -15,7 +15,17 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
       - id: trailing-whitespace
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.32.0
+    hooks:
+      - id: typos
+        args: []
+        types_or:
+          - python
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0
