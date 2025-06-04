@@ -50,8 +50,7 @@ class FKBlogPost(models.Model):
 
 class FSMKeyFieldTest(TestCase):
     def setUp(self):
-        for item in FK_AVAILABLE_STATES:
-            DbState.objects.create(pk=item[0], label=item[1])
+        DbState.objects.bulk_create(DbState(pk=item[0], label=item[1]) for item in FK_AVAILABLE_STATES)
         self.model = FKBlogPost()
 
     def test_initial_state_instantiated(self):
@@ -126,9 +125,11 @@ class BlogPostWithFKState(models.Model):
 
 class BlogPostWithFKStateTest(TestCase):
     def setUp(self):
-        BlogPostStatus.objects.create(name="new")
-        BlogPostStatus.objects.create(name="published")
-        BlogPostStatus.objects.create(name="hidden")
+        BlogPostStatus.objects.bulk_create([
+            BlogPostStatus(name="new")
+            BlogPostStatus(name="published")
+            BlogPostStatus(name="hidden")
+        ])
         self.model = BlogPostWithFKState()
 
     def test_known_transition_should_succeed(self):

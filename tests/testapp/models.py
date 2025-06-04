@@ -40,13 +40,26 @@ class Application(models.Model):
         pass
 
 
+class DbState(models.Model):
+    """
+    States in DB
+    """
+
+    id = models.CharField(primary_key=True, max_length=50)
+
+    label = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.label
+
+
 class FKApplication(models.Model):
     """
     Student application need to be approved by dept chair and dean.
     Test workflow for FSMKeyField
     """
 
-    state = FSMKeyField("testapp.DbState", default="new", on_delete=models.CASCADE)
+    state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     @transition(field=state, source="new", target="draft")
     def draft(self):
@@ -71,19 +84,6 @@ class FKApplication(models.Model):
     @transition(field=state, source="dean", target="dept")
     def dean_rejected(self):
         pass
-
-
-class DbState(models.Model):
-    """
-    States in DB
-    """
-
-    id = models.CharField(primary_key=True, max_length=50)
-
-    label = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.label
 
 
 class BlogPost(models.Model):

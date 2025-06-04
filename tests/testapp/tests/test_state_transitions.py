@@ -16,9 +16,6 @@ class Insect(models.Model):
 
     state = FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
 
-    class Meta:
-        app_label = "testapp"
-
     @transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
     def cocoon(self):
         pass
@@ -32,7 +29,6 @@ class Insect(models.Model):
 
 class Caterpillar(Insect):
     class Meta:
-        app_label = "testapp"
         proxy = True
 
     def crawl(self):
@@ -43,7 +39,6 @@ class Caterpillar(Insect):
 
 class Butterfly(Insect):
     class Meta:
-        app_label = "testapp"
         proxy = True
 
     def fly(self):
@@ -63,8 +58,12 @@ class TestStateProxy(TestCase):
         assert isinstance(insect, Butterfly)
 
     def test_load_proxy_set(self):
-        Insect.objects.create(state=Insect.STATE.CATERPILLAR)
-        Insect.objects.create(state=Insect.STATE.BUTTERFLY)
+        Insect.objects.bulk_create(
+            [
+                Insect(state=Insect.STATE.CATERPILLAR),
+                Insect(state=Insect.STATE.BUTTERFLY),
+            ]
+        )
 
         insects = Insect.objects.all()
         assert {Caterpillar, Butterfly} == {insect.__class__ for insect in insects}

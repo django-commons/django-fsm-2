@@ -13,9 +13,6 @@ class TestModel(models.Model):
     signal_counter = models.IntegerField(default=0)
     state = FSMField(default="SUBMITTED_BY_USER")
 
-    class Meta:
-        app_label = "testapp"
-
     @transition(field=state, source="SUBMITTED_BY_USER", target="REVIEW_USER")
     @transition(field=state, source="SUBMITTED_BY_ADMIN", target="REVIEW_ADMIN")
     @transition(field=state, source="SUBMITTED_BY_ANONYMOUS", target="REVIEW_ANONYMOUS")

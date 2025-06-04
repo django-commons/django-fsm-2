@@ -13,9 +13,6 @@ from django_fsm.signals import post_transition
 class ExceptionalBlogPost(models.Model):
     state = FSMField(default="new")
 
-    class Meta:
-        app_label = "testapp"
-
     @transition(field=state, source="new", target="published", on_error="crashed")
     def publish(self):
         raise Exception("Upss")

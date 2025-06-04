@@ -14,9 +14,6 @@ from django_fsm.signals import pre_transition
 class MultiResultTest(models.Model):
     state = FSMField(default="new")
 
-    class Meta:
-        app_label = "testapp"
-
     @transition(field=state, source="new", target=RETURN_VALUE("for_moderators", "published"))
     def publish(self, *, is_public=False):
         return "published" if is_public else "for_moderators"
