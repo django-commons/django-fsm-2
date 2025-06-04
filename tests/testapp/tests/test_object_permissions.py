@@ -15,8 +15,6 @@ class ObjectPermissionTestModel(models.Model):
     state = FSMField(default="new")
 
     class Meta:
-        app_label = "testapp"
-
         permissions = [
             ("can_publish_objectpermissiontestmodel", "Can publish ObjectPermissionTestModel"),
         ]

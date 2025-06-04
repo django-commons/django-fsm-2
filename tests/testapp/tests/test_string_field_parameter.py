@@ -10,9 +10,6 @@ from django_fsm import transition
 class BlogPostWithStringField(models.Model):
     state = FSMField(default="new")
 
-    class Meta:
-        app_label = "testapp"
-
     @transition(field="state", source="new", target="published", conditions=[])
     def publish(self):
         pass
