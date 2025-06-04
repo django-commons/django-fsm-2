@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from django.db import models
 from django.test import TestCase
 
@@ -7,6 +8,7 @@ from django_fsm import FSMKeyField
 from django_fsm import TransitionNotAllowed
 from django_fsm import can_proceed
 from django_fsm import transition
+from tests.testapp.models import DbState
 
 FK_AVAILABLE_STATES = (
     ("New", "_NEW_"),
@@ -18,23 +20,8 @@ FK_AVAILABLE_STATES = (
 )
 
 
-class DBState(models.Model):
-    id = models.CharField(primary_key=True, max_length=50)
-
-    label = models.CharField(max_length=255)
-
-    class Meta:
-        app_label = "django_fsm"
-
-    def __str__(self):
-        return self.label
-
-
 class FKBlogPost(models.Model):
-    state = FSMKeyField(DBState, default="new", protected=True, on_delete=models.CASCADE)
-
-    class Meta:
-        app_label = "django_fsm"
+    state = FSMKeyField(DbState, default="new", protected=True, on_delete=models.CASCADE)
 
     @transition(field=state, source="new", target="published")
     def publish(self):
@@ -64,68 +51,65 @@ class FKBlogPost(models.Model):
 class FSMKeyFieldTest(TestCase):
     def setUp(self):
         for item in FK_AVAILABLE_STATES:
-            DBState.objects.create(pk=item[0], label=item[1])
+            DbState.objects.create(pk=item[0], label=item[1])
         self.model = FKBlogPost()
 
-    def test_initial_state_instatiated(self):
-        self.assertEqual(
-            self.model.state,
-            "new",
-        )
+    def test_initial_state_instantiated(self):
+        assert self.model.state == "new"
 
     def test_known_transition_should_succeed(self):
-        self.assertTrue(can_proceed(self.model.publish))
+        assert can_proceed(self.model.publish)
         self.model.publish()
-        self.assertEqual(self.model.state, "published")
+        assert self.model.state == "published"
 
-        self.assertTrue(can_proceed(self.model.hide))
+        assert can_proceed(self.model.hide)
         self.model.hide()
-        self.assertEqual(self.model.state, "hidden")
+        assert self.model.state == "hidden"
 
-    def test_unknow_transition_fails(self):
-        self.assertFalse(can_proceed(self.model.hide))
-        self.assertRaises(TransitionNotAllowed, self.model.hide)
+    def test_unknown_transition_fails(self):
+        assert not can_proceed(self.model.hide)
+        with pytest.raises(TransitionNotAllowed):
+            self.model.hide()
 
     def test_state_non_changed_after_fail(self):
-        self.assertTrue(can_proceed(self.model.remove))
-        self.assertRaises(Exception, self.model.remove)
-        self.assertEqual(self.model.state, "new")
+        assert can_proceed(self.model.remove)
+        with pytest.raises(Exception, match="Upss"):
+            self.model.remove()
+        assert self.model.state == "new"
 
     def test_allowed_null_transition_should_succeed(self):
-        self.assertTrue(can_proceed(self.model.publish))
+        assert can_proceed(self.model.publish)
         self.model.publish()
         self.model.notify_all()
-        self.assertEqual(self.model.state, "published")
+        assert self.model.state == "published"
 
-    def test_unknow_null_transition_should_fail(self):
-        self.assertRaises(TransitionNotAllowed, self.model.notify_all)
-        self.assertEqual(self.model.state, "new")
+    def test_unknown_null_transition_should_fail(self):
+        with pytest.raises(TransitionNotAllowed):
+            self.model.notify_all()
+        assert self.model.state == "new"
 
-    def test_mutiple_source_support_path_1_works(self):
+    def test_multiple_source_support_path_1_works(self):
         self.model.publish()
         self.model.steal()
-        self.assertEqual(self.model.state, "stolen")
+        assert self.model.state == "stolen"
 
-    def test_mutiple_source_support_path_2_works(self):
+    def test_multiple_source_support_path_2_works(self):
         self.model.publish()
         self.model.hide()
         self.model.steal()
-        self.assertEqual(self.model.state, "stolen")
+        assert self.model.state == "stolen"
 
     def test_star_shortcut_succeed(self):
-        self.assertTrue(can_proceed(self.model.moderate))
+        assert can_proceed(self.model.moderate)
         self.model.moderate()
-        self.assertEqual(self.model.state, "moderated")
+        assert self.model.state == "moderated"
 
 
 """
 # TODO: FIX it
 class BlogPostStatus(models.Model):
-    name = models.CharField(max_length=10, unique=True)
+    name = models.CharField(unique=True, max_length=10)
     objects = models.Manager()
-
-    class Meta:
-        app_label = 'django_fsm'
 
 
 class BlogPostWithFKState(models.Model):
@@ -154,6 +138,7 @@ class BlogPostWithFKStateTest(TestCase):
         self.model.hide()
         self.assertEqual(self.model.state, 'hidden')
 
-    def test_unknow_transition_fails(self):
-        self.assertRaises(TransitionNotAllowed, self.model.hide)
+    def test_unknown_transition_fails(self):
+        with pytest.raises(TransitionNotAllowed):
+            self.model.hide()
 """

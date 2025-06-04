@@ -20,7 +20,7 @@ class Application(models.Model):
         pass
 
     @transition(field=state, source=["new", "draft"], target="dept")
-    def to_approvement(self):
+    def submitted(self):
         pass
 
     @transition(field=state, source="dept", target="dean")
@@ -53,7 +53,7 @@ class FKApplication(models.Model):
         pass
 
     @transition(field=state, source=["new", "draft"], target="dept")
-    def to_approvement(self):
+    def submitted(self):
         pass
 
     @transition(field=state, source="dept", target="dean")

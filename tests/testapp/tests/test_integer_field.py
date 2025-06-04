@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from django.db import models
 from django.test import TestCase
 
@@ -32,10 +33,11 @@ class BlogPostWithIntegerFieldTest(TestCase):
 
     def test_known_transition_should_succeed(self):
         self.model.publish()
-        self.assertEqual(self.model.state, BlogPostStateEnum.PUBLISHED)
+        assert self.model.state == BlogPostStateEnum.PUBLISHED
 
         self.model.hide()
-        self.assertEqual(self.model.state, BlogPostStateEnum.HIDDEN)
+        assert self.model.state == BlogPostStateEnum.HIDDEN
 
-    def test_unknow_transition_fails(self):
-        self.assertRaises(TransitionNotAllowed, self.model.hide)
+    def test_unknown_transition_fails(self):
+        with pytest.raises(TransitionNotAllowed):
+            self.model.hide()

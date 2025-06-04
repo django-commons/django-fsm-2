@@ -66,9 +66,8 @@ extend-ignore = [
     "B",
     "PTH",
     "ANN",  # Missing type annotation
+    "S101",  # Use of `assert` detected
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
-    "PT",  # Use a regular `assert` instead of unittest-style
-    "DJ008",  # Model does not define `__str__` method
     "ARG001",  # Unused function argument
     "ARG002",  # Unused method argument
     "TRY002",  # Create your own exception
@@ -84,6 +83,10 @@ fixable = [
     "RUF100",  # Unused `noqa` directive
 ]
 
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*" = [
+    "DJ008",  # Model does not define `__str__` method
+]
 
 [tool.ruff.lint.isort]
 force-single-line = true

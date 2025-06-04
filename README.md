@@ -289,8 +289,8 @@ In your model :
 
 ``` python
 class DbState(models.Model):
-    id = models.CharField(primary_key=True, max_length=50)
-    label = models.CharField(max_length=255)
+    id = models.CharField(primary_key=True)
+    label = models.CharField()
 
     def __str__(self):
         return self.label

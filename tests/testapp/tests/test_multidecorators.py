@@ -34,5 +34,5 @@ class TestStateProxy(TestCase):
     def test_transition_method_called_once(self):
         model = TestModel()
         model.review()
-        self.assertEqual(1, model.counter)
-        self.assertEqual(1, model.signal_counter)
+        assert model.counter == 1
+        assert model.signal_counter == 1

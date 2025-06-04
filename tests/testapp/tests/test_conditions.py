@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from django.db import models
 from django.test import TestCase
 
@@ -36,17 +37,18 @@ class ConditionalTest(TestCase):
         self.model = BlogPostWithConditions()
 
     def test_initial_staet(self):
-        self.assertEqual(self.model.state, "new")
+        assert self.model.state == "new"
 
     def test_known_transition_should_succeed(self):
-        self.assertTrue(can_proceed(self.model.publish))
+        assert can_proceed(self.model.publish)
         self.model.publish()
-        self.assertEqual(self.model.state, "published")
+        assert self.model.state == "published"
 
     def test_unmet_condition(self):
         self.model.publish()
-        self.assertEqual(self.model.state, "published")
-        self.assertFalse(can_proceed(self.model.destroy))
-        self.assertRaises(TransitionNotAllowed, self.model.destroy)
+        assert self.model.state == "published"
+        assert not can_proceed(self.model.destroy)
+        with pytest.raises(TransitionNotAllowed):
+            self.model.destroy()
 
-        self.assertTrue(can_proceed(self.model.destroy, check_conditions=False))
+        assert can_proceed(self.model.destroy, check_conditions=False)
