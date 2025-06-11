@@ -8,7 +8,7 @@ from django_fsm import can_proceed
 from django_fsm import transition
 
 
-class TestExceptTargetTransitionShortcut(models.Model):
+class ExceptTargetTransitionShortcut(models.Model):
     state = FSMField(default="new")
 
     @transition(field=state, source="new", target="published")
@@ -20,9 +20,9 @@ class TestExceptTargetTransitionShortcut(models.Model):
         pass
 
 
-class Test(TestCase):
+class TestExceptTargetTransitionShortcut(TestCase):
     def setUp(self):
-        self.model = TestExceptTargetTransitionShortcut()
+        self.model = ExceptTargetTransitionShortcut()
 
     def test_usecase(self):
         assert self.model.state == "new"
