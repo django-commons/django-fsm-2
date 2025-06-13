@@ -29,6 +29,8 @@ Nice introduction is available here: <https://gist.github.com/Nagyman/9502133>
 
 ## Installation
 
+First, install the package with pip.
+
 ``` bash
 $ pip install django-fsm-2
 ```
@@ -37,6 +39,16 @@ Or, for the latest git version
 
 ``` bash
 $ pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
+```
+
+Register django_fsm in your list of Django applications
+
+```python
+INSTALLED_APPS = (
+    ...,
+    'django_fsm',
+    ...,
+)
 ```
 
 ## Migration from django-fsm
@@ -397,8 +409,9 @@ practically negating their effect.
 
 Renders a graphical overview of your models states transitions
 
-You need `pip install "graphviz>=0.4"` library and add `django_fsm` to
-your `INSTALLED_APPS`:
+1. You need `pip install "graphviz>=0.4"` library
+
+2. Make sure `django_fsm` is in your `INSTALLED_APPS` settings:
 
 ``` python
 INSTALLED_APPS = (
@@ -407,6 +420,8 @@ INSTALLED_APPS = (
     ...
 )
 ```
+
+3. Then you can use `graph_transitions` command:
 
 ``` bash
 # Create a dot file

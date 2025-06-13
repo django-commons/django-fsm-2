@@ -8,7 +8,7 @@ from django_fsm import transition
 from django_fsm.signals import post_transition
 
 
-class TestModel(models.Model):
+class MultiDecoratedModel(models.Model):
     counter = models.IntegerField(default=0)
     signal_counter = models.IntegerField(default=0)
     state = FSMField(default="SUBMITTED_BY_USER")
@@ -24,12 +24,12 @@ def count_calls(sender, instance, name, source, target, **kwargs):
     instance.signal_counter += 1
 
 
-post_transition.connect(count_calls, sender=TestModel)
+post_transition.connect(count_calls, sender=MultiDecoratedModel)
 
 
 class TestStateProxy(TestCase):
     def test_transition_method_called_once(self):
-        model = TestModel()
+        model = MultiDecoratedModel()
         model.review()
         assert model.counter == 1
         assert model.signal_counter == 1
