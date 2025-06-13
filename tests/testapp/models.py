@@ -140,3 +140,107 @@ class BlogPost(models.Model):
     @transition(field=state, source="*", target="moderated")
     def moderate(self):
         pass
+
+
+class AdminBlogPostState(models.TextChoices):
+    CREATED = "created", "Created"
+    REVIEWED = "reviewed", "Reviewed"
+    PUBLISHED = "published", "Published"
+    HIDDEN = "hidden", "Hidden"
+
+
+class AdminBlogPostStep(models.TextChoices):
+    STEP_1 = "step1", "Step one"
+    STEP_2 = "step2", "Step two"
+    STEP_3 = "step3", "Step three"
+
+
+class AdminBlogPost(models.Model):
+    title = models.CharField(max_length=50)
+
+    state = FSMField(
+        choices=AdminBlogPostState.choices,
+        default=AdminBlogPostState.CREATED,
+        protected=True,
+    )
+
+    step = FSMField(
+        choices=AdminBlogPostStep.choices,
+        default=AdminBlogPostStep.STEP_1,
+        protected=False,
+    )
+
+    # state transitions
+
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.HIDDEN,
+        custom={
+            "admin": False,
+        },
+    )
+    def secret_transition(self):
+        pass
+
+    @transition(
+        field=state,
+        source=[AdminBlogPostState.CREATED],
+        target=AdminBlogPostState.REVIEWED,
+    )
+    def moderate(self):
+        pass
+
+    @transition(
+        field=state,
+        source=[
+            AdminBlogPostState.REVIEWED,
+            AdminBlogPostState.HIDDEN,
+        ],
+        target=AdminBlogPostState.PUBLISHED,
+    )
+    def publish(self):
+        pass
+
+    @transition(
+        field=state,
+        source=[
+            AdminBlogPostState.REVIEWED,
+            AdminBlogPostState.PUBLISHED,
+        ],
+        target=AdminBlogPostState.HIDDEN,
+    )
+    def hide(self):
+        pass
+
+    # step transitions
+
+    @transition(
+        field=step,
+        source=[AdminBlogPostStep.STEP_1],
+        target=AdminBlogPostStep.STEP_2,
+        custom={
+            "label": "Go to Step 2",
+        },
+    )
+    def step_two(self):
+        pass
+
+    @transition(
+        field=step,
+        source=[AdminBlogPostStep.STEP_2],
+        target=AdminBlogPostStep.STEP_3,
+    )
+    def step_three(self):
+        pass
+
+    @transition(
+        field=step,
+        source=[
+            AdminBlogPostStep.STEP_2,
+            AdminBlogPostStep.STEP_3,
+        ],
+        target=AdminBlogPostStep.STEP_1,
+    )
+    def step_reset(self):
+        pass

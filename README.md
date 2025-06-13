@@ -405,6 +405,68 @@ ConcurrentTransitionMixin to cause a rollback of all the changes that
 have been executed in an inconsistent (out of sync) state, thus
 practically negating their effect.
 
+## Admin Integration
+
+1. Make sure `django_fsm` is in your `INSTALLED_APPS` settings:
+
+``` python
+INSTALLED_APPS = (
+    ...
+    'django_fsm',
+    ...
+)
+```
+
+NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
+
+
+2. In your admin.py file, use FSMAdminMixin to add behaviour to your ModelAdmin. FSMAdminMixin should be before ModelAdmin, the order is important.
+
+``` python
+from django_fsm.admin import FSMAdminMixin
+
+@admin.register(AdminBlogPost)
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+    fsm_field = ['my_fsm_field',]
+    ...
+```
+
+3. You can customize the label by adding ``custom={"label"="My awesome transition"}`` to the transition decorator
+
+``` python
+@transition(
+    field='state',
+    source=['startstate'],
+    target='finalstate',
+    custom={"label"=False},
+)
+def do_something(self, param):
+       ...
+```
+
+4. By adding ``custom={"admin"=False}`` to the transition decorator, one can disallow a transition to show up in the admin interface.
+
+``` python
+    @transition(
+       field='state',
+       source=['startstate'],
+       target='finalstate',
+       custom={"admin"=False},
+    )
+    def do_something(self, param):
+       # will not add a button "Do Something" to your admin model interface
+```
+
+By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `default_disallow_transition = False` to your admin), the above restriction becomes the default.
+Then one must explicitly allow that a transition method shows up in the admin interface.
+
+``` python
+@admin.register(AdminBlogPost)
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+    default_disallow_transition = False
+    ...
+```
+
 ## Drawing transitions
 
 Renders a graphical overview of your models states transitions
@@ -432,12 +494,6 @@ $ ./manage.py graph_transitions -o blog_transitions.png myapp.Blog
 ```
 
 ## Extensions
-
-You may also take a look at django-fsm-2-admin project containing a mixin
-and template tags to integrate django-fsm-2 state transitions into the
-django admin.
-
-<https://github.com/coral-li/django-fsm-2-admin>
 
 Transition logging support could be achieved with help of django-fsm-log
 package
