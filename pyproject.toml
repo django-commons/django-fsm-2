@@ -48,6 +48,7 @@ pre-commit = "*"
 pytest = "*"
 pytest-cov = "^4.1.0"
 pytest-django = "*"
+django_fsm_log = "*"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
