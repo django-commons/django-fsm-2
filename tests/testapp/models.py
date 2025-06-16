@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from django.db import models
+from django_fsm_log.decorators import fsm_log_by
+from django_fsm_log.decorators import fsm_log_description
 
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
@@ -291,6 +293,8 @@ class AdminBlogPost(models.Model):
 
     # state transitions
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source="*",
@@ -299,17 +303,21 @@ class AdminBlogPost(models.Model):
             "admin": False,
         },
     )
-    def secret_transition(self):
+    def secret_transition(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=[AdminBlogPostState.CREATED],
         target=AdminBlogPostState.REVIEWED,
     )
-    def moderate(self):
+    def moderate(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -318,9 +326,11 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.PUBLISHED,
     )
-    def publish(self):
+    def publish(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -329,11 +339,13 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.HIDDEN,
     )
-    def hide(self):
+    def hide(self, by=None, description=None):
         pass
 
     # step transitions
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_1],
@@ -342,17 +354,21 @@ class AdminBlogPost(models.Model):
             "label": "Go to Step 2",
         },
     )
-    def step_two(self):
+    def step_two(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_2],
         target=AdminBlogPostStep.STEP_3,
     )
-    def step_three(self):
+    def step_three(self, by=None, description=None):
         pass
 
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[
@@ -361,5 +377,5 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostStep.STEP_1,
     )
-    def step_reset(self):
+    def step_reset(self, by=None, description=None):
         pass

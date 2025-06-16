@@ -7,6 +7,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.test.client import RequestFactory
+from django_fsm_log.models import StateLog
 
 from django_fsm import ConcurrentTransition
 from django_fsm import FSMField
@@ -105,6 +106,7 @@ class ResponseChangeTest(TestCase):
         cls.user = get_user_model().objects.create_user(username="jacob", password="password", is_staff=True)  # noqa: S106
 
     def test_unknown_transition(self, mock_message_user):
+        assert StateLog.objects.count() == 0
         request = RequestFactory().post(
             path="/",
             data={"_fsm_transition_to": "unknown_transition"},
@@ -126,8 +128,10 @@ class ResponseChangeTest(TestCase):
 
         updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.CREATED
+        assert StateLog.objects.count() == 0
 
     def test_transition_applied(self, mock_message_user):
+        assert StateLog.objects.count() == 0
         request = RequestFactory().post(
             path="/",
             data={"_fsm_transition_to": "moderate"},
@@ -150,8 +154,11 @@ class ResponseChangeTest(TestCase):
 
         updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.REVIEWED
+        assert StateLog.objects.count() == 1
+        assert StateLog.objects.get().by == self.user
 
     def test_transition_not_allowed_exception(self, mock_message_user):
+        assert StateLog.objects.count() == 0
         request = RequestFactory().post(
             path="/",
             data={"_fsm_transition_to": "publish"},
@@ -174,8 +181,10 @@ class ResponseChangeTest(TestCase):
 
         updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.CREATED
+        assert StateLog.objects.count() == 0
 
     def test_concurrent_transition_exception(self, mock_message_user):
+        assert StateLog.objects.count() == 0
         request = RequestFactory().post(
             path="/",
             data={"_fsm_transition_to": "moderate"},
@@ -202,3 +211,4 @@ class ResponseChangeTest(TestCase):
 
         updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.CREATED
+        assert StateLog.objects.count() == 0
