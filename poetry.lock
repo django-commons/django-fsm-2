@@ -176,6 +176,54 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-appconf"
+version = "1.0.6"
+description = "A helper class for handling configuration defaults of packaged apps gracefully."
+optional = false
+python-versions = ">=3.7"
+groups = ["dev"]
+files = [
+    {file = "django-appconf-1.0.6.tar.gz", hash = "sha256:cfe87ea827c4ee04b9a70fab90b86d704cb02f2981f89da8423cb0fabf88efbf"},
+    {file = "django_appconf-1.0.6-py3-none-any.whl", hash = "sha256:c3ae442fba1ff7ec830412c5184b17169a7a1e71cf0864a4c3f93cf4c98a1993"},
+]
+
+[package.dependencies]
+django = "*"
+
+[[package]]
+name = "django-fsm"
+version = "3.0.0"
+description = "Django friendly finite state machine support."
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "django-fsm-3.0.0.tar.gz", hash = "sha256:0112bcac573ad14051cf8ebe73bf296b6d5409f093e5f1677eb16e2196e263b3"},
+    {file = "django_fsm-3.0.0-py2.py3-none-any.whl", hash = "sha256:fa28f84f47eae7ce9247585ac6c1895e4ada08efff93fb243a59e9ff77b2d4ec"},
+]
+
+[[package]]
+name = "django-fsm-log"
+version = "3.1.0"
+description = "Transition's persistence for django-fsm"
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "django-fsm-log-3.1.0.tar.gz", hash = "sha256:9ef766f5e6d7c573d1953cf91df73538a611373cc1ef97488eff19a3f71d6ed6"},
+    {file = "django_fsm_log-3.1.0-py3-none-any.whl", hash = "sha256:ac4394f22659e7fb8e5ac42d1cc075490cd5a2af37202377ab2a1cb221c5f3db"},
+]
+
+[package.dependencies]
+django = ">=1.8"
+django-appconf = "*"
+django-fsm = ">=2"
+
+[package.extras]
+docs = ["myst-parser", "sphinx", "sphinx-rtd-theme"]
+testing = ["pytest", "pytest-cov", "pytest-django", "pytest-mock"]
+
+[[package]]
 name = "django-guardian"
 version = "2.4.0"
 description = "Implementation of per object permissions for Django."
@@ -533,4 +581,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.8"
-content-hash = "f46b8a5b9ffa4e59610be81ead75f64886b8138740c3538a88bf5912b140a652"
+content-hash = "e53ebee9eba0675216211fa93dda8b3e5704334f6beb218d8b080419b8315b50"
