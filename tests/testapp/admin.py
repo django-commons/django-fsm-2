@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from django_fsm_log.admin import StateLogInline
 
 from django_fsm.admin import FSMAdminMixin
 
@@ -20,3 +21,5 @@ class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin):
         "state",
         "step",
     ]
+
+    inlines = [StateLogInline]

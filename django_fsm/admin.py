@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 from typing import Any
 
 from django.conf import settings
@@ -14,6 +15,13 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 import django_fsm as fsm
+
+try:
+    import django_fsm_log  # noqa: F401
+except ModuleNotFoundError:
+    FSM_LOG_ENABLED = False
+else:
+    FSM_LOG_ENABLED = True
 
 
 @dataclass
@@ -127,7 +135,20 @@ class FSMAdminMixin(BaseModelAdmin):
                 )
 
             try:
-                transition_func()
+                if FSM_LOG_ENABLED:
+                    for fn in [
+                        partial(transition_func, request=request, by=request.user),
+                        partial(transition_func, by=request.user),
+                        transition_func,
+                    ]:
+                        try:
+                            fn()
+                        except TypeError:  # noqa: PERF203
+                            pass
+                        else:
+                            break
+                else:
+                    transition_func()
             except fsm.TransitionNotAllowed:
                 self.message_user(
                     request=request,

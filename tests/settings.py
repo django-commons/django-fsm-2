@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_fsm_log",
     "guardian",
     *PROJECT_APPS,
 ]
@@ -141,3 +142,35 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Django FSM-log settings
+DJANGO_FSM_LOG_IGNORED_MODELS = (
+    # "tests.testapp.models.AdminBlogPost",
+    "tests.testapp.models.Application",
+    "tests.testapp.models.BlogPost",
+    "tests.testapp.models.DbState",
+    "tests.testapp.models.FKApplication",
+    "tests.testapp.tests.SimpleBlogPost",
+    "tests.testapp.tests.test_abstract_inheritance.BaseAbstractModel",
+    "tests.testapp.tests.test_abstract_inheritance.InheritedFromAbstractModel",
+    "tests.testapp.tests.test_access_deferred_fsm_field.DeferrableModel",
+    "tests.testapp.tests.test_basic_transitions.SimpleBlogPost",
+    "tests.testapp.tests.test_conditions.BlogPostWithConditions",
+    "tests.testapp.tests.test_custom_data.BlogPostWithCustomData",
+    "tests.testapp.tests.test_exception_transitions.ExceptionalBlogPost",
+    "tests.testapp.tests.test_graph_transitions.VisualBlogPost",
+    "tests.testapp.tests.test_integer_field.BlogPostWithIntegerField",
+    "tests.testapp.tests.test_lock_mixin.ExtendedBlogPost",
+    "tests.testapp.tests.test_lock_mixin.LockedBlogPost",
+    "tests.testapp.tests.test_mixin_support.MixinSupportTestModel",
+    "tests.testapp.tests.test_multi_resultstate.MultiResultTest",
+    "tests.testapp.tests.test_multidecorators.MultiDecoratedModel",
+    "tests.testapp.tests.test_protected_field.ProtectedAccessModel",
+    "tests.testapp.tests.test_protected_fields.RefreshableProtectedAccessModel",
+    "tests.testapp.tests.test_proxy_inheritance.InheritedModel",
+    "tests.testapp.tests.test_state_transitions.Caterpillar",
+    "tests.testapp.tests.test_string_field_parameter.BlogPostWithStringField",
+    "tests.testapp.tests.test_transition_all_except_target.ExceptTargetTransition",
+    "tests.testapp.tests.test_key_field.FKBlogPost",
+)

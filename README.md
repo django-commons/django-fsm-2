@@ -440,31 +440,31 @@ from django_fsm.admin import FSMAdminMixin
 
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
-    fsm_field = ['my_fsm_field',]
+    fsm_field = ['my_fsm_field']
     ...
 ```
 
-3. You can customize the label by adding ``custom={"label"="My awesome transition"}`` to the transition decorator
+3. You can customize the label by adding ``custom={"label": "My awesome transition"}`` to the transition decorator
 
 ``` python
 @transition(
     field='state',
     source=['startstate'],
     target='finalstate',
-    custom={"label"=False},
+    custom={"label": False},
 )
 def do_something(self, param):
        ...
 ```
 
-4. By adding ``custom={"admin"=False}`` to the transition decorator, one can disallow a transition to show up in the admin interface.
+4. By adding ``custom={"admin": False}`` to the transition decorator, one can disallow a transition to show up in the admin interface.
 
 ``` python
     @transition(
        field='state',
        source=['startstate'],
        target='finalstate',
-       custom={"admin"=False},
+       custom={"admin": False},
     )
     def do_something(self, param):
        # will not add a button "Do Something" to your admin model interface

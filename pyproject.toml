@@ -46,6 +46,7 @@ graphviz = [
 [dependency-groups]
 dev = [
     "coverage",
+    "django_fsm_log",
     "django-guardian",
     "django-stubs-ext",
     "graphviz",
