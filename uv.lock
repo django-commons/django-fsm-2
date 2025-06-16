@@ -174,6 +174,46 @@ wheels = [
 ]
 
 [[package]]
+name = "django-appconf"
+version = "1.0.6"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.9'",
+]
+dependencies = [
+    { name = "django", marker = "python_full_version < '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/65/e0/704b6453f21fac22f0ab128150e9782b7d38bc1ed09710ac2197ddc1751f/django-appconf-1.0.6.tar.gz", hash = "sha256:cfe87ea827c4ee04b9a70fab90b86d704cb02f2981f89da8423cb0fabf88efbf", size = 15895, upload-time = "2023-11-20T19:25:01.84Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/98/1cb3d9e8b1c6d0a74539b998474796fc5c0c0888b6201e5c95ba2f7a0677/django_appconf-1.0.6-py3-none-any.whl", hash = "sha256:c3ae442fba1ff7ec830412c5184b17169a7a1e71cf0864a4c3f93cf4c98a1993", size = 6424, upload-time = "2023-11-20T19:24:59.746Z" },
+]
+
+[[package]]
+name = "django-appconf"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
+]
+dependencies = [
+    { name = "django", marker = "python_full_version >= '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/a2/e58bec8d7941b914af52a67c35b5709eceed2caa2848f28437f1666ed668/django_appconf-1.2.0.tar.gz", hash = "sha256:15a88d60dd942d6059f467412fe4581db632ef03018a3c183fb415d6fc9e5cec", size = 16127, upload-time = "2025-11-08T15:46:27.304Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/e6/4c34d94dfb74bbcbc489606e61f1924933de30d22c593dd1f429f35fbd7f/django_appconf-1.2.0-py3-none-any.whl", hash = "sha256:b81bce5ef0ceb9d84df48dfb623a32235d941c78cc5e45dbb6947f154ea277f4", size = 6500, upload-time = "2025-11-08T15:46:25.957Z" },
+]
+
+[[package]]
+name = "django-fsm"
+version = "3.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/0b/605c646b09bcf4d49aa64fec87c732c6acbff93b945339381a6df0f78e99/django-fsm-3.0.1.tar.gz", hash = "sha256:d6436f5931e09d76e9a434781548627deab80c74cd6726adce95b31b5ddd4d1e", size = 12800, upload-time = "2025-10-07T16:33:27.398Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/87/ad5a38d1a8241b485835c6e6158634b29e885be78424ca42fb63df15b965/django_fsm-3.0.1-py2.py3-none-any.whl", hash = "sha256:ea07be2da221efa5cb8743cc94e0bb64fd962adff594f82269040eb4708c30c6", size = 12454, upload-time = "2025-10-07T16:33:26.218Z" },
+]
+
+[[package]]
 name = "django-fsm-2"
 version = "4.1.0"
 source = { editable = "." }
@@ -184,6 +224,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "django-fsm-log" },
     { name = "django-guardian" },
     { name = "graphviz" },
     { name = "pre-commit" },
@@ -204,6 +245,7 @@ requires-dist = [{ name = "django", specifier = ">=4.2" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage" },
+    { name = "django-fsm-log" },
     { name = "django-guardian" },
     { name = "graphviz" },
     { name = "pre-commit" },
@@ -213,6 +255,21 @@ dev = [
     { name = "tox" },
 ]
 graphviz = [{ name = "graphviz" }]
+
+[[package]]
+name = "django-fsm-log"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-appconf", version = "1.0.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "django-appconf", version = "1.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "django-fsm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/25/25296d04f9d4bb3717049a4f758f8b3ce5c6614ffea3b9504d1f6e79121f/django-fsm-log-3.1.0.tar.gz", hash = "sha256:9ef766f5e6d7c573d1953cf91df73538a611373cc1ef97488eff19a3f71d6ed6", size = 211700, upload-time = "2023-03-23T16:49:35.939Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/0d/45936561ddef8a714d08acfa74a72d5e0b0d4f4775cec78b4cea8b33fd24/django_fsm_log-3.1.0-py3-none-any.whl", hash = "sha256:ac4394f22659e7fb8e5ac42d1cc075490cd5a2af37202377ab2a1cb221c5f3db", size = 14087, upload-time = "2023-03-23T16:49:31.647Z" },
+]
 
 [[package]]
 name = "django-guardian"
