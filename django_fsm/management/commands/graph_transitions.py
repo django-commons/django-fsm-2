@@ -35,27 +35,28 @@ def generate_dot(fields_data):  # noqa: C901, PLR0912
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):
-            if transition.source == "*":
-                any_targets.add((transition.target, transition.name))
-            elif transition.source == "+":
-                any_except_targets.add((transition.target, transition.name))
-            else:
-                _targets = (
-                    (state for state in transition.target.allowed_states)
-                    if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
-                    else (transition.target,)
-                )
-                source_name_pair = (
-                    ((state, node_name(field, state)) for state in transition.source.allowed_states)
-                    if isinstance(transition.source, (GET_STATE, RETURN_VALUE))
-                    else ((transition.source, node_name(field, transition.source)),)
-                )
-                for source, source_name in source_name_pair:
-                    if transition.on_error:
-                        on_error_name = node_name(field, transition.on_error)
-                        targets.add((on_error_name, node_label(field, transition.on_error)))
-                        edges.add((source_name, on_error_name, (("style", "dotted"),)))
-                    for target in _targets:
+            _targets = list(
+                (state for state in transition.target.allowed_states)
+                if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
+                else (transition.target,)
+            )
+            source_name_pair = (
+                ((state, node_name(field, state)) for state in transition.source.allowed_states)
+                if isinstance(transition.source, (GET_STATE, RETURN_VALUE))
+                else ((transition.source, node_name(field, transition.source)),)
+            )
+            for source, source_name in source_name_pair:
+                if transition.on_error:
+                    on_error_name = node_name(field, transition.on_error)
+                    targets.add((on_error_name, node_label(field, transition.on_error)))
+                    edges.add((source_name, on_error_name, (("style", "dotted"),)))
+
+                for target in _targets:
+                    if transition.source == "*":
+                        any_targets.add((target, transition.name))
+                    elif transition.source == "+":
+                        any_except_targets.add((target, transition.name))
+                    else:
                         add_transition(source, target, transition.name, source_name, field, sources, targets, edges)
 
         targets.update(
