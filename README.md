@@ -429,6 +429,9 @@ $ ./manage.py graph_transitions > transitions.dot
 
 # Create a PNG image file only for specific model
 $ ./manage.py graph_transitions -o blog_transitions.png myapp.Blog
+
+# Exclude some transitions
+$ ./manage.py graph_transitions -e transition_1,transition_2 myapp.Blog
 ```
 
 ## Extensions
