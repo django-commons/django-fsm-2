@@ -170,12 +170,23 @@ class FKApplication(models.Model):
         pass
 
 
+class BlogPostState(models.IntegerChoices):
+    NEW = 0, "New"
+    PUBLISHED = 1, "Published"
+    HIDDEN = 2, "Hidden"
+    REMOVED = 3, "Removed"
+    RESTORED = 4, "Restored"
+    MODERATED = 5, "Moderated"
+    STOLEN = 6, "Stolen"
+    FAILED = 7, "Failed"
+
+
 class BlogPost(models.Model):
     """
     Test workflow
     """
 
-    state = FSMField(default="new", protected=True)
+    state = FSMField(choices=BlogPostState.choices, default=BlogPostState.NEW, protected=True)
 
     class Meta:
         permissions = [
@@ -186,41 +197,53 @@ class BlogPost(models.Model):
     def can_restore(self, user):
         return user.is_superuser or user.is_staff
 
-    @transition(field=state, source="new", target="published", on_error="failed", permission="testapp.can_publish_post")
+    @transition(
+        field=state,
+        source=BlogPostState.NEW,
+        target=BlogPostState.PUBLISHED,
+        on_error=BlogPostState.FAILED,
+        permission="testapp.can_publish_post",
+    )
     def publish(self):
         pass
 
-    @transition(field=state, source="published")
+    @transition(field=state, source=BlogPostState.PUBLISHED)
     def notify_all(self):
         pass
 
     @transition(
         field=state,
-        source="published",
-        target="hidden",
-        on_error="failed",
+        source=BlogPostState.PUBLISHED,
+        target=BlogPostState.HIDDEN,
+        on_error=BlogPostState.FAILED,
     )
     def hide(self):
         pass
 
     @transition(
         field=state,
-        source="new",
-        target="removed",
-        on_error="failed",
+        source=BlogPostState.NEW,
+        target=BlogPostState.REMOVED,
+        on_error=BlogPostState.FAILED,
         permission=lambda _, u: u.has_perm("testapp.can_remove_post"),
     )
     def remove(self):
         raise Exception(f"No rights to delete {self}")
 
-    @transition(field=state, source="new", target="restored", on_error="failed", permission=can_restore)
+    @transition(
+        field=state,
+        source=BlogPostState.NEW,
+        target=BlogPostState.RESTORED,
+        on_error=BlogPostState.FAILED,
+        permission=can_restore,
+    )
     def restore(self):
         pass
 
-    @transition(field=state, source=["published", "hidden"], target="stolen")
+    @transition(field=state, source=[BlogPostState.PUBLISHED, BlogPostState.HIDDEN], target=BlogPostState.STOLEN)
     def steal(self):
         pass
 
-    @transition(field=state, source="*", target="moderated")
+    @transition(field=state, source="*", target=BlogPostState.MODERATED)
     def moderate(self):
         pass

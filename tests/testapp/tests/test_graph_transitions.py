@@ -4,6 +4,9 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from django_fsm.management.commands.graph_transitions import get_graphviz_layouts
+from django_fsm.management.commands.graph_transitions import node_label
+from tests.testapp.models import BlogPost
+from tests.testapp.models import BlogPostState
 
 
 class GraphTransitionsCommandTest(TestCase):
@@ -11,6 +14,9 @@ class GraphTransitionsCommandTest(TestCase):
         "testapp.Application",
         "testapp.FKApplication",
     ]
+
+    def test_node_label(self):
+        assert node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value) == BlogPostState.PUBLISHED.label
 
     def test_app(self):
         call_command("graph_transitions", "testapp")
