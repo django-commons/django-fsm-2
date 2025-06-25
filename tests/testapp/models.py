@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from django.db import models
 
+from django_fsm import GET_STATE
+from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
 from django_fsm import FSMKeyField
 from django_fsm import transition
@@ -15,28 +17,69 @@ class Application(models.Model):
 
     state = FSMField(default="new")
 
-    @transition(field=state, source="new", target="draft")
-    def draft(self):
+    @transition(field=state, source="new", target="published")
+    def standard(self):
         pass
 
-    @transition(field=state, source=["new", "draft"], target="dept")
-    def submitted(self):
+    @transition(field=state, source="published")
+    def no_target(self):
         pass
 
-    @transition(field=state, source="dept", target="dean")
-    def dept_approved(self):
+    @transition(field=state, source="*", target="blocked")
+    def any_source(self):
         pass
 
-    @transition(field=state, source="dept", target="new")
-    def dept_rejected(self):
+    @transition(field=state, source="+", target="hidden")
+    def any_source_except_target(self):
         pass
 
-    @transition(field=state, source="dean", target="done")
-    def dean_approved(self):
+    @transition(
+        field=state,
+        source="new",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state(self, *, allowed: bool):
         pass
 
-    @transition(field=state, source="dean", target="dept")
-    def dean_rejected(self):
+    @transition(
+        field=state,
+        source="*",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state_any_source(self, *, allowed: bool):
+        pass
+
+    @transition(
+        field=state,
+        source="+",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state_any_source_except_target(self, *, allowed: bool):
+        pass
+
+    @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value(self):
+        return "published"
+
+    @transition(field=state, source="*", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value_any_source(self):
+        return "published"
+
+    @transition(field=state, source="+", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value_any_source_except_target(self):
+        return "published"
+
+    @transition(field=state, source="new", target="published", on_error="failed")
+    def on_error(self):
         pass
 
 
@@ -61,28 +104,69 @@ class FKApplication(models.Model):
 
     state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
-    @transition(field=state, source="new", target="draft")
-    def draft(self):
+    @transition(field=state, source="new", target="published")
+    def standard(self):
         pass
 
-    @transition(field=state, source=["new", "draft"], target="dept")
-    def submitted(self):
+    @transition(field=state, source="published")
+    def no_target(self):
         pass
 
-    @transition(field=state, source="dept", target="dean")
-    def dept_approved(self):
+    @transition(field=state, source="*", target="blocked")
+    def any_source(self):
         pass
 
-    @transition(field=state, source="dept", target="new")
-    def dept_rejected(self):
+    @transition(field=state, source="+", target="hidden")
+    def any_source_except_target(self):
         pass
 
-    @transition(field=state, source="dean", target="done")
-    def dean_approved(self):
+    @transition(
+        field=state,
+        source="new",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state(self, *, allowed: bool):
         pass
 
-    @transition(field=state, source="dean", target="dept")
-    def dean_rejected(self):
+    @transition(
+        field=state,
+        source="*",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state_any_source(self, *, allowed: bool):
+        pass
+
+    @transition(
+        field=state,
+        source="+",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
+    )
+    def get_state_any_source_except_target(self, *, allowed: bool):
+        pass
+
+    @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value(self):
+        return "published"
+
+    @transition(field=state, source="*", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value_any_source(self):
+        return "published"
+
+    @transition(field=state, source="+", target=RETURN_VALUE("moderated", "blocked"))
+    def return_value_any_source_except_target(self):
+        return "published"
+
+    @transition(field=state, source="new", target="published", on_error="failed")
+    def on_error(self):
         pass
 
 
