@@ -16,18 +16,21 @@ def all_fsm_fields_data(model):
     return [(field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)]
 
 
-def node_name(field, state):
+def node_name(field, state) -> str:
     opts = field.model._meta
     return "{}.{}.{}.{}".format(opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state)
 
 
-def node_label(field, state):
-    if isinstance(state, int) or (isinstance(state, bool) and hasattr(field, "choices")):
+def node_label(field, state) -> str:
+    if isinstance(state, int):
+        return str(state)
+    if isinstance(state, bool) and hasattr(field, "choices"):
         return force_str(dict(field.choices).get(state))
     return state
 
 
-def generate_dot(fields_data):  # noqa: C901, PLR0912
+def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # noqa: C901, PLR0912
+    ignore_transitions = ignore_transitions or []
     result = graphviz.Digraph()
 
     for field, model in fields_data:
@@ -35,6 +38,9 @@ def generate_dot(fields_data):  # noqa: C901, PLR0912
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):
+            if transition.name in ignore_transitions:
+                continue
+
             _targets = list(
                 (state for state in transition.target.allowed_states)
                 if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
@@ -127,7 +133,7 @@ class Command(BaseCommand):
             "-o",
             action="store",
             dest="outputfile",
-            help=("Render output file. Type of output dependent on file extensions. Use png or jpg to render graph to image."),
+            help="Render output file. Type of output dependent on file extensions. Use png or jpg to render graph to image.",
         )
         parser.add_argument(
             "--layout",
@@ -136,6 +142,14 @@ class Command(BaseCommand):
             dest="layout",
             default="dot",
             help=f"Layout to be used by GraphViz for visualization. Layouts: {get_graphviz_layouts()}.",
+        )
+        parser.add_argument(
+            "--exclude",
+            "-e",
+            action="store",
+            dest="exclude",
+            default="",
+            help="Ignore transitions with this name.",
         )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
@@ -153,9 +167,8 @@ class Command(BaseCommand):
                 field_spec = arg.split(".")
 
                 if len(field_spec) == 1:
-                    app = apps.get_app(field_spec[0])
-                    models = apps.get_models(app)
-                    for model in models:
+                    app = apps.get_app_config(field_spec[0])
+                    for model in apps.get_models(app):
                         fields_data += all_fsm_fields_data(model)
                 if len(field_spec) == 2:  # noqa: PLR2004
                     model = apps.get_model(field_spec[0], field_spec[1])
@@ -166,7 +179,8 @@ class Command(BaseCommand):
         else:
             for model in apps.get_models():
                 fields_data += all_fsm_fields_data(model)
-        dotdata = generate_dot(fields_data)
+
+        dotdata = generate_dot(fields_data, ignore_transitions=options["exclude"].split(","))
 
         if options["outputfile"]:
             self.render_output(dotdata, **options)
