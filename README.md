@@ -1,7 +1,7 @@
 # Django friendly finite state machine support
 
 [![CI tests](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml/badge.svg)](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml)
-[![codecov](https://codecov.io/github/django-commons/django-fsm-2/branch/master/graph/badge.svg?token=GWGDR6AR6D)](https://codecov.io/github/django-commons/django-fsm-2)
+[![codecov](https://codecov.io/github/django-commons/django-fsm-2/graph/badge.svg?token=gxsNL3cBl3)](https://codecov.io/github/django-commons/django-fsm-2)
 [![Documentation](https://img.shields.io/static/v1?label=Docs&message=READ&color=informational&style=plastic)](https://github.com/django-commons/django-fsm-2#settings)
 [![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/django-commons/anymail-history/LICENSE)
 

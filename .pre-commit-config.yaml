@@ -47,11 +47,6 @@ repos:
       - id: poetry-check
         additional_dependencies:
           - poetry-plugin-sort==0.2.0
-          - poetry-plugin-export==1.8.0
-      # FIXME: poetry lock export more platform on the CI
-      # - id: poetry-lock
-      #   args: ["--no-update"]
-      - id: poetry-export
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.12
