@@ -21,12 +21,10 @@ def node_name(field, state) -> str:
     return "{}.{}.{}.{}".format(opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state)
 
 
-def node_label(field, state) -> str:
-    if isinstance(state, int):
-        return str(state)
-    if isinstance(state, bool) and hasattr(field, "choices"):
-        return force_str(dict(field.choices).get(state))
-    return state
+def node_label(field, state: str | None) -> str:
+    if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
+        state = dict(field.choices).get(state)
+    return force_str(state)
 
 
 def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # noqa: C901, PLR0912
