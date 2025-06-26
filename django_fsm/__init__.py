@@ -339,12 +339,8 @@ class FSMFieldMixin:
         """
         Returns [(source, target, name, method)] for all field transitions
         """
-        transitions = self.transitions[instance_cls]
-
-        for transition in transitions.values():
-            meta = transition._django_fsm
-
-            yield from meta.transitions.values()
+        for transition in self.transitions[instance_cls].values():
+            yield from transition._django_fsm.transitions.values()
 
     def contribute_to_class(self, cls, name, **kwargs):
         self.base_cls = cls

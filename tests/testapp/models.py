@@ -279,7 +279,8 @@ class AdminBlogPost(models.Model):
         protected=False,
     )
 
-    # state transitions
+    def __str__(self):
+        return f"{self.title} ({self.state})"
 
     @fsm_log_by
     @fsm_log_description
@@ -298,7 +299,7 @@ class AdminBlogPost(models.Model):
     @fsm_log_description
     @transition(
         field=state,
-        source=[AdminBlogPostState.CREATED],
+        source=AdminBlogPostState.CREATED,
         target=AdminBlogPostState.REVIEWED,
     )
     def moderate(self, by=None, description=None):
@@ -329,6 +330,18 @@ class AdminBlogPost(models.Model):
     )
     def hide(self, by=None, description=None):
         pass
+
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename *",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameForm",
+        },
+    )
+    def complex_transition(self, new_title: str):
+        self.title = new_title
 
     # step transitions
 

@@ -64,6 +64,7 @@ extend-ignore = [
     "COM812",  # This rule may cause conflicts when used with the formatter
     "D",  # pydocstyle
     "DOC",  # pydoclint
+    "N806", # Variable in function should be lowercase
     "B",
     "PTH",
     "ANN",  # Missing type annotation

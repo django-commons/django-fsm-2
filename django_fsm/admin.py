@@ -1,20 +1,30 @@
 from __future__ import annotations
 
+import typing
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
 
 from django.conf import settings
+from django.contrib import admin
 from django.contrib import messages
 from django.contrib.admin.options import BaseModelAdmin
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest
 from django.http import HttpResponse
+from django.http import HttpResponseBadRequest
 from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
+from django.shortcuts import render
+from django.urls import path
+from django.urls import reverse
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
 import django_fsm as fsm
+
+if typing.TYPE_CHECKING:
+    from django.forms import Form
 
 try:
     import django_fsm_log  # noqa: F401
@@ -27,7 +37,6 @@ else:
 @dataclass
 class FSMObjectTransition:
     fsm_field: str
-    block_label: str
     available_transitions: list[fsm.Transition]
 
 
@@ -42,55 +51,48 @@ class FSMAdminMixin(BaseModelAdmin):
     fsm_context_key = "fsm_object_transitions"
     fsm_post_param = "_fsm_transition_to"
     default_disallow_transition = not getattr(settings, "FSM_ADMIN_FORCE_PERMIT", False)
+    fsm_transition_form_template = "django_fsm/fsm_admin_transition_form.html"
 
-    def get_fsm_field_instance(self, fsm_field_name: str) -> fsm.FSMField | None:
-        try:
-            return self.model._meta.get_field(fsm_field_name)
-        except FieldDoesNotExist:
-            return None
+    def get_urls(self):
+        meta = self.model._meta
+        return [
+            path(
+                "<path:object_id>/transition/<str:transition_name>/",
+                self.admin_site.admin_view(self.fsm_transition_view),
+                name=f"{meta.app_label}_{meta.model_name}_transition",
+            ),
+            *super().get_urls(),
+        ]
 
-    def get_readonly_fields(self, request: HttpRequest, obj: Any = None) -> tuple[str]:
+    def get_readonly_fields(self, request: HttpRequest, obj: typing.Any = None) -> tuple[str]:
+        """Add FSM fields to readonly fields if they are protected."""
+
         read_only_fields = super().get_readonly_fields(request, obj)
 
         for fsm_field_name in self.fsm_fields:
             if fsm_field_name in read_only_fields:
                 continue
-            field = self.get_fsm_field_instance(fsm_field_name=fsm_field_name)
-            if field and getattr(field, "protected", False):
-                read_only_fields += (fsm_field_name,)
+            try:
+                field = self.model._meta.get_field(fsm_field_name)
+            except FieldDoesNotExist:
+                pass
+            else:
+                if getattr(field, "protected", False):
+                    read_only_fields += (fsm_field_name,)
 
         return read_only_fields
-
-    @staticmethod
-    def get_fsm_block_label(fsm_field_name: str) -> str:
-        return f"Transition ({fsm_field_name})"
-
-    def get_fsm_object_transitions(self, request: HttpRequest, obj: Any) -> list[FSMObjectTransition]:
-        fsm_object_transitions = []
-
-        for field_name in sorted(self.fsm_fields):
-            if func := getattr(obj, f"get_available_user_{field_name}_transitions"):
-                fsm_object_transitions.append(  # noqa: PERF401
-                    FSMObjectTransition(
-                        fsm_field=field_name,
-                        block_label=self.get_fsm_block_label(fsm_field_name=field_name),
-                        available_transitions=[
-                            t for t in func(user=request.user) if t.custom.get("admin", self.default_disallow_transition)
-                        ],
-                    )
-                )
-
-        return fsm_object_transitions
 
     def change_view(
         self,
         request: HttpRequest,
         object_id: str,
         form_url: str = "",
-        extra_context: dict[str, Any] | None = None,
+        extra_context: dict[str, typing.Any] | None = None,
     ) -> HttpResponse:
+        """Override the change view to add FSM transitions to the context."""
+
         _context = extra_context or {}
-        _context[self.fsm_context_key] = self.get_fsm_object_transitions(
+        _context[self.fsm_context_key] = self._get_fsm_object_transitions(
             request=request,
             obj=self.get_object(request=request, object_id=object_id),
         )
@@ -102,24 +104,19 @@ class FSMAdminMixin(BaseModelAdmin):
             extra_context=_context,
         )
 
-    def get_fsm_redirect_url(self, request: HttpRequest, obj: Any) -> str:
-        return request.path
+    def _get_fsm_object_transitions(self, request: HttpRequest, obj: typing.Any) -> list[FSMObjectTransition]:
+        for field_name in sorted(self.fsm_fields):
+            if func := getattr(obj, f"get_available_user_{field_name}_transitions"):
+                yield FSMObjectTransition(
+                    fsm_field=field_name,
+                    available_transitions=[
+                        t for t in func(user=request.user) if t.custom.get("admin", self.default_disallow_transition)
+                    ],
+                )
 
-    def get_fsm_response(self, request: HttpRequest, obj: Any) -> HttpResponse:
-        redirect_url = self.get_fsm_redirect_url(request=request, obj=obj)
-        redirect_url = add_preserved_filters(
-            context={
-                "preserved_filters": self.get_preserved_filters(request),
-                "opts": self.model._meta,
-            },
-            url=redirect_url,
-        )
-        return HttpResponseRedirect(redirect_to=redirect_url)
-
-    def response_change(self, request: HttpRequest, obj: Any) -> HttpResponse:
-        if self.fsm_post_param in request.POST:
+    def response_change(self, request: HttpRequest, obj: typing.Any) -> HttpResponse:  # noqa: C901
+        if transition_name := request.POST.get(self.fsm_post_param):
             try:
-                transition_name = request.POST[self.fsm_post_param]
                 transition_func = getattr(obj, transition_name)
             except AttributeError:
                 self.message_user(
@@ -129,9 +126,18 @@ class FSMAdminMixin(BaseModelAdmin):
                     ),
                     level=messages.ERROR,
                 )
-                return self.get_fsm_response(
-                    request=request,
-                    obj=obj,
+                return self.get_fsm_response(request=request, obj=obj)
+
+            # NOTE: if a form is defined in the transition.custom, we redirect to the form view
+            if self.get_fsm_transition_custom(instance=obj, transition_func=transition_func).get("form"):
+                return redirect(
+                    reverse(
+                        f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_transition",
+                        kwargs={
+                            "object_id": obj.pk,
+                            "transition_name": transition_name,
+                        },
+                    )
                 )
 
             try:
@@ -173,9 +179,102 @@ class FSMAdminMixin(BaseModelAdmin):
                     level=messages.INFO,
                 )
 
-            return self.get_fsm_response(
-                request=request,
-                obj=obj,
-            )
+            return self.get_fsm_response(request=request, obj=obj)
 
         return super().response_change(request=request, obj=obj)
+
+    def get_fsm_response(self, request: HttpRequest, obj: typing.Any) -> HttpResponse:
+        redirect_url = add_preserved_filters(
+            context={
+                "preserved_filters": self.get_preserved_filters(request),
+                "opts": self.model._meta,
+            },
+            url=self.get_fsm_redirect_url(request=request, obj=obj),
+        )
+        return HttpResponseRedirect(redirect_to=redirect_url)
+
+    def get_fsm_redirect_url(self, request: HttpRequest, obj: typing.Any) -> str:
+        return request.path
+
+    def get_fsm_transition_custom(self, instance, transition_func):
+        """Helper function to get custom attributes for the current transition"""
+        return getattr(self.get_fsm_transition(instance, transition_func), "custom", {})
+
+    def get_fsm_transition(self, instance, transition_func) -> fsm.Transition | None:
+        """
+        Extract custom attributes from a transition function for the current state.
+        """
+        if not hasattr(transition_func, "_django_fsm"):
+            return None
+
+        fsm_meta = transition_func._django_fsm
+        current_state = fsm_meta.field.get_state(instance)
+        return fsm_meta.get_transition(current_state)
+
+    def get_fsm_transition_form(self, transition: fsm.Transition) -> Form | None:
+        form = transition.custom.get("form")
+        if isinstance(form, str):
+            form = import_string(form)
+        return form
+
+    def fsm_transition_view(self, request, *args, **kwargs):
+        transition_name = kwargs["transition_name"]
+        obj = self.get_object(request, kwargs["object_id"])
+
+        transition_method = getattr(obj, transition_name)
+        if not hasattr(transition_method, "_django_fsm"):
+            return HttpResponseBadRequest(f"{transition_name} is not a transition method")
+
+        transitions = transition_method._django_fsm.transitions
+        if isinstance(transitions, dict):
+            transitions = list(transitions.values())
+        transition = transitions[0]
+
+        if TransitionForm := self.get_fsm_transition_form(transition):
+            if request.method == "POST":
+                transition_form = TransitionForm(data=request.POST, instance=obj)
+                if transition_form.is_valid():
+                    transition_method(**transition_form.cleaned_data)
+                    obj.save()
+                else:
+                    return render(
+                        request,
+                        self.fsm_transition_form_template,
+                        context=admin.site.each_context(request)
+                        | {
+                            "opts": self.model._meta,
+                            "original": obj,
+                            "transition": transition,
+                            "transition_form": transition_form,
+                        },
+                    )
+            else:
+                transition_form = TransitionForm(instance=obj)
+                return render(
+                    request,
+                    self.fsm_transition_form_template,
+                    context=admin.site.each_context(request)
+                    | {
+                        "opts": self.model._meta,
+                        "original": obj,
+                        "transition": transition,
+                        "transition_form": transition_form,
+                    },
+                )
+        else:
+            try:
+                transition_method()
+            except fsm.TransitionNotAllowed:
+                self.message_user(
+                    request,
+                    self.fsm_transition_not_allowed_msg.format(transition_name=transition_name),
+                    messages.ERROR,
+                )
+            else:
+                obj.save()
+                self.message_user(
+                    request,
+                    self.fsm_transition_success_msg.format(transition_name=transition_name),
+                    messages.SUCCESS,
+                )
+        return redirect(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change", object_id=obj.id)
