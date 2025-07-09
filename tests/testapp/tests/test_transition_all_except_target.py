@@ -20,7 +20,7 @@ class ExceptTargetTransition(models.Model):
         pass
 
 
-class Test(TestCase):
+class TestExceptTargetTransition(TestCase):
     def setUp(self):
         self.model = ExceptTargetTransition()
 
