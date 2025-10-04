@@ -3,7 +3,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
         args: ["--maxkb=700"]
@@ -20,7 +20,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.32.0
+    rev: v1.37.2
     hooks:
       - id: typos
         args: []
@@ -35,21 +35,21 @@ repos:
           - "--py38-plus"
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.25.0
+    rev: 1.28.0
     hooks:
       - id: django-upgrade
         args: [--target-version, "4.2"]
 
 
   - repo: https://github.com/python-poetry/poetry
-    rev: 1.8.0
+    rev: 2.2.1
     hooks:
       - id: poetry-check
         additional_dependencies:
-          - poetry-plugin-sort==0.2.0
+          - poetry-plugin-sort
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.12
+    rev: v0.13.3
     hooks:
       - id: ruff-format
       - id: ruff-check
