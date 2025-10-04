@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.dispatch import Signal
+from django.db.models.signals import ModelSignal
 
-pre_transition = Signal()
-post_transition = Signal()
+pre_transition = ModelSignal()
+post_transition = ModelSignal()

@@ -152,6 +152,15 @@ class StateSignalsTests(TestCase):
         assert not self.post_transition_called
 
 
+class LazySenderTests(StateSignalsTests):
+    def setUp(self):
+        self.model = SimpleBlogPost()
+        self.pre_transition_called = False
+        self.post_transition_called = False
+        pre_transition.connect(self.on_pre_transition, sender="testapp.SimpleBlogPost")
+        post_transition.connect(self.on_post_transition, sender="testapp.SimpleBlogPost")
+
+
 class TestFieldTransitionsInspect(TestCase):
     def setUp(self):
         self.model = SimpleBlogPost()
