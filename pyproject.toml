@@ -76,6 +76,7 @@ extend-ignore = [
     "EM102",  # Exception must not use an f-string literal, assign to variable first
     "SLF001",  # Private member accessed
     "SIM103",  # Return the condition directly
+    "PLC0415",  # `import` should be at the top-level of a file
     "PLR0913",  # Too many arguments in function definition
 ]
 fixable = [
