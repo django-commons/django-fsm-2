@@ -8,6 +8,7 @@ import inspect
 from functools import partialmethod
 from functools import wraps
 
+from django import VERSION as DJANGO_VERSION
 from django.apps import apps as django_apps
 from django.db import models
 from django.db.models import Field
@@ -479,7 +480,7 @@ class ConcurrentTransitionMixin:
     def state_fields(self):
         return filter(lambda field: isinstance(field, FSMFieldMixin), self._meta.fields)
 
-    def _do_update(self, base_qs, using, pk_val, values, update_fields, forced_update):
+    def _do_update(self, base_qs, using, pk_val, values, update_fields, forced_update, returning_fields=None):
         # _do_update is called once for each model class in the inheritance hierarchy.
         # We can only filter the base_qs on state fields (can be more than one!) present in this particular model.
 
@@ -489,14 +490,26 @@ class ConcurrentTransitionMixin:
         # state filter will be used to narrow down the standard filter checking only PK
         state_filter = {field.attname: self.__initial_states[field.attname] for field in filter_on}
 
-        updated = super()._do_update(
-            base_qs=base_qs.filter(**state_filter),
-            using=using,
-            pk_val=pk_val,
-            values=values,
-            update_fields=update_fields,
-            forced_update=forced_update,
-        )
+        # Django 6.0+ added returning_fields parameter to _do_update
+        if DJANGO_VERSION >= (6, 0):
+           updated = super()._do_update(
+                base_qs=base_qs.filter(**state_filter),
+                using=using,
+                pk_val=pk_val,
+                values=values,
+                update_fields=update_fields,
+                forced_update=forced_update,
+                returning_fields=returning_fields,
+            )
+        else:
+            updated = super()._do_update(
+                base_qs=base_qs.filter(**state_filter),
+                using=using,
+                pk_val=pk_val,
+                values=values,
+                update_fields=update_fields,
+                forced_update=forced_update,
+            )
 
         # It may happen that nothing was updated in the original _do_update method not because of unmatching state,
         # but because of missing PK. This codepath is possible when saving a new model instance with *preset PK*.
