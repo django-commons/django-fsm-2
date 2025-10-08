@@ -492,7 +492,7 @@ class ConcurrentTransitionMixin:
 
         # Django 6.0+ added returning_fields parameter to _do_update
         if DJANGO_VERSION >= (6, 0):
-           updated = super()._do_update(
+            updated = super()._do_update(
                 base_qs=base_qs.filter(**state_filter),
                 using=using,
                 pk_val=pk_val,
