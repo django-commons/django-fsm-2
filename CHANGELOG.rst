@@ -1,7 +1,7 @@
 Changelog
 =========
 
-django-fsm-2 4.1.0 unreleased
+django-fsm-2 4.1.0 2025-10-29
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Add support for Django 6.0
