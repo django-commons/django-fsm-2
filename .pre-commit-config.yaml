@@ -20,7 +20,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.37.2
+    rev: v1.39.0
     hooks:
       - id: typos
         args: []
@@ -28,28 +28,20 @@ repos:
           - python
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.0
     hooks:
       - id: pyupgrade
         args:
           - "--py38-plus"
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.28.0
+    rev: 1.29.1
     hooks:
       - id: django-upgrade
         args: [--target-version, "4.2"]
 
-
-  - repo: https://github.com/python-poetry/poetry
-    rev: 2.2.1
-    hooks:
-      - id: poetry-check
-        additional_dependencies:
-          - poetry-plugin-sort
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.3
+    rev: v0.14.3
     hooks:
       - id: ruff-format
       - id: ruff-check

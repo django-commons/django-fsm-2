@@ -14,23 +14,21 @@ jobs:
       - name: Check out
         uses: actions/checkout@v5
 
-      - uses: snok/install-poetry@v1
-        with:
-          version: 1.3.2
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-          cache: poetry
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
 
       - name: Install requirements
-        run: poetry install
+        run: uv sync
 
       - name: Run tests
-        run: poetry run coverage run -m pytest --cov=django_fsm --cov-report=xml
+        run: uv run coverage run -m pytest --cov=django_fsm --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

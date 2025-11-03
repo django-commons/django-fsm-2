@@ -1,55 +1,68 @@
-[tool.poetry]
+[project]
 name = "django-fsm-2"
 version = "4.1.0"
 description = "Django friendly finite state machine support."
-authors = [
-    "Mikhail Podgurskiy <kmmbvnr@gmail.com>",
-]
-license = "MIT License"
+authors = [{ name = "Mikhail Podgurskiy", email = "kmmbvnr@gmail.com" }]
+requires-python = "~=3.8"
 readme = "README.md"
-homepage = "http://github.com/django-commons/django-fsm-2"
-repository = "http://github.com/django-commons/django-fsm-2"
-documentation = "http://github.com/django-commons/django-fsm-2"
+license = "MIT"
 classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Environment :: Web Environment',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
-    'Operating System :: OS Independent',
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: 3.13',
-    'Programming Language :: Python :: 3.14',
-    'Topic :: Software Development :: Libraries :: Python Modules',
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-packages = [{ include = "django_fsm" }]
+dependencies = ["django>=4.2"]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-django = ">=4.2"
+[project.urls]
+Homepage = "http://github.com/django-commons/django-fsm-2"
+Repository = "http://github.com/django-commons/django-fsm-2"
+Documentation = "http://github.com/django-commons/django-fsm-2"
 
-[tool.poetry.group.graphviz.dependencies]
-graphviz = "*"
+[dependency-groups]
+graphviz = ["graphviz"]
+dev = [
+    "coverage",
+    "django-guardian",
+    "graphviz",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+]
 
-[tool.poetry.group.dev.dependencies]
-coverage = "*"
-django-guardian = "*"
-graphviz = "*"
-pre-commit = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-django = "*"
+[tool.uv]
+default-groups = [
+    "graphviz",
+    "dev",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["django_fsm"]
+
+[tool.hatch.build.targets.wheel]
+include = ["django_fsm"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
@@ -94,7 +107,3 @@ fixable = [
 [tool.ruff.lint.isort]
 force-single-line = true
 required-imports = ["from __future__ import annotations"]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
