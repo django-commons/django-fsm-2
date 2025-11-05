@@ -46,6 +46,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-django",
+    "pytest-run-parallel",
 ]
 
 [tool.uv]
