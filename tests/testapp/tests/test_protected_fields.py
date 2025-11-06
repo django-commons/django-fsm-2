@@ -26,11 +26,8 @@ class TestDirectAccessModels(TestCase):
         instance = RefreshableProtectedAccessModel()
         assert instance.status == "new"
 
-        def try_change():
-            instance.status = "change"
-
         with pytest.raises(AttributeError):
-            try_change()
+            instance.status = "change"
 
         instance.publish()
         instance.save()
@@ -38,6 +35,24 @@ class TestDirectAccessModels(TestCase):
 
     def test_refresh_from_db(self):
         instance = RefreshableModel()
+        assert instance.status == "new"
         instance.save()
 
         instance.refresh_from_db()
+        assert instance.status == "new"
+
+    def test_concurrent_refresh_from_db(self):
+        instance = RefreshableModel()
+        assert instance.status == "new"
+        instance.save()
+
+        # NOTE: This simulates a concurrent update scenario
+        concurrent_instance = RefreshableModel.objects.get(pk=instance.pk)
+        assert concurrent_instance.status == instance.status == "new"
+        concurrent_instance.publish()
+        assert concurrent_instance.status == "published"
+        concurrent_instance.save()
+
+        assert instance.status == "new"
+        instance.refresh_from_db()
+        assert instance.status == "published"
