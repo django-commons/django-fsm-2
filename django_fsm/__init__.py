@@ -432,18 +432,15 @@ class FSMModelMixin:
         return {f.attname for f in protected_fields}
 
     def refresh_from_db(self, *args, **kwargs):
-        fields = kwargs.pop("fields", None)
+        protected_fields = self._get_protected_fsm_fields()
 
-        # Use provided fields, if not set then reload all non-deferred fields.0
-        if not fields:
-            deferred_fields = self.get_deferred_fields()
-            protected_fields = self._get_protected_fsm_fields()
-            skipped_fields = deferred_fields.union(protected_fields)
+        for f in protected_fields:
+            self._meta.get_field(f).protected = False
 
-            fields = [f.attname for f in self._meta.concrete_fields if f.attname not in skipped_fields]
-
-        kwargs["fields"] = fields
         super().refresh_from_db(*args, **kwargs)
+
+        for f in protected_fields:
+            self._meta.get_field(f).protected = True
 
 
 class ConcurrentTransitionMixin:
