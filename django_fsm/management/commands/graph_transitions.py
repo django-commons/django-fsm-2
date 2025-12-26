@@ -30,7 +30,7 @@ def node_name(field, state) -> str:
 
 
 def node_label(field, state: str | None) -> str:
-    if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
+    if isinstance(state, int | bool) and hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
 
@@ -49,12 +49,12 @@ def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # n
 
             _targets = list(
                 (state for state in transition.target.allowed_states)
-                if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
+                if isinstance(transition.target, GET_STATE | RETURN_VALUE)
                 else (transition.target,)
             )
             source_name_pair = (
                 ((state, node_name(field, state)) for state in transition.source.allowed_states)
-                if isinstance(transition.source, (GET_STATE, RETURN_VALUE))
+                if isinstance(transition.source, GET_STATE | RETURN_VALUE)
                 else ((transition.source, node_name(field, transition.source)),)
             )
             for source, source_name in source_name_pair:
