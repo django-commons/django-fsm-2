@@ -190,20 +190,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         fields_data = []
-        if len(args) != 0:
+        if args:
             for arg in args:
-                field_spec = arg.split(".")
-
-                if len(field_spec) == 1:
-                    app = apps.get_app_config(field_spec[0])
-                    for model in apps.get_models(app):
+                match arg.split("."):
+                    case [app_label]:
+                        app = apps.get_app_config(app_label)
+                        for model in apps.get_models(app):
+                            fields_data += all_fsm_fields_data(model)
+                    case [app_label, model_name]:
+                        model = apps.get_model(app_label, model_name)
                         fields_data += all_fsm_fields_data(model)
-                if len(field_spec) == 2:  # noqa: PLR2004
-                    model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += all_fsm_fields_data(model)
-                if len(field_spec) == 3:  # noqa: PLR2004
-                    model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += [one_fsm_fields_data(model, field_spec[2])]
+                    case [app_label, model_name, field_name]:
+                        model = apps.get_model(app_label, model_name)
+                        fields_data += [one_fsm_fields_data(model, field_name)]
         else:
             for model in apps.get_models():
                 fields_data += all_fsm_fields_data(model)
