@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from io import StringIO
+
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -33,3 +35,21 @@ class GraphTransitionsCommandTest(TestCase):
     def test_exclude(self):
         for model in self.MODELS_TO_TEST:
             call_command("graph_transitions", "-e", "standard,no_target", model)
+
+    def test_single_field(self):
+        """Test that specifying app.model.field filters to only that field."""
+        out = StringIO()
+        call_command("graph_transitions", "testapp.Application.state", stdout=out)
+        output = out.getvalue()
+
+        assert "cluster_testapp_Application_state" in output
+        assert "testapp.Application.state" in output
+
+    def test_single_field_nonexistent(self):
+        """Test that specifying a non-existent field returns an empty graph."""
+        out = StringIO()
+        call_command("graph_transitions", "testapp.Application.nonexistent", stdout=out)
+        output = out.getvalue()
+
+        assert "cluster_testapp_Application" not in output
+        assert output.strip() == "digraph {\n}"
