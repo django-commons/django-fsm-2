@@ -16,6 +16,10 @@ def all_fsm_fields_data(model):
     return [(field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)]
 
 
+def one_fsm_fields_data(model, field_name):
+    return (model._meta.get_field(field_name), model)
+
+
 def node_name(field, state) -> str:
     opts = field.model._meta
     return "{}.{}.{}.{}".format(opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state)
@@ -173,7 +177,7 @@ class Command(BaseCommand):
                     fields_data += all_fsm_fields_data(model)
                 if len(field_spec) == 3:  # noqa: PLR2004
                     model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += all_fsm_fields_data(model)
+                    fields_data += [one_fsm_fields_data(model, field_spec[2])]
         else:
             for model in apps.get_models():
                 fields_data += all_fsm_fields_data(model)
@@ -183,4 +187,4 @@ class Command(BaseCommand):
         if options["outputfile"]:
             self.render_output(dotdata, **options)
         else:
-            print(dotdata)  # noqa: T201
+            self.stdout.write(str(dotdata))
