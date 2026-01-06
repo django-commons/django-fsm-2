@@ -130,3 +130,6 @@ dmypy.json
 
 # sqlite
 test.db
+
+# django fsm command tests
+exports/*
