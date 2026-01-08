@@ -1,0 +1,15 @@
+{% extends 'admin/change_form.html' %}
+
+{% block submit_buttons_bottom %}
+
+  {% for fsm_object_transition in fsm_object_transitions %}
+      <div class="submit-row">
+        <label>{{ fsm_object_transition.block_label }}</label>
+        {% for transition in fsm_object_transition.available_transitions %}
+          <input type="submit" value="{{ transition.custom.label|default:transition.name }}" name="_fsm_transition_to">
+        {% endfor %}
+      </div>
+  {% endfor %}
+
+  {{ block.super }}
+{% endblock %}

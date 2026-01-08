@@ -40,6 +40,7 @@ Documentation = "http://github.com/django-commons/django-fsm-2"
 graphviz = ["graphviz"]
 dev = [
     "coverage",
+    "django_fsm_log",
     "django-guardian",
     "graphviz",
     "pre-commit",
