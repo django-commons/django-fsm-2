@@ -42,10 +42,6 @@ class GraphTransitionsCommandTest(TestCase):
         with pytest.raises(LookupError):
             self._call_command("unknown_app")
 
-    def test_app_fail(self):
-        with pytest.raises(LookupError):
-            call_command("graph_transitions", "unknown_app")
-
     def test_single_model(self):
         for model in self.MODELS_TO_TEST:
             output = self._call_command(model)
@@ -57,10 +53,6 @@ class GraphTransitionsCommandTest(TestCase):
     def test_single_model_fail(self):
         with pytest.raises(LookupError):
             self._call_command("testapp.UnknownModel")
-
-    def test_single_model_fail(self):
-        with pytest.raises(LookupError):
-            call_command("graph_transitions", "testapp.UnknownModel")
 
     def test_single_model_with_layouts(self):
         for model in self.MODELS_TO_TEST:
