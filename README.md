@@ -145,8 +145,9 @@ def destroy(self):
     """
 ```
 
-You can instantiate a field with `protected=True` option to prevent
-direct state field modification.
+You can instantiate a field with `protected=True` to prevent direct state
+field assignment (the only supported way to change state is through
+transitions).
 
 ``` python
 class BlogPost(models.Model):
@@ -154,11 +155,29 @@ class BlogPost(models.Model):
 
 model = BlogPost()
 model.state = 'invalid' # Raises AttributeError
+model.refresh_from_db() # Raises AttributeError
 ```
 
 Note that calling
 [refresh_from_db](https://docs.djangoproject.com/en/1.8/ref/models/instances/#django.db.models.Model.refresh_from_db)
-on a model instance with a protected FSMField will cause an exception.
+will also attempt to assign the field value, so a protected FSMField
+raises an exception there as well.
+
+To work around this, use `FSMModelMixin`. It temporarily disables
+`protected` behavior during `refresh_from_db` so the in-memory instance
+can be refreshed without allowing arbitrary writes elsewhere.
+
+
+``` python
+from django_fsm import FSMModelMixin
+
+class BlogPost(FSMModelMixin, models.Model):
+    state = FSMField(default='new', protected=True)
+
+model = BlogPost()
+model.state = 'invalid' # Raises AttributeError
+model.refresh_from_db() # Working
+```
 
 ### `source` state
 
