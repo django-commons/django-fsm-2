@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import Transition
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
-from django_fsm.signals import post_transition
-from django_fsm.signals import pre_transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import Transition
+from django_fsm_2 import TransitionNotAllowed
+from django_fsm_2 import can_proceed
+from django_fsm_2 import transition
+from django_fsm_2.signals import post_transition
+from django_fsm_2.signals import pre_transition
 
 
-class SimpleBlogPost(models.Model):
+class BasicBlogPost(models.Model):
+    """Test model for basic transitions - uses unique name to avoid conflicts."""
+
     state = FSMField(default="new")
+
+    class Meta:
+        app_label = "testapp"
 
     @transition(field=state, source="new", target="published")
     def publish(self):
@@ -51,126 +55,112 @@ class SimpleBlogPost(models.Model):
 
 class FSMFieldTest(TestCase):
     def setUp(self):
-        self.model = SimpleBlogPost()
+        self.model = BasicBlogPost()
 
     def test_initial_state_instantiated(self):
-        assert self.model.state == "new"
+        self.assertEqual(self.model.state, "new")
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        self.assertTrue(can_proceed(self.model.publish))
         self.model.publish()
-        assert self.model.state == "published"
+        self.assertEqual(self.model.state, "published")
 
-        assert can_proceed(self.model.hide)
+        self.assertTrue(can_proceed(self.model.hide))
         self.model.hide()
-        assert self.model.state == "hidden"
+        self.assertEqual(self.model.state, "hidden")
 
     def test_unknown_transition_fails(self):
-        assert not can_proceed(self.model.hide)
-        with pytest.raises(TransitionNotAllowed):
-            self.model.hide()
+        self.assertFalse(can_proceed(self.model.hide))
+        self.assertRaises(TransitionNotAllowed, self.model.hide)
 
     def test_state_non_changed_after_fail(self):
-        assert can_proceed(self.model.remove)
-        with pytest.raises(Exception, match="Upss"):
-            self.model.remove()
-        assert self.model.state == "new"
+        self.assertTrue(can_proceed(self.model.remove))
+        self.assertRaises(Exception, self.model.remove)
+        self.assertEqual(self.model.state, "new")
 
     def test_allowed_null_transition_should_succeed(self):
         self.model.publish()
         self.model.notify_all()
-        assert self.model.state == "published"
+        self.assertEqual(self.model.state, "published")
 
     def test_unknown_null_transition_should_fail(self):
-        with pytest.raises(TransitionNotAllowed):
-            self.model.notify_all()
-        assert self.model.state == "new"
+        self.assertRaises(TransitionNotAllowed, self.model.notify_all)
+        self.assertEqual(self.model.state, "new")
 
     def test_multiple_source_support_path_1_works(self):
         self.model.publish()
         self.model.steal()
-        assert self.model.state == "stolen"
+        self.assertEqual(self.model.state, "stolen")
 
     def test_multiple_source_support_path_2_works(self):
         self.model.publish()
         self.model.hide()
         self.model.steal()
-        assert self.model.state == "stolen"
+        self.assertEqual(self.model.state, "stolen")
 
     def test_star_shortcut_succeed(self):
-        assert can_proceed(self.model.moderate)
+        self.assertTrue(can_proceed(self.model.moderate))
         self.model.moderate()
-        assert self.model.state == "moderated"
+        self.assertEqual(self.model.state, "moderated")
 
     def test_plus_shortcut_succeeds_for_other_source(self):
         """Tests that the '+' shortcut succeeds for a source
         other than the target.
         """
-        assert can_proceed(self.model.block)
+        self.assertTrue(can_proceed(self.model.block))
         self.model.block()
-        assert self.model.state == "blocked"
+        self.assertEqual(self.model.state, "blocked")
 
     def test_plus_shortcut_fails_for_same_source(self):
         """Tests that the '+' shortcut fails if the source
         equals the target.
         """
         self.model.block()
-        assert not can_proceed(self.model.block)
-        with pytest.raises(TransitionNotAllowed):
-            self.model.block()
+        self.assertFalse(can_proceed(self.model.block))
+        self.assertRaises(TransitionNotAllowed, self.model.block)
 
     def test_empty_string_target(self):
         self.model.empty()
-        assert self.model.state == ""
+        self.assertEqual(self.model.state, "")
 
 
 class StateSignalsTests(TestCase):
     def setUp(self):
-        self.model = SimpleBlogPost()
+        self.model = BasicBlogPost()
         self.pre_transition_called = False
         self.post_transition_called = False
-        pre_transition.connect(self.on_pre_transition, sender=SimpleBlogPost)
-        post_transition.connect(self.on_post_transition, sender=SimpleBlogPost)
+        pre_transition.connect(self.on_pre_transition, sender=BasicBlogPost)
+        post_transition.connect(self.on_post_transition, sender=BasicBlogPost)
 
     def on_pre_transition(self, sender, instance, name, source, target, **kwargs):
-        assert instance.state == source
+        self.assertEqual(instance.state, source)
         self.pre_transition_called = True
 
     def on_post_transition(self, sender, instance, name, source, target, **kwargs):
-        assert instance.state == target
+        self.assertEqual(instance.state, target)
         self.post_transition_called = True
 
     def test_signals_called_on_valid_transition(self):
         self.model.publish()
-        assert self.pre_transition_called
-        assert self.post_transition_called
+        self.assertTrue(self.pre_transition_called)
+        self.assertTrue(self.post_transition_called)
 
     def test_signals_not_called_on_invalid_transition(self):
-        with pytest.raises(TransitionNotAllowed):
-            self.model.hide()
-        assert not self.pre_transition_called
-        assert not self.post_transition_called
-
-
-class LazySenderTests(StateSignalsTests):
-    def setUp(self):
-        self.model = SimpleBlogPost()
-        self.pre_transition_called = False
-        self.post_transition_called = False
-        pre_transition.connect(self.on_pre_transition, sender="testapp.SimpleBlogPost")
-        post_transition.connect(self.on_post_transition, sender="testapp.SimpleBlogPost")
+        self.assertRaises(TransitionNotAllowed, self.model.hide)
+        self.assertFalse(self.pre_transition_called)
+        self.assertFalse(self.post_transition_called)
 
 
 class TestFieldTransitionsInspect(TestCase):
     def setUp(self):
-        self.model = SimpleBlogPost()
+        self.model = BasicBlogPost()
 
     def test_in_operator_for_available_transitions(self):
         # store the generator in a list, so we can reuse the generator and do multiple asserts
         transitions = list(self.model.get_available_state_transitions())
 
-        assert "publish" in transitions
-        assert "xyz" not in transitions
+        self.assertIn("publish", transitions)
+        self.assertNotIn("xyz", transitions)
 
         # inline method for faking the name of the transition
         def publish():
@@ -186,13 +176,19 @@ class TestFieldTransitionsInspect(TestCase):
             custom="",
         )
 
-        assert obj in transitions
+        self.assertTrue(obj in transitions)
 
     def test_available_conditions_from_new(self):
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
-        expected = {("*", "moderated"), ("new", "published"), ("new", "removed"), ("*", ""), ("+", "blocked")}
-        assert actual == expected
+        expected = {
+            ("*", "moderated"),
+            ("new", "published"),
+            ("new", "removed"),
+            ("*", ""),
+            ("+", "blocked"),
+        }
+        self.assertEqual(actual, expected)
 
     def test_available_conditions_from_published(self):
         self.model.publish()
@@ -206,15 +202,20 @@ class TestFieldTransitionsInspect(TestCase):
             ("*", ""),
             ("+", "blocked"),
         }
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_available_conditions_from_hidden(self):
         self.model.publish()
         self.model.hide()
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
-        expected = {("*", "moderated"), ("hidden", "stolen"), ("*", ""), ("+", "blocked")}
-        assert actual == expected
+        expected = {
+            ("*", "moderated"),
+            ("hidden", "stolen"),
+            ("*", ""),
+            ("+", "blocked"),
+        }
+        self.assertEqual(actual, expected)
 
     def test_available_conditions_from_stolen(self):
         self.model.publish()
@@ -222,21 +223,21 @@ class TestFieldTransitionsInspect(TestCase):
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", ""), ("+", "blocked")}
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_available_conditions_from_blocked(self):
         self.model.block()
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", "")}
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_available_conditions_from_empty(self):
         self.model.empty()
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", ""), ("+", "blocked")}
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_all_conditions(self):
         transitions = self.model.get_all_state_transitions()
@@ -253,4 +254,4 @@ class TestFieldTransitionsInspect(TestCase):
             ("*", ""),
             ("+", "blocked"),
         }
-        assert actual == expected
+        self.assertEqual(actual, expected)

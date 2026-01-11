@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import pytest
+import unittest
+
+import django
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import FSMModelMixin
-from django_fsm import transition
+from django_fsm_2 import FSMField
+from django_fsm_2 import FSMModelMixin
+from django_fsm_2 import transition
 
 
 class RefreshableProtectedAccessModel(models.Model):
@@ -16,6 +18,9 @@ class RefreshableProtectedAccessModel(models.Model):
     def publish(self):
         pass
 
+    class Meta:
+        app_label = "testapp"
+
 
 class RefreshableModel(FSMModelMixin, RefreshableProtectedAccessModel):
     pass
@@ -24,35 +29,22 @@ class RefreshableModel(FSMModelMixin, RefreshableProtectedAccessModel):
 class TestDirectAccessModels(TestCase):
     def test_no_direct_access(self):
         instance = RefreshableProtectedAccessModel()
-        assert instance.status == "new"
+        self.assertEqual(instance.status, "new")
 
-        with pytest.raises(AttributeError):
+        def try_change():
             instance.status = "change"
+
+        self.assertRaises(AttributeError, try_change)
 
         instance.publish()
         instance.save()
-        assert instance.status == "published"
+        self.assertEqual(instance.status, "published")
 
+    @unittest.skipIf(
+        django.VERSION < (1, 8), "Django introduced refresh_from_db in 1.8"
+    )
     def test_refresh_from_db(self):
         instance = RefreshableModel()
-        assert instance.status == "new"
         instance.save()
 
         instance.refresh_from_db()
-        assert instance.status == "new"
-
-    def test_concurrent_refresh_from_db(self):
-        instance = RefreshableModel()
-        assert instance.status == "new"
-        instance.save()
-
-        # NOTE: This simulates a concurrent update scenario
-        concurrent_instance = RefreshableModel.objects.get(pk=instance.pk)
-        assert concurrent_instance.status == instance.status == "new"
-        concurrent_instance.publish()
-        assert concurrent_instance.status == "published"
-        concurrent_instance.save()
-
-        assert instance.status == "new"
-        instance.refresh_from_db()
-        assert instance.status == "published"

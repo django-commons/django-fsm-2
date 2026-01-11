@@ -1,0 +1,80 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if fsm_object_transitions %}
+<div class="fsm-transitions">
+    {% for fsm_obj in fsm_object_transitions %}
+    {% if fsm_obj.available_transitions %}
+    <fieldset class="module aligned fsm-transition-block">
+        <h2>{{ fsm_obj.block_label }}</h2>
+        <div class="fsm-transition-buttons">
+            {% for transition in fsm_obj.available_transitions %}
+            {% with label=transition.custom.label short_desc=transition.custom.short_description %}
+            {% with transition_label=label|default:short_desc|default:transition.name %}
+            {% if transition.custom.form %}
+            {# Transition with form - link to separate view #}
+            <a href="{% url opts|admin_urlname:'fsm_transition' object_id=original.pk transition_name=transition.name %}"
+               class="button fsm-transition-button"
+               title="{{ transition_label }}">
+                {{ transition_label }}
+            </a>
+            {% else %}
+            {# Inline transition - submit form directly #}
+            <input type="submit"
+                   name="_fsm_transition_to"
+                   value="{{ transition.name }}"
+                   class="button fsm-transition-button"
+                   title="{{ transition_label }}"
+                   data-transition-label="{{ transition_label }}">
+            {% endif %}
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </fieldset>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<style>
+.fsm-transitions {
+    margin-top: 20px;
+}
+.fsm-transition-block {
+    margin-bottom: 10px;
+}
+.fsm-transition-block h2 {
+    font-size: 14px;
+    padding: 8px 10px;
+    margin: 0;
+    background: #79aec8;
+    color: #fff;
+}
+.fsm-transition-buttons {
+    padding: 10px;
+    background: #f8f8f8;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+.fsm-transition-button {
+    margin-right: 8px;
+    margin-bottom: 8px;
+    display: inline-block;
+    padding: 8px 15px;
+    background: #417690;
+    color: #fff !important;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+}
+.fsm-transition-button:hover {
+    background: #205067;
+}
+</style>
+{% endif %}
+{% endblock %}
