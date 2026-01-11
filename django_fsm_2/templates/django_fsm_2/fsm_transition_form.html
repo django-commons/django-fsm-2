@@ -1,0 +1,152 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{{ form.media }}
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.fsm-transition-form {
+    max-width: 800px;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.fsm-transition-form h1 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+.fsm-transition-form .form-row {
+    margin-bottom: 15px;
+}
+.fsm-transition-form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.fsm-transition-form input[type="text"],
+.fsm-transition-form input[type="number"],
+.fsm-transition-form input[type="email"],
+.fsm-transition-form textarea,
+.fsm-transition-form select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.fsm-transition-form .help {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+.fsm-transition-form .errorlist {
+    color: #ba2121;
+    margin: 5px 0;
+    padding: 0;
+    list-style: none;
+}
+.fsm-transition-form .submit-row {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+.fsm-transition-form .submit-row input[type="submit"],
+.fsm-transition-form .submit-row a.button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+}
+.fsm-transition-form .submit-row input[type="submit"] {
+    background: #417690;
+    color: #fff;
+    border: none;
+}
+.fsm-transition-form .submit-row input[type="submit"]:hover {
+    background: #205067;
+}
+.fsm-transition-form .submit-row a.cancel-link {
+    color: #666;
+    text-decoration: none;
+}
+.fsm-transition-form .submit-row a.cancel-link:hover {
+    color: #333;
+}
+.fsm-object-info {
+    background: #f5f5f5;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.fsm-object-info strong {
+    color: #417690;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+&rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+&rsaquo; <a href="{{ change_url }}">{{ original }}</a>
+&rsaquo; {{ transition_label }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="fsm-transition-form">
+    <h1>{{ title }}</h1>
+
+    <div class="fsm-object-info">
+        {% trans "Object:" %} <strong>{{ original }}</strong>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="errornote">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="form-row{% if field.errors %} errors{% endif %}">
+            <label for="{{ field.id_for_label }}">
+                {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+            <ul class="errorlist">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% if field.help_text %}
+            <p class="help">{{ field.help_text|safe }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Execute Transition' %}">
+            <a href="{{ change_url }}" class="cancel-link">{% trans 'Cancel' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

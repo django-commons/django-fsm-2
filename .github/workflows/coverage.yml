@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   coverage:
@@ -14,23 +14,17 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      - uses: snok/install-poetry@v1
-        with:
-          version: 1.3.2
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: poetry
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install requirements
-        run: poetry install
+        run: uv sync --all-extras
 
       - name: Run tests
-        run: poetry run coverage run -m pytest --cov=django_fsm --cov-report=xml
+        run: uv run coverage run -m pytest --cov=django_fsm_2 --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

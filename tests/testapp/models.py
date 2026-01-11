@@ -4,6 +4,7 @@ from django.db import models
 
 from django_fsm_2 import FSMField
 from django_fsm_2 import FSMKeyField
+from django_fsm_2 import FSMModelMixin
 from django_fsm_2 import transition
 
 
@@ -152,3 +153,70 @@ class BlogPost(models.Model):
             ("can_publish_post", "Can publish post"),
             ("can_remove_post", "Can remove post"),
         ]
+
+
+class AdminBlogPost(FSMModelMixin, models.Model):
+    """
+    Test model for admin integration.
+    """
+
+    title = models.CharField(max_length=255, default="Test Post")
+    state = FSMField(default="draft", protected=True)
+    review_state = FSMField(default="pending")
+
+    @transition(
+        field=state,
+        source="draft",
+        target="published",
+        custom={"label": "Publish Post", "short_description": "Publish this post"},
+    )
+    def publish(self):
+        pass
+
+    @transition(
+        field=state,
+        source="draft",
+        target="scheduled",
+        custom={"admin": False},  # Hidden from admin
+    )
+    def schedule(self):
+        pass
+
+    @transition(
+        field=state,
+        source="published",
+        target="archived",
+    )
+    def archive(self):
+        pass
+
+    @transition(
+        field=state,
+        source="*",
+        target="draft",
+    )
+    def reset(self):
+        pass
+
+    @transition(
+        field=review_state,
+        source="pending",
+        target="approved",
+    )
+    def approve(self):
+        pass
+
+    @transition(
+        field=review_state,
+        source="pending",
+        target="rejected",
+        custom={
+            "form": "tests.testapp.forms.RejectionForm",
+            "label": "Reject with Reason",
+        },
+    )
+    def reject(self, reason=None):
+        self.rejection_reason = reason
+
+    def __str__(self):
+        return self.title

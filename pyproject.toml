@@ -1,80 +1,116 @@
-[tool.poetry]
+[project]
 name = "django-fsm-2"
-version = "4.0.1"
+version = "4.0.2"
 description = "Django friendly finite state machine support."
-authors = [
-    "Mikhail Podgurskiy <kmmbvnr@gmail.com>",
-]
-license = "MIT License"
 readme = "README.md"
-homepage = "http://github.com/django-commons/django-fsm-2"
-repository = "http://github.com/django-commons/django-fsm-2"
-documentation = "http://github.com/django-commons/django-fsm-2"
+license = "MIT"
+authors = [
+    { name = "Mikhail Podgurskiy", email = "kmmbvnr@gmail.com" },
+]
+requires-python = ">=3.10"
+dependencies = [
+    "django>=4.2",
+]
 classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Environment :: Web Environment',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
-    'Operating System :: OS Independent',
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Topic :: Software Development :: Libraries :: Python Modules',
+    "Framework :: Django :: 5.2",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-packages = [{ include = "django_fsm" }]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-django = ">=4.2"
+[project.urls]
+Homepage = "https://github.com/django-commons/django-fsm-2"
+Repository = "https://github.com/django-commons/django-fsm-2"
+Documentation = "https://github.com/django-commons/django-fsm-2"
 
-[tool.poetry.group.graphviz.dependencies]
-graphviz = "*"
+[project.optional-dependencies]
+graphviz = [
+    "graphviz",
+]
 
-[tool.poetry.group.dev.dependencies]
-coverage = "*"
-django-guardian = "*"
-graphviz = "*"
-pre-commit = "*"
-pytest = "*"
-pytest-cov = "^4.1.0"
-pytest-django = "*"
+[dependency-groups]
+dev = [
+    "coverage",
+    "django-guardian",
+    "graphviz",
+    "pre-commit",
+    "pytest",
+    "pytest-cov>=4.1.0",
+    "pytest-django",
+]
+
+[tool.uv]
+default-groups = ["dev"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 
 [tool.ruff]
 line-length = 130
-target-version = "py38"
+target-version = "py310"
 fix = true
 
 [tool.ruff.lint]
-# select = ["ALL"]
 extend-select = [
-    "F",  # Pyflakes
-    "E",  # pycodestyle
-    "W",  # pycodestyle
-    "UP",  # pyupgrade
-    "I",  # isort
+    "F",     # Pyflakes
+    "E",     # pycodestyle
+    "W",     # pycodestyle
+    "UP",    # pyupgrade
+    "I",     # isort
     "PERF",
     "RET",
     "C",
-    # "B",
 ]
 fixable = ["I"]
-
 
 [tool.ruff.lint.isort]
 force-single-line = true
 required-imports = ["from __future__ import annotations"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["django_fsm_2"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/django_fsm_2",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = [
+    "graphviz.*",
+    "django_guardian.*",
+]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
