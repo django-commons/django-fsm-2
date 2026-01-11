@@ -22,15 +22,12 @@ class BlogPostWithStringField(models.Model):
     def review(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class StringFieldTestCase(TestCase):
     def setUp(self):
         self.model = BlogPostWithStringField()
 
     def test_initial_state(self):
-        self.assertEqual(self.model.state, "new")
+        assert self.model.state == "new"
         self.model.publish()
-        self.assertEqual(self.model.state, "published")
+        assert self.model.state == "published"

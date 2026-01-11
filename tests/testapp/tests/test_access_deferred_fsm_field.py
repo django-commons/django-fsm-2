@@ -19,9 +19,6 @@ class DeferrableModel(models.Model):
     def remove(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class Test(TestCase):
     def setUp(self):
@@ -29,9 +26,9 @@ class Test(TestCase):
         self.model = DeferrableModel.objects.only("id").get()
 
     def test_usecase(self):
-        self.assertEqual(self.model.state, "new")
-        self.assertTrue(can_proceed(self.model.remove))
+        assert self.model.state == "new"
+        assert can_proceed(self.model.remove)
         self.model.remove()
 
-        self.assertEqual(self.model.state, "removed")
-        self.assertFalse(can_proceed(self.model.remove))
+        assert self.model.state == "removed"
+        assert not can_proceed(self.model.remove)

@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-try:
-    from django.contrib.contenttypes.fields import GenericForeignKey
-except ImportError:
-    # Django 1.6
-    from django.contrib.contenttypes.generic import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.test import TestCase
@@ -13,27 +9,23 @@ from django_fsm_2 import FSMField
 from django_fsm_2 import transition
 
 
-class Ticket(models.Model):
-    class Meta:
-        app_label = "testapp"
+class Ticket(models.Model): ...
+
+
+class TaskState(models.TextChoices):
+    NEW = "new", "New"
+    DONE = "done", "Done"
 
 
 class Task(models.Model):
-    class STATE:
-        NEW = "new"
-        DONE = "done"
-
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     causality = GenericForeignKey("content_type", "object_id")
-    state = FSMField(default=STATE.NEW)
+    state = FSMField(default=TaskState.NEW)
 
-    @transition(field=state, source=STATE.NEW, target=STATE.DONE)
+    @transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
     def do(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class Test(TestCase):

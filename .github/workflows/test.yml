@@ -10,16 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Install graphviz
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz
     - name: Install dependencies
-      run: uv sync --all-extras
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions
     - name: Test with tox
-      run: uvx --with tox-uv --with tox-gh-actions tox
+      run: tox

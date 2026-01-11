@@ -18,21 +18,22 @@ FK_AVAILABLE_STATES = (
 )
 
 
-class DBState(models.Model):
-    id = models.CharField(primary_key=True, max_length=50)
+class KeyFieldDBState(models.Model):
+    """Test state model for key field tests - unique name to avoid conflicts."""
 
+    id = models.CharField(primary_key=True, max_length=50)
     label = models.CharField(max_length=255)
 
     def __unicode__(self):
         return self.label
 
     class Meta:
-        app_label = "django_fsm_2"
+        app_label = "testapp"
 
 
 class FKBlogPost(models.Model):
     state = FSMKeyField(
-        DBState, default="new", protected=True, on_delete=models.CASCADE
+        KeyFieldDBState, default="new", protected=True, on_delete=models.CASCADE
     )
 
     @transition(field=state, source="new", target="published")
@@ -60,13 +61,13 @@ class FKBlogPost(models.Model):
         pass
 
     class Meta:
-        app_label = "django_fsm_2"
+        app_label = "testapp"
 
 
 class FSMKeyFieldTest(TestCase):
     def setUp(self):
         for item in FK_AVAILABLE_STATES:
-            DBState.objects.create(pk=item[0], label=item[1])
+            KeyFieldDBState.objects.create(pk=item[0], label=item[1])
         self.model = FKBlogPost()
 
     def test_initial_state_instatiated(self):

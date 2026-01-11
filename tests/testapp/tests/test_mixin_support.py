@@ -16,9 +16,6 @@ class WorkflowMixin:
     def publish(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class MixinSupportTestModel(WorkflowMixin, models.Model):
     state = FSMField(default="new")
@@ -29,7 +26,7 @@ class Test(TestCase):
         model = MixinSupportTestModel()
 
         model.draft()
-        self.assertEqual(model.state, "draft")
+        assert model.state == "draft"
 
         model.publish()
-        self.assertEqual(model.state, "published")
+        assert model.state == "published"

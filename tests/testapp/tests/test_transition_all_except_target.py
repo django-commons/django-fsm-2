@@ -8,7 +8,7 @@ from django_fsm_2 import can_proceed
 from django_fsm_2 import transition
 
 
-class TestExceptTargetTransitionShortcut(models.Model):
+class ExceptTargetTransition(models.Model):
     state = FSMField(default="new")
 
     @transition(field=state, source="new", target="published")
@@ -19,18 +19,15 @@ class TestExceptTargetTransitionShortcut(models.Model):
     def remove(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class Test(TestCase):
     def setUp(self):
-        self.model = TestExceptTargetTransitionShortcut()
+        self.model = ExceptTargetTransition()
 
     def test_usecase(self):
-        self.assertEqual(self.model.state, "new")
-        self.assertTrue(can_proceed(self.model.remove))
+        assert self.model.state == "new"
+        assert can_proceed(self.model.remove)
         self.model.remove()
 
-        self.assertEqual(self.model.state, "removed")
-        self.assertFalse(can_proceed(self.model.remove))
+        assert self.model.state == "removed"
+        assert not can_proceed(self.model.remove)

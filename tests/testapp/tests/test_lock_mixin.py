@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from django.db import models
 from django.test import TestCase
 
@@ -21,9 +22,6 @@ class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
     def remove(self):
         pass
 
-    class Meta:
-        app_label = "testapp"
-
 
 class ExtendedBlogPost(LockedBlogPost):
     review_state = FSMField(default="waiting", protected=True)
@@ -32,9 +30,6 @@ class ExtendedBlogPost(LockedBlogPost):
     @transition(field=review_state, source="waiting", target="rejected")
     def reject(self):
         pass
-
-    class Meta:
-        app_label = "testapp"
 
 
 class TestLockMixin(TestCase):
@@ -47,12 +42,12 @@ class TestLockMixin(TestCase):
         post.save()
 
         post = LockedBlogPost.objects.get(pk=post.pk)
-        self.assertEqual("published", post.state)
+        assert post.state == "published"
         post.text = "test_crud_succeed2"
         post.save()
 
         post = LockedBlogPost.objects.get(pk=post.pk)
-        self.assertEqual("test_crud_succeed2", post.text)
+        assert post.text == "test_crud_succeed2"
 
         post.delete()
 
@@ -75,7 +70,7 @@ class TestLockMixin(TestCase):
 
         post2.text = "aaa"
         post2.publish()
-        with self.assertRaises(ConcurrentTransition):
+        with pytest.raises(ConcurrentTransition):
             post2.save()
 
     def test_inheritance_crud_succeed(self):
@@ -84,14 +79,14 @@ class TestLockMixin(TestCase):
         post.save()
 
         post = ExtendedBlogPost.objects.get(pk=post.pk)
-        self.assertEqual("published", post.state)
+        assert post.state == "published"
         post.text = "test_inheritance_crud_succeed2"
         post.reject()
         post.save()
 
         post = ExtendedBlogPost.objects.get(pk=post.pk)
-        self.assertEqual("rejected", post.review_state)
-        self.assertEqual("test_inheritance_crud_succeed2", post.text)
+        assert post.review_state == "rejected"
+        assert post.text == "test_inheritance_crud_succeed2"
 
     def test_concurrent_modifications_after_refresh_db_succeed(self):  # bug 255
         post1 = LockedBlogPost.objects.create()

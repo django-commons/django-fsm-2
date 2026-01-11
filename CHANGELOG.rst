@@ -1,10 +1,14 @@
 Changelog
 =========
 
-django-fsm-2 4.0.1 2024-09-02
+django-fsm-2 4.1.0 2025-11-03
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- change folder and labels to `django_fsm_2` to distinguish from original `django_fsm `
+- Add support for Django 6.0
+- Add support for Django 5.2
+- Add support for python 3.14
+- Add support for python 3.13
+
 
 django-fsm-2 4.0.0 2024-09-02
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,7 +85,7 @@ django-fsm 2.5.0 2017-03-04
 django-fsm 2.4.0 2016-05-14
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- graph_transition commnad now works with multiple  FSM's per model
+- graph_transition command now works with multiple  FSM's per model
 - Add ability to set target state from transition return value or callable
 
 

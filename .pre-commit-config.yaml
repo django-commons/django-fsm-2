@@ -1,9 +1,9 @@
 default_language_version:
-  python: python3.11
+  python: python3.12
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
         args: ["--maxkb=700"]
@@ -15,36 +15,33 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+      - id: mixed-line-ending
+      #- id: no-commit-to-branch
       - id: trailing-whitespace
 
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.39.0
+    hooks:
+      - id: typos
+        args: []
+        types_or:
+          - python
+
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
+    rev: v3.21.0
     hooks:
       - id: pyupgrade
         args:
           - "--py38-plus"
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.18.0
+    rev: 1.29.1
     hooks:
       - id: django-upgrade
         args: [--target-version, "4.2"]
 
-
-  - repo: https://github.com/python-poetry/poetry
-    rev: 1.8.0
-    hooks:
-      - id: poetry-check
-        additional_dependencies:
-          - poetry-plugin-sort==0.2.0
-          - poetry-plugin-export==1.8.0
-      # FIXME: poetry lock export more platform on the CI
-      # - id: poetry-lock
-      #   args: ["--no-update"]
-      - id: poetry-export
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.8
+    rev: v0.14.3
     hooks:
       - id: ruff-format
-      - id: ruff
+      - id: ruff-check
