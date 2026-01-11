@@ -3,7 +3,7 @@ name = "django-fsm-2"
 version = "4.1.0"
 description = "Django friendly finite state machine support."
 authors = [{ name = "Mikhail Podgurskiy", email = "kmmbvnr@gmail.com" }]
-requires-python = "~=3.8"
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 classifiers = [
@@ -20,8 +20,6 @@ classifiers = [
     "Framework :: Django :: 6.0",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -32,9 +30,9 @@ classifiers = [
 dependencies = ["django>=4.2"]
 
 [project.urls]
-Homepage = "http://github.com/django-commons/django-fsm-2"
-Repository = "http://github.com/django-commons/django-fsm-2"
-Documentation = "http://github.com/django-commons/django-fsm-2"
+Homepage = "https://github.com/django-commons/django-fsm-2"
+Repository = "https://github.com/django-commons/django-fsm-2"
+Documentation = "https://github.com/django-commons/django-fsm-2"
 
 [dependency-groups]
 graphviz = ["graphviz"]
@@ -56,10 +54,10 @@ default-groups = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["django_fsm"]
+include = ["/django_fsm_2"]
 
 [tool.hatch.build.targets.wheel]
-include = ["django_fsm"]
+packages = ["django_fsm_2"]
 
 [build-system]
 requires = ["hatchling"]
@@ -67,10 +65,11 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 130
-target-version = "py38"
+target-version = "py310"
 fix = true
 
 [tool.ruff.lint]
