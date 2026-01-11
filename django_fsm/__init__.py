@@ -27,6 +27,7 @@ __all__ = [
     "FSMFieldMixin",
     "FSMIntegerField",
     "FSMKeyField",
+    "FSMModelMixin",
     "TransitionNotAllowed",
     "can_proceed",
     "has_transition_perm",

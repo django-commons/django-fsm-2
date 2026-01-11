@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from django import forms
 from django.db import models
 
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
 from django_fsm import FSMKeyField
+from django_fsm import FSMModelMixin
 from django_fsm import transition
+from django_fsm.log import fsm_log_by
+from django_fsm.log import fsm_log_description
 
 
 class Application(models.Model):
@@ -254,4 +258,107 @@ class BlogPost(models.Model):
 
     @transition(field=state, source="*", target=BlogPostState.MODERATED)
     def moderate(self):
+        pass
+
+
+# =============================================================================
+# Admin test models
+# =============================================================================
+
+
+class PublishForm(forms.Form):
+    """Form for publish transition arguments."""
+
+    reviewer = forms.CharField(max_length=100, required=True, help_text="Name of the reviewer")
+    notes = forms.CharField(widget=forms.Textarea, required=False, help_text="Optional notes")
+
+
+class AdminArticle(FSMModelMixin, models.Model):
+    """Model for testing FSMAdminMixin functionality."""
+
+    title = models.CharField(max_length=200)
+    content = models.TextField(blank=True)
+    state = FSMField(default="draft", protected=True)
+
+    class Meta:
+        verbose_name = "Article"
+        verbose_name_plural = "Articles"
+
+    def __str__(self):
+        return f"{self.title} ({self.state})"
+
+    @transition(
+        field=state,
+        source="draft",
+        target="pending",
+        custom={"label": "Submit for Review"},
+    )
+    def submit(self):
+        """Submit the article for review."""
+        pass
+
+    @transition(
+        field=state,
+        source="pending",
+        target="published",
+        custom={"label": "Publish", "form": "tests.testapp.models.PublishForm"},
+    )
+    def publish(self, reviewer=None, notes=None):
+        """Publish the article."""
+        pass
+
+    @transition(
+        field=state,
+        source="pending",
+        target="draft",
+        custom={"label": "Reject"},
+    )
+    def reject(self):
+        """Reject the article back to draft."""
+        pass
+
+    @transition(
+        field=state,
+        source="published",
+        target="archived",
+    )
+    def archive(self):
+        """Archive the published article."""
+        pass
+
+    @transition(
+        field=state,
+        source="*",
+        target="draft",
+        custom={"admin": False},
+    )
+    def reset(self):
+        """Reset to draft - hidden from admin."""
+        pass
+
+
+class LoggableArticle(FSMModelMixin, models.Model):
+    """Model for testing FSM log decorators."""
+
+    title = models.CharField(max_length=200)
+    state = FSMField(default="draft", protected=True)
+
+    class Meta:
+        verbose_name = "Loggable Article"
+        verbose_name_plural = "Loggable Articles"
+
+    def __str__(self):
+        return f"{self.title} ({self.state})"
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="draft", target="published")
+    def publish(self, by=None, description=None):
+        """Publish with logging support."""
+        pass
+
+    @fsm_log_by
+    @transition(field=state, source="published", target="archived")
+    def archive(self, by=None):
+        """Archive with user tracking."""
         pass

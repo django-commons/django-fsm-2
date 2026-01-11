@@ -135,3 +135,8 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# django-fsm admin settings
+# When True, only show transitions marked with custom={'admin': True}
+# When False (default), show all transitions except those marked with custom={'admin': False}
+FSM_ADMIN_FORCE_PERMIT = False
