@@ -32,7 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 PROJECT_APPS = (
-    "django_fsm",
+    "django_fsm_2",
     "tests.testapp",
 )
 

@@ -95,15 +95,16 @@ def node_label(field: FSMFieldMixin, state: str | int) -> str:
     Returns:
         Human-readable label for the state.
     """
-    if isinstance(state, int) or (
-        isinstance(state, bool) and hasattr(field, "choices")
-    ):
-        return force_str(dict(field.choices).get(state))
+    if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
+        label = dict(field.choices).get(state)
+        if label is not None:
+            return force_str(label)
     return str(state)
 
 
 def generate_dot(  # noqa: C901
-    fields_data: list[tuple[FSMFieldMixin, type[Model]]]
+    fields_data: list[tuple[FSMFieldMixin, type[Model]]],
+    exclude: set[str] | None = None,
 ) -> graphviz.Digraph:
     """
     Generate a GraphViz Digraph from FSM field data.
@@ -113,11 +114,13 @@ def generate_dot(  # noqa: C901
 
     Args:
         fields_data: List of (field, model) tuples to visualize.
+        exclude: Set of transition names to exclude from the graph.
 
     Returns:
         A graphviz.Digraph object ready for rendering.
     """
     result = graphviz.Digraph()
+    exclude = exclude or set()
 
     for field, model in fields_data:
         sources: set[tuple[str, str]] = set()
@@ -128,16 +131,28 @@ def generate_dot(  # noqa: C901
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):
+            # Skip excluded transitions
+            if transition.name in exclude:
+                continue
             if transition.source == "*":
                 any_targets.add((transition.target, transition.name))
             elif transition.source == "+":
                 any_except_targets.add((transition.target, transition.name))
             else:
-                _targets: tuple[Any, ...] = (
-                    tuple(state for state in transition.target.allowed_states)
-                    if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
-                    else (transition.target,)
-                )
+                # Handle transitions with no target (target=None means state unchanged)
+                if transition.target is None:
+                    continue
+                # Handle GET_STATE/RETURN_VALUE with allowed_states
+                if isinstance(transition.target, (GET_STATE, RETURN_VALUE)):
+                    if transition.target.allowed_states:
+                        _targets: tuple[Any, ...] = tuple(
+                            state for state in transition.target.allowed_states
+                        )
+                    else:
+                        # No allowed_states specified - skip graphing dynamic targets
+                        continue
+                else:
+                    _targets = (transition.target,)
                 source_name_pair: tuple[tuple[Any, str], ...] = (
                     tuple(
                         (state, node_name(field, state))
@@ -299,6 +314,14 @@ class Command(BaseCommand):
             default="dot",
             help=f"Layout to be used by GraphViz for visualization. Layouts: {get_graphviz_layouts()}.",
         )
+        parser.add_argument(
+            "--exclude",
+            "-e",
+            action="store",
+            dest="exclude",
+            default="",
+            help="Comma-separated list of transition names to exclude from the graph.",
+        )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
     def render_output(self, graph: graphviz.Digraph, **options: Any) -> None:
@@ -323,14 +346,19 @@ class Command(BaseCommand):
             *args: Positional arguments (app.model.field specifications).
             **options: Command options.
         """
+        # Parse exclude option
+        exclude: set[str] = set()
+        if options.get("exclude"):
+            exclude = {t.strip() for t in options["exclude"].split(",") if t.strip()}
+
         fields_data: list[tuple[FSMFieldMixin, type[Model]]] = []
         if len(args) != 0:
             for arg in args:
                 field_spec = arg.split(".")
 
                 if len(field_spec) == 1:
-                    app = apps.get_app(field_spec[0])
-                    models = apps.get_models(app)
+                    app = apps.get_app_config(field_spec[0])
+                    models = app.get_models()
                     for model in models:
                         fields_data += all_fsm_fields_data(model)
                 elif len(field_spec) == 2:
@@ -338,13 +366,23 @@ class Command(BaseCommand):
                     fields_data += all_fsm_fields_data(model)
                 elif len(field_spec) == 3:
                     model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += all_fsm_fields_data(model)
+                    field_name = field_spec[2]
+                    # Filter to only the specified field
+                    found = False
+                    for field, mdl in all_fsm_fields_data(model):
+                        if field.name == field_name:
+                            fields_data.append((field, mdl))
+                            found = True
+                            break
+                    if not found:
+                        # Field not found - this will raise FieldDoesNotExist
+                        model._meta.get_field(field_name)
         else:
             for model in apps.get_models():
                 fields_data += all_fsm_fields_data(model)
-        dotdata = generate_dot(fields_data)
+        dotdata = generate_dot(fields_data, exclude=exclude)
 
         if options["outputfile"]:
             self.render_output(dotdata, **options)
         else:
-            print(dotdata)
+            self.stdout.write(str(dotdata))

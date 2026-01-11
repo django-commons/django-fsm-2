@@ -254,13 +254,12 @@ class TestAdminIntegration:
         """Test transition that is not allowed from current state."""
         client.force_login(admin_user)
 
-        # archive is only available from 'published', not 'draft'
+        # archive is only available from 'published', not 'new'
         url = reverse("admin:testapp_adminblogpost_change", args=[blog_post.pk])
         response = client.post(
             url,
             {
                 "title": blog_post.title,
-                "state": "draft",
                 "review_state": "pending",
                 "_fsm_transition_to": "archive",
             },
@@ -269,9 +268,10 @@ class TestAdminIntegration:
         # Should redirect with error message
         assert response.status_code == 302
 
-        # State should NOT have changed
-        blog_post.refresh_from_db()
-        assert blog_post.state == "draft"
+        # State should NOT have changed - get fresh from DB
+        from tests.testapp.models import AdminBlogPost
+        db_post = AdminBlogPost.objects.get(pk=blog_post.pk)
+        assert db_post.state == "new"
 
 
 @pytest.mark.django_db

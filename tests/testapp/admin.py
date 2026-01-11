@@ -15,9 +15,9 @@ from .models import LoggableArticle
 class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin):
     """Admin for AdminBlogPost with FSM transitions."""
 
-    fsm_fields = ["state"]
-    list_display = ("title", "state")
-    list_filter = ("state",)
+    fsm_fields = ["state", "review_state"]
+    list_display = ("title", "state", "review_state")
+    list_filter = ("state", "review_state")
     search_fields = ("title",)
 
 

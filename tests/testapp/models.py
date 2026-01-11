@@ -337,11 +337,23 @@ class AdminArticle(FSMModelMixin, models.Model):
         pass
 
 
+class RejectionForm(forms.Form):
+    """Form for rejection transition arguments."""
+
+    reason = forms.CharField(
+        max_length=500,
+        required=True,
+        widget=forms.Textarea,
+        help_text="Reason for rejection",
+    )
+
+
 class AdminBlogPost(FSMModelMixin, models.Model):
     """Model for testing FSMAdminMixin functionality in tests."""
 
     title = models.CharField(max_length=200)
     state = FSMField(default="new", protected=True)
+    review_state = FSMField(default="pending")
 
     class Meta:
         verbose_name = "Admin Blog Post"
@@ -350,6 +362,7 @@ class AdminBlogPost(FSMModelMixin, models.Model):
     def __str__(self):
         return f"{self.title} ({self.state})"
 
+    # State transitions
     @transition(
         field=state,
         source="new",
@@ -382,11 +395,32 @@ class AdminBlogPost(FSMModelMixin, models.Model):
     @transition(
         field=state,
         source="*",
-        target="draft",
+        target="scheduled",
         custom={"admin": False},
     )
-    def hide(self):
-        """Hidden from admin."""
+    def schedule(self):
+        """Schedule for later - hidden from admin."""
+        pass
+
+    # Review state transitions
+    @transition(
+        field=review_state,
+        source="pending",
+        target="rejected",
+        custom={"label": "Reject", "form": "tests.testapp.models.RejectionForm"},
+    )
+    def reject(self, reason=None):
+        """Reject the blog post."""
+        pass
+
+    @transition(
+        field=review_state,
+        source="pending",
+        target="approved",
+        custom={"label": "Approve"},
+    )
+    def approve(self):
+        """Approve the blog post."""
         pass
 
 
