@@ -36,6 +36,7 @@ django-fsm-2 4.3.0 2026-10-28
   exported GraphViz diagram (#154)
 - Add python 3.15 support
 
+- Add logging solution
 
 django-fsm-2 4.2.4 2026-03-16
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

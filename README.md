@@ -632,6 +632,28 @@ INSTALLED_APPS = (
 )
 ```
 
+## Transition tracking
+
+Use `@django_fsm.track(...)` to write state changes to a log table.
+If you prefer one table per model, define your own log model and pass it in.
+
+
+```python
+import django_fsm
+from django.db import models
+
+
+# Declare a model that extend TransitionLogBase and declare the relation field
+class BlogPostLog(django_fsm.TransitionLogBase):
+    post = models.ForeignKey("BlogPost", on_delete=models.CASCADE, related_name="transition_logs")
+
+
+# Add track decorator to hook the concrete model you declared
+@django_fsm.track(log_model=BlogPostLog, relation_field="post")
+class BlogPost(models.Model):
+    state = django_fsm.FSMField(default="new")
+```
+
 ## Drawing transitions
 
 Render a graphical overview of your model transitions.

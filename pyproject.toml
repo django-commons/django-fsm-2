@@ -65,10 +65,10 @@ default-groups = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["django_fsm", "fsm_admin", "django_fsm/py.typed"]
+include = ["django_fsm", "fsm_admin", "django_fsm_log", "django_fsm/py.typed"]
 
 [tool.hatch.build.targets.wheel]
-include = ["django_fsm", "fsm_admin", "django_fsm/py.typed"]
+include = ["django_fsm", "fsm_admin", "django_fsm_log", "django_fsm/py.typed"]
 
 [build-system]
 requires = ["hatchling"]
@@ -104,6 +104,7 @@ extend-ignore = [
 ]
 fixable = [
     "I",  # isort
+    "RUF022",
     "RUF100",  # Unused `noqa` directive
     "E501",
 ]
@@ -157,8 +158,5 @@ no_implicit_reexport = true
 warn_return_any = true
 
 [[tool.mypy.overrides]]
-module = [
-    "tests.*",
-    "django_fsm.tests.*"
-]
+module = ["tests.*"]
 disallow_untyped_defs = false

@@ -4,14 +4,20 @@ import logging
 import typing
 from dataclasses import dataclass
 
+try:
+    from typing import override
+except ImportError:  # pragma: no cover
+    # Py<3.12
+    from typing_extensions import override
+
 from django import http
-from django.apps import apps
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
+from django.contrib.admin import TabularInline
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
-from django.core.exceptions import AppRegistryNotReady
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models
 from django.forms import Form
 from django.forms import ModelForm
 from django.shortcuts import redirect
@@ -28,18 +34,19 @@ import django_fsm as fsm
 
 logger = logging.getLogger(__name__)
 
-try:
-    from typing import override
-except ImportError:  # pragma: no cover
-    # Py<3.12
-    from typing_extensions import override
-
 if typing.TYPE_CHECKING:  # pragma: no cover
+    from django.http import HttpRequest
+
+    from .models import TransitionLogBase
+
     _ModelAdmin: typing.TypeAlias = admin.ModelAdmin[fsm._FSMModel]
     _FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
+    _FSMTransitionInlineBase: typing.TypeAlias = TabularInline[TransitionLogBase, models.Model]
 else:
     _ModelAdmin = admin.ModelAdmin
     _FormType = type[Form | ModelForm]
+    TransitionLogBase = models.Model
+    _FSMTransitionInlineBase = TabularInline
 
 
 @dataclass
@@ -263,13 +270,6 @@ class FSMAdminMixin(_ModelAdmin):
             return next(iter(meta.transitions.values()))
         return transition
 
-    @staticmethod
-    def _is_fsm_log_enabled() -> bool:
-        try:
-            return apps.is_installed("django_fsm_log")
-        except AppRegistryNotReady:  # pragma: no cover
-            return "django_fsm_log" in settings.INSTALLED_APPS
-
     def _execute_fsm_transition(
         self,
         *,
@@ -278,9 +278,7 @@ class FSMAdminMixin(_ModelAdmin):
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
         kwargs = kwargs or {}
-        if self._is_fsm_log_enabled() and (
-            func_supports_parameter(transition_func, "by") or func_accepts_kwargs(transition_func)
-        ):
+        if func_supports_parameter(transition_func, "by") or func_accepts_kwargs(transition_func):
             transition_func(by=request.user, **kwargs)
         else:
             transition_func(**kwargs)
@@ -436,3 +434,30 @@ class FSMAdminMixin(_ModelAdmin):
                 }
             ),
         )
+
+
+class FSMTransitionInlineMixin(_FSMTransitionInlineBase):
+    can_delete = False
+
+    def has_add_permission(self, request: HttpRequest, obj: models.Model | None = None) -> bool:
+        return False
+
+    def has_change_permission(self, request: HttpRequest, obj: models.Model | None = None) -> bool:
+        return True
+
+    fields = (
+        "transition",
+        "source_state",
+        "state",
+        "by",
+        "description",
+        "timestamp",
+    )
+
+    def get_readonly_fields(
+        self, request: HttpRequest, obj: models.Model | None = None
+    ) -> list[str] | tuple[str, ...] | tuple[()]:
+        return self.fields
+
+    def get_queryset(self, request: HttpRequest) -> models.QuerySet[TransitionLogBase]:
+        return super().get_queryset(request).order_by(models.F("timestamp").desc())
