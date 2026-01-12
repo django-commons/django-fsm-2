@@ -34,9 +34,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/vivster7/django-fsm-rx"
-Repository = "https://github.com/vivster7/django-fsm-rx"
-Documentation = "https://github.com/vivster7/django-fsm-rx"
+Homepage = "https://github.com/specialorange/django-fsm-rx"
+Repository = "https://github.com/specialorange/django-fsm-rx"
+Documentation = "https://github.com/specialorange/django-fsm-rx"
 
 [project.optional-dependencies]
 graphviz = [
