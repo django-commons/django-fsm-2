@@ -20,6 +20,7 @@ Unreleased
 - Fix ``on_error`` being silently ignored when set to a falsy-but-valid state value
   (e.g. ``0``)
 
+- Add logging solution
 
 django-fsm-2 4.2.4 2026-03-16
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

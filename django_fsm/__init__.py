@@ -10,6 +10,12 @@ import typing
 from functools import partialmethod
 from functools import wraps
 
+try:
+    from typing import override
+except ImportError:  # pragma: no cover
+    # Py<3.12
+    from typing_extensions import override
+
 from django import VERSION as DJANGO_VERSION
 from django.apps import apps as django_apps
 from django.db import models
@@ -67,12 +73,6 @@ else:
     IntegerField = models.IntegerField
     ForeignKey = models.ForeignKey
     Self = typing.Any
-
-try:
-    from typing import override
-except ImportError:  # pragma: no cover
-    # Py<3.12
-    from typing_extensions import override
 
 __all__ = [
     "GET_STATE",

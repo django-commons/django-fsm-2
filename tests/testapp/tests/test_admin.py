@@ -18,7 +18,6 @@ from django.http import HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.test import TestCase
 from django.test.client import RequestFactory
-from django.test.utils import modify_settings
 from django.urls import reverse
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
@@ -26,6 +25,7 @@ from django_fsm_log.models import StateLog
 
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
+from django_fsm.models import StateLog
 
 from ..admin import AdminBlogPostAdmin
 from ..admin_forms import AdminBlogPostRenameModelForm
@@ -40,20 +40,12 @@ if typing.TYPE_CHECKING:
     from django.contrib.auth.models import User
     from django.core.handlers.wsgi import WSGIRequest
 
-disable_fsm_log = modify_settings(
-    DJANGO_FSM_LOG_IGNORED_MODELS={
-        "append": "tests.testapp.models.AdminBlogPost",
-    }
-)
-
 
 class BaseAdminTestCase(TestCase):
     model = AdminBlogPost
     admin_class = AdminBlogPostAdmin
     user: User | AnonymousUser
     blog_post: AdminBlogPost
-
-    fsm_log_enabled = True
 
     @classmethod
     def setUpTestData(cls):
@@ -87,19 +79,16 @@ class BaseAdminTestCase(TestCase):
         state: AdminBlogPostState | None = None,
         transition: str | None = None,
     ) -> None:
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-            if description is not None:
-                assert statelog.description == description
-            if source_state is not None:
-                assert statelog.source_state == source_state
-            if state is not None:
-                assert statelog.state == state
-            if transition is not None:
-                assert statelog.transition == transition
-        else:
-            self.assert_state_log_empty()
+        statelog = StateLog.objects.get()
+        assert statelog.by == self.user
+        if description is not None:
+            assert statelog.description == description
+        if source_state is not None:
+            assert statelog.source_state == source_state
+        if state is not None:
+            assert statelog.state == state
+        if transition is not None:
+            assert statelog.transition == transition
 
 
 class EmptyFieldAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
@@ -659,11 +648,6 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
         assert self.blog_post.state == AdminBlogPostState.PUBLISHED
         assert self.blog_post.title == "Article name"
         mock_message_user.assert_not_called()
-
-
-@disable_fsm_log
-class ResponseChangeViewWithoutFsmLogTestCase(ResponseChangeViewTestCase):
-    fsm_log_enabled = False
 
 
 @mock.patch("tests.testapp.admin.AdminBlogPostAdmin.message_user")
