@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django_fsm_log.decorators import fsm_log_by
-from django_fsm_log.decorators import fsm_log_description
 
 import django_fsm as fsm
+from django_fsm.log import fsm_log_by
+from django_fsm.log import fsm_log_description
+from django_fsm.log import track as fsm_track
+from django_fsm.models import TransitionLogBase
 
 from .choices import AdminBlogPostState
 from .choices import AdminBlogPostStep
@@ -305,6 +307,37 @@ class BlogPost(models.Model):
         pass
 
 
+class TrackedPostStateLog(TransitionLogBase):
+    post = models.ForeignKey(
+        "TrackedPost",
+        on_delete=models.CASCADE,
+        related_name="transition_logs",
+    )
+
+
+@fsm_track(log_model=TrackedPostStateLog, relation_field="post")
+class TrackedPost(models.Model):
+    state = fsm.FSMField(default="new")
+
+    @fsm_log_by
+    @fsm_log_description
+    @fsm.transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
+        pass
+
+
+@fsm_track()
+class GenericTrackedPost(models.Model):
+    state = fsm.FSMField(default="new")
+
+    @fsm_log_by
+    @fsm_log_description
+    @fsm.transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
+        pass
+
+
+@fsm_track()
 class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=50)
 
