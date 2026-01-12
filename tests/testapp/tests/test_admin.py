@@ -7,8 +7,7 @@ from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
 
-from django_fsm_2.admin import FSMAdminMixin
-from django_fsm_2.admin import FSMObjectTransitions
+from django_fsm_rx.admin import FSMObjectTransitions
 from tests.testapp.admin import AdminBlogPostAdmin
 from tests.testapp.models import AdminBlogPost
 
@@ -80,9 +79,7 @@ class TestFSMAdminMixin:
         missing = model_admin.get_fsm_field_instance("nonexistent")
         assert missing is None
 
-    def test_get_readonly_fields_includes_protected(
-        self, model_admin, request_factory, admin_user
-    ):
+    def test_get_readonly_fields_includes_protected(self, model_admin, request_factory, admin_user):
         """Test that protected FSM fields are added to readonly fields."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -129,9 +126,7 @@ class TestFSMAdminMixin:
 
         assert model_admin.is_fsm_transition_visible(schedule_transition) is False
 
-    def test_get_fsm_object_transitions(
-        self, model_admin, blog_post, request_factory, admin_user
-    ):
+    def test_get_fsm_object_transitions(self, model_admin, blog_post, request_factory, admin_user):
         """Test getting object transitions."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -236,9 +231,7 @@ class TestAdminIntegration:
         blog_post.refresh_from_db()
         assert blog_post.review_state == "rejected"
 
-    def test_admin_transition_view_invalid_transition(
-        self, client, admin_user, blog_post
-    ):
+    def test_admin_transition_view_invalid_transition(self, client, admin_user, blog_post):
         """Test transition view with invalid transition name."""
         client.force_login(admin_user)
 
@@ -270,6 +263,7 @@ class TestAdminIntegration:
 
         # State should NOT have changed - get fresh from DB
         from tests.testapp.models import AdminBlogPost
+
         db_post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert db_post.state == "new"
 
@@ -280,7 +274,7 @@ class TestFSMLogIntegration:
 
     def test_fsm_log_by_decorator(self, admin_user):
         """Test that fsm_log_by decorator works."""
-        from django_fsm_2.log import fsm_log_by
+        from django_fsm_rx.log import fsm_log_by
 
         class MockModel:
             def __init__(self):
@@ -300,7 +294,7 @@ class TestFSMLogIntegration:
 
     def test_fsm_log_description_decorator(self):
         """Test that fsm_log_description decorator works."""
-        from django_fsm_2.log import fsm_log_description
+        from django_fsm_rx.log import fsm_log_description
 
         class MockModel:
             @fsm_log_description
@@ -313,7 +307,7 @@ class TestFSMLogIntegration:
 
     def test_fsm_log_context_manager(self, admin_user):
         """Test fsm_log_context context manager."""
-        from django_fsm_2.log import fsm_log_context
+        from django_fsm_rx.log import fsm_log_context
 
         class MockModel:
             pass

@@ -8,18 +8,13 @@ from __future__ import annotations
 
 import pytest
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.test import Client
 from django.test import RequestFactory
 from django.test import override_settings
 from django.urls import reverse
 
-from django_fsm_2 import FSMField
-from django_fsm_2 import transition
-from django_fsm_2.admin import FSMAdminMixin
-from django_fsm_2.admin import FSMObjectTransitions
+from django_fsm_rx.admin import FSMAdminMixin
 from tests.testapp.admin import AdminBlogPostAdmin
 from tests.testapp.models import AdminBlogPost
 
@@ -37,13 +32,12 @@ def admin_user(db):
 @pytest.fixture
 def staff_user(db):
     """Create a staff user without superuser privileges."""
-    user = User.objects.create_user(
+    return User.objects.create_user(
         username="staff",
         email="staff@example.com",
         password="password",
         is_staff=True,
     )
-    return user
 
 
 @pytest.fixture
@@ -88,9 +82,7 @@ def client():
 class TestFSMAdminMixinRegression:
     """Regression tests for FSMAdminMixin edge cases."""
 
-    def test_multiple_fsm_fields_transitions(
-        self, model_admin, blog_post, request_factory, admin_user
-    ):
+    def test_multiple_fsm_fields_transitions(self, model_admin, blog_post, request_factory, admin_user):
         """Test that transitions for multiple FSM fields are correctly separated."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -116,9 +108,7 @@ class TestFSMAdminMixinRegression:
         assert "approve" in review_names
         assert "reject" in review_names
 
-    def test_transition_not_available_after_state_change(
-        self, model_admin, published_post, request_factory, admin_user
-    ):
+    def test_transition_not_available_after_state_change(self, model_admin, published_post, request_factory, admin_user):
         """Test that transitions are correctly filtered by current state."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -165,9 +155,7 @@ class TestFSMAdminMixinRegression:
         transitions = admin.get_fsm_object_transitions(request, post)
         assert len(transitions) == 0
 
-    def test_readonly_fields_not_duplicated(
-        self, model_admin, request_factory, admin_user, blog_post
-    ):
+    def test_readonly_fields_not_duplicated(self, model_admin, request_factory, admin_user, blog_post):
         """Test that protected fields aren't duplicated in readonly_fields."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -180,9 +168,7 @@ class TestFSMAdminMixinRegression:
         assert readonly1.count("state") == 1
         assert readonly2.count("state") == 1
 
-    def test_custom_label_with_special_characters(
-        self, model_admin, blog_post
-    ):
+    def test_custom_label_with_special_characters(self, model_admin, blog_post):
         """Test transition labels with special characters."""
         transitions = list(blog_post.get_available_state_transitions())
         publish_transition = next(t for t in transitions if t.name == "publish")
@@ -346,9 +332,7 @@ class TestAdminIntegrationRegression:
         post = AdminBlogPost.objects.get(pk=blog_post.pk)
         assert post.state == "archived"
 
-    def test_transition_on_multiple_fields_same_request(
-        self, client, admin_user, blog_post
-    ):
+    def test_transition_on_multiple_fields_same_request(self, client, admin_user, blog_post):
         """Test that only one transition is processed per request."""
         from tests.testapp.models import AdminBlogPost
 
@@ -356,7 +340,7 @@ class TestAdminIntegrationRegression:
         url = reverse("admin:testapp_adminblogpost_change", args=[blog_post.pk])
 
         # Try to send multiple transitions (only first should be processed)
-        response = client.post(
+        client.post(
             url,
             {
                 "title": blog_post.title,
@@ -376,9 +360,7 @@ class TestFSMAdminForcePermit:
     """Test FSM_ADMIN_FORCE_PERMIT setting."""
 
     @override_settings(FSM_ADMIN_FORCE_PERMIT=True)
-    def test_force_permit_hides_transitions_without_admin_true(
-        self, model_admin, blog_post, request_factory, admin_user
-    ):
+    def test_force_permit_hides_transitions_without_admin_true(self, model_admin, blog_post, request_factory, admin_user):
         """With FSM_ADMIN_FORCE_PERMIT=True, only admin=True transitions show."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -392,9 +374,7 @@ class TestFSMAdminForcePermit:
         assert len(transition_names) == 0
 
     @override_settings(FSM_ADMIN_FORCE_PERMIT=False)
-    def test_force_permit_false_shows_all_except_admin_false(
-        self, model_admin, blog_post, request_factory, admin_user
-    ):
+    def test_force_permit_false_shows_all_except_admin_false(self, model_admin, blog_post, request_factory, admin_user):
         """With FSM_ADMIN_FORCE_PERMIT=False, all except admin=False show."""
         request = request_factory.get("/")
         request.user = admin_user
@@ -416,7 +396,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_by_without_by_parameter(self):
         """Test fsm_log_by when by is not passed."""
-        from django_fsm_2.log import fsm_log_by
+        from django_fsm_rx.log import fsm_log_by
 
         class MockModel:
             @fsm_log_by
@@ -429,7 +409,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_by_with_none_value(self):
         """Test fsm_log_by when by=None is explicitly passed."""
-        from django_fsm_2.log import fsm_log_by
+        from django_fsm_rx.log import fsm_log_by
 
         class MockModel:
             @fsm_log_by
@@ -442,7 +422,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_description_with_default(self):
         """Test fsm_log_description with default description."""
-        from django_fsm_2.log import fsm_log_description
+        from django_fsm_rx.log import fsm_log_description
 
         class MockModel:
             @fsm_log_description(description="Default desc")
@@ -455,7 +435,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_description_override_default(self):
         """Test that passed description overrides default."""
-        from django_fsm_2.log import fsm_log_description
+        from django_fsm_rx.log import fsm_log_description
 
         class MockModel:
             @fsm_log_description(description="Default desc")
@@ -468,7 +448,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_description_inline_mode(self):
         """Test fsm_log_description with allow_inline=True."""
-        from django_fsm_2.log import fsm_log_description
+        from django_fsm_rx.log import fsm_log_description
 
         class MockModel:
             @fsm_log_description(allow_inline=True)
@@ -483,7 +463,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_context_partial_params(self):
         """Test fsm_log_context with only some parameters."""
-        from django_fsm_2.log import fsm_log_context
+        from django_fsm_rx.log import fsm_log_context
 
         class MockModel:
             pass
@@ -502,7 +482,7 @@ class TestFSMLogDecoratorRegression:
 
     def test_fsm_log_context_cleanup_on_exception(self):
         """Test that fsm_log_context cleans up even on exception."""
-        from django_fsm_2.log import fsm_log_context
+        from django_fsm_rx.log import fsm_log_context
 
         class MockModel:
             pass
@@ -522,8 +502,8 @@ class TestFSMLogDecoratorRegression:
 
     def test_stacked_decorators(self, admin_user):
         """Test fsm_log_by and fsm_log_description stacked together."""
-        from django_fsm_2.log import fsm_log_by
-        from django_fsm_2.log import fsm_log_description
+        from django_fsm_rx.log import fsm_log_by
+        from django_fsm_rx.log import fsm_log_description
 
         class MockModel:
             @fsm_log_by
@@ -535,9 +515,7 @@ class TestFSMLogDecoratorRegression:
                 )
 
         obj = MockModel()
-        by_result, desc_result = obj.do_transition(
-            by=admin_user, description="Test desc"
-        )
+        by_result, desc_result = obj.do_transition(by=admin_user, description="Test desc")
 
         assert by_result == admin_user
         assert desc_result == "Test desc"
@@ -573,9 +551,7 @@ class TestAdminTemplateRegression:
         # publish has custom label "Publish Post"
         assert b"Publish Post" in response.content
 
-    def test_template_links_to_form_for_form_transitions(
-        self, client, admin_user, blog_post
-    ):
+    def test_template_links_to_form_for_form_transitions(self, client, admin_user, blog_post):
         """Test that transitions with forms link to the form view."""
         client.force_login(admin_user)
 

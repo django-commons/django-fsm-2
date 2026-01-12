@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import FSMKeyField
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import transition
+from django_fsm_rx import FSMKeyField
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
 
 FK_AVAILABLE_STATES = (
     ("New", "_NEW_"),
@@ -32,9 +32,7 @@ class KeyFieldDBState(models.Model):
 
 
 class FKBlogPost(models.Model):
-    state = FSMKeyField(
-        KeyFieldDBState, default="new", protected=True, on_delete=models.CASCADE
-    )
+    state = FSMKeyField(KeyFieldDBState, default="new", protected=True, on_delete=models.CASCADE)
 
     @transition(field=state, source="new", target="published")
     def publish(self):
@@ -70,7 +68,7 @@ class FSMKeyFieldTest(TestCase):
             KeyFieldDBState.objects.create(pk=item[0], label=item[1])
         self.model = FKBlogPost()
 
-    def test_initial_state_instatiated(self):
+    def test_initial_state_instantiated(self):
         self.assertEqual(
             self.model.state,
             "new",
@@ -85,7 +83,7 @@ class FSMKeyFieldTest(TestCase):
         self.model.hide()
         self.assertEqual(self.model.state, "hidden")
 
-    def test_unknow_transition_fails(self):
+    def test_unknown_transition_fails(self):
         self.assertFalse(can_proceed(self.model.hide))
         self.assertRaises(TransitionNotAllowed, self.model.hide)
 
@@ -100,16 +98,16 @@ class FSMKeyFieldTest(TestCase):
         self.model.notify_all()
         self.assertEqual(self.model.state, "published")
 
-    def test_unknow_null_transition_should_fail(self):
+    def test_unknown_null_transition_should_fail(self):
         self.assertRaises(TransitionNotAllowed, self.model.notify_all)
         self.assertEqual(self.model.state, "new")
 
-    def test_mutiple_source_support_path_1_works(self):
+    def test_multiple_source_support_path_1_works(self):
         self.model.publish()
         self.model.steal()
         self.assertEqual(self.model.state, "stolen")
 
-    def test_mutiple_source_support_path_2_works(self):
+    def test_multiple_source_support_path_2_works(self):
         self.model.publish()
         self.model.hide()
         self.model.steal()
@@ -128,7 +126,7 @@ class BlogPostStatus(models.Model):
     objects = models.Manager()
 
     class Meta:
-        app_label = 'django_fsm_2'
+        app_label = 'django_fsm_rx'
 
 
 class BlogPostWithFKState(models.Model):
@@ -157,6 +155,6 @@ class BlogPostWithFKStateTest(TestCase):
         self.model.hide()
         self.assertEqual(self.model.state, 'hidden')
 
-    def test_unknow_transition_fails(self):
+    def test_unknown_transition_fails(self):
         self.assertRaises(TransitionNotAllowed, self.model.hide)
 """

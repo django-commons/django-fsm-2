@@ -11,8 +11,8 @@ Usage with django-fsm-log:
     3. Run migrations: python manage.py migrate
     4. Use the decorators on your transitions:
 
-    >>> from django_fsm_2 import FSMField, transition
-    >>> from django_fsm_2.log import fsm_log_by, fsm_log_description
+    >>> from django_fsm_rx import FSMField, transition
+    >>> from django_fsm_rx.log import fsm_log_by, fsm_log_description
     >>>
     >>> class BlogPost(models.Model):
     ...     state = FSMField(default='draft')
@@ -31,7 +31,7 @@ Standalone usage:
     If you don't want to use django-fsm-log, you can connect to the
     post_transition signal to implement your own logging:
 
-    >>> from django_fsm_2.signals import post_transition
+    >>> from django_fsm_rx.signals import post_transition
     >>>
     >>> def log_transition(sender, instance, name, source, target, **kwargs):
     ...     MyCustomLog.objects.create(
@@ -47,13 +47,13 @@ Standalone usage:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from collections.abc import Generator
 from contextlib import contextmanager
 from functools import partial
 from functools import wraps
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Callable
-from typing import Generator
 from typing import TypeVar
 
 if TYPE_CHECKING:
@@ -231,7 +231,7 @@ def fsm_log_context(
     instance: Any,
     by: AbstractBaseUser | None = None,
     description: str | None = None,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """
     Context manager for setting log metadata during a transition.
 

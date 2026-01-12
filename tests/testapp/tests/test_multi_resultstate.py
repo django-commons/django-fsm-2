@@ -3,20 +3,18 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import FSMField
-from django_fsm_2 import transition
-from django_fsm_2.signals import post_transition
-from django_fsm_2.signals import pre_transition
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMField
+from django_fsm_rx import transition
+from django_fsm_rx.signals import post_transition
+from django_fsm_rx.signals import pre_transition
 
 
 class MultiResultTest(models.Model):
     state = FSMField(default="new")
 
-    @transition(
-        field=state, source="new", target=RETURN_VALUE("for_moderators", "published")
-    )
+    @transition(field=state, source="new", target=RETURN_VALUE("for_moderators", "published"))
     def publish(self, is_public=False):
         return "published" if is_public else "for_moderators"
 

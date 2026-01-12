@@ -1,6 +1,15 @@
 Changelog
 =========
 
+django-fsm-rx 5.0.0 2025-01-12
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Rebranded to django-fsm-rx (RX = Remanufactured)
+- New independent fork combining core FSM, admin integration, and logging
+- Backwards compatible imports from django_fsm and django_fsm_2 (with deprecation warnings)
+- Separated from Django Commons and Jazzband for independent governance
+
+
 django-fsm-2 4.1.0 2025-11-03
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

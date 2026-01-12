@@ -4,10 +4,10 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import FSMField
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import transition
+from django_fsm_rx import FSMField
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
 
 
 def condition_func(instance):

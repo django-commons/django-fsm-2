@@ -3,14 +3,14 @@ from __future__ import annotations
 from django import forms
 from django.db import models
 
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import FSMField
-from django_fsm_2 import FSMKeyField
-from django_fsm_2 import FSMModelMixin
-from django_fsm_2 import transition
-from django_fsm_2.log import fsm_log_by
-from django_fsm_2.log import fsm_log_description
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMKeyField
+from django_fsm_rx import FSMModelMixin
+from django_fsm_rx import transition
+from django_fsm_rx.log import fsm_log_by
+from django_fsm_rx.log import fsm_log_description
 
 
 class Application(models.Model):

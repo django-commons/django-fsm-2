@@ -9,19 +9,16 @@ from __future__ import annotations
 import pytest
 from django.db import models
 
-from django_fsm_2 import ConcurrentTransition
-from django_fsm_2 import ConcurrentTransitionMixin
-from django_fsm_2 import FSMField
-from django_fsm_2 import FSMIntegerField
-from django_fsm_2 import FSMModelMixin
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import has_transition_perm
-from django_fsm_2 import transition
-from django_fsm_2.signals import post_transition
-from django_fsm_2.signals import pre_transition
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMIntegerField
+from django_fsm_rx import FSMModelMixin
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
+from django_fsm_rx.signals import post_transition
+from django_fsm_rx.signals import pre_transition
 
 
 class RegressionModel(models.Model):
@@ -483,54 +480,54 @@ class TestExportedSymbols:
     """Regression tests to ensure all public symbols are exported."""
 
     def test_core_exports(self):
-        """Test that core symbols are exported from django_fsm_2."""
-        import django_fsm_2
+        """Test that core symbols are exported from django_fsm_rx."""
+        import django_fsm_rx
 
         # Exceptions
-        assert hasattr(django_fsm_2, "TransitionNotAllowed")
-        assert hasattr(django_fsm_2, "ConcurrentTransition")
-        assert hasattr(django_fsm_2, "InvalidResultState")
+        assert hasattr(django_fsm_rx, "TransitionNotAllowed")
+        assert hasattr(django_fsm_rx, "ConcurrentTransition")
+        assert hasattr(django_fsm_rx, "InvalidResultState")
 
         # Fields
-        assert hasattr(django_fsm_2, "FSMField")
-        assert hasattr(django_fsm_2, "FSMIntegerField")
-        assert hasattr(django_fsm_2, "FSMKeyField")
-        assert hasattr(django_fsm_2, "FSMFieldMixin")
+        assert hasattr(django_fsm_rx, "FSMField")
+        assert hasattr(django_fsm_rx, "FSMIntegerField")
+        assert hasattr(django_fsm_rx, "FSMKeyField")
+        assert hasattr(django_fsm_rx, "FSMFieldMixin")
 
         # Mixins
-        assert hasattr(django_fsm_2, "FSMModelMixin")
-        assert hasattr(django_fsm_2, "ConcurrentTransitionMixin")
+        assert hasattr(django_fsm_rx, "FSMModelMixin")
+        assert hasattr(django_fsm_rx, "ConcurrentTransitionMixin")
 
         # Decorators and functions
-        assert hasattr(django_fsm_2, "transition")
-        assert hasattr(django_fsm_2, "can_proceed")
-        assert hasattr(django_fsm_2, "has_transition_perm")
+        assert hasattr(django_fsm_rx, "transition")
+        assert hasattr(django_fsm_rx, "can_proceed")
+        assert hasattr(django_fsm_rx, "has_transition_perm")
 
         # Dynamic state resolution
-        assert hasattr(django_fsm_2, "GET_STATE")
-        assert hasattr(django_fsm_2, "RETURN_VALUE")
+        assert hasattr(django_fsm_rx, "GET_STATE")
+        assert hasattr(django_fsm_rx, "RETURN_VALUE")
 
         # Classes for introspection
-        assert hasattr(django_fsm_2, "Transition")
-        assert hasattr(django_fsm_2, "FSMMeta")
+        assert hasattr(django_fsm_rx, "Transition")
+        assert hasattr(django_fsm_rx, "FSMMeta")
 
     def test_signals_exports(self):
-        """Test that signals are exported from django_fsm_2.signals."""
-        from django_fsm_2 import signals
+        """Test that signals are exported from django_fsm_rx.signals."""
+        from django_fsm_rx import signals
 
         assert hasattr(signals, "pre_transition")
         assert hasattr(signals, "post_transition")
 
     def test_admin_exports(self):
-        """Test that admin classes are exported from django_fsm_2.admin."""
-        from django_fsm_2 import admin
+        """Test that admin classes are exported from django_fsm_rx.admin."""
+        from django_fsm_rx import admin
 
         assert hasattr(admin, "FSMAdminMixin")
         assert hasattr(admin, "FSMObjectTransitions")
 
     def test_log_exports(self):
-        """Test that log utilities are exported from django_fsm_2.log."""
-        from django_fsm_2 import log
+        """Test that log utilities are exported from django_fsm_rx.log."""
+        from django_fsm_rx import log
 
         assert hasattr(log, "fsm_log_by")
         assert hasattr(log, "fsm_log_description")

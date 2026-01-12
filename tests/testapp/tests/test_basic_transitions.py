@@ -3,13 +3,13 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import FSMField
-from django_fsm_2 import Transition
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import transition
-from django_fsm_2.signals import post_transition
-from django_fsm_2.signals import pre_transition
+from django_fsm_rx import FSMField
+from django_fsm_rx import Transition
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
+from django_fsm_rx.signals import post_transition
+from django_fsm_rx.signals import pre_transition
 
 
 class BasicBlogPost(models.Model):

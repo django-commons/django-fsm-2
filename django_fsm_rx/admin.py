@@ -7,7 +7,7 @@ state transitions directly from the admin panel.
 
 Example:
     >>> from django.contrib import admin
-    >>> from django_fsm_2.admin import FSMAdminMixin
+    >>> from django_fsm_rx.admin import FSMAdminMixin
     >>> from myapp.models import BlogPost
     >>>
     >>> @admin.register(BlogPost)
@@ -34,14 +34,13 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path
 from django.urls import reverse
-from django.utils.html import format_html
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
-from django_fsm_2 import ConcurrentTransition
-from django_fsm_2 import FSMFieldMixin
-from django_fsm_2 import Transition
-from django_fsm_2 import TransitionNotAllowed
+from django_fsm_rx import ConcurrentTransition
+from django_fsm_rx import FSMFieldMixin
+from django_fsm_rx import Transition
+from django_fsm_rx import TransitionNotAllowed
 
 if TYPE_CHECKING:
     from django.db.models import Model
@@ -104,10 +103,10 @@ class FSMAdminMixin(BaseModelAdmin):
     """
 
     # Template for the change form with transition buttons
-    change_form_template: str = "django_fsm_2/fsm_admin_change_form.html"
+    change_form_template: str = "django_fsm_rx/fsm_admin_change_form.html"
 
     # Template for transition forms (when arguments are needed)
-    fsm_transition_form_template: str = "django_fsm_2/fsm_transition_form.html"
+    fsm_transition_form_template: str = "django_fsm_rx/fsm_transition_form.html"
 
     # List of FSM field names to manage
     fsm_fields: list[str] = []
@@ -141,9 +140,7 @@ class FSMAdminMixin(BaseModelAdmin):
         except FieldDoesNotExist:
             return None
 
-    def get_readonly_fields(
-        self, request: HttpRequest, obj: Any = None
-    ) -> tuple[str, ...]:
+    def get_readonly_fields(self, request: HttpRequest, obj: Any = None) -> tuple[str, ...]:
         """
         Add protected FSM fields to the read-only fields list.
 
@@ -226,9 +223,7 @@ class FSMAdminMixin(BaseModelAdmin):
             return custom.get("admin", False) is True
         return custom.get("admin", True) is not False
 
-    def get_fsm_object_transitions(
-        self, request: HttpRequest, obj: Model
-    ) -> list[FSMObjectTransitions]:
+    def get_fsm_object_transitions(self, request: HttpRequest, obj: Model) -> list[FSMObjectTransitions]:
         """
         Get available transitions for each FSM field on the object.
 
@@ -248,10 +243,7 @@ class FSMAdminMixin(BaseModelAdmin):
         for field_name in sorted(self.fsm_fields):
             func = getattr(obj, f"get_available_user_{field_name}_transitions", None)
             if func:
-                transitions = [
-                    t for t in func(request.user)
-                    if self.is_fsm_transition_visible(t)
-                ]
+                transitions = [t for t in func(request.user) if self.is_fsm_transition_visible(t)]
                 fsm_object_transitions.append(
                     FSMObjectTransitions(
                         fsm_field=field_name,
@@ -445,17 +437,13 @@ class FSMAdminMixin(BaseModelAdmin):
         except ConcurrentTransition as err:
             self.message_user(
                 request,
-                self.fsm_transition_error_msg.format(
-                    transition_name=transition_name, error=str(err)
-                ),
+                self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
                 level=messages.ERROR,
             )
         except Exception as err:
             self.message_user(
                 request,
-                self.fsm_transition_error_msg.format(
-                    transition_name=transition_name, error=str(err)
-                ),
+                self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
                 level=messages.ERROR,
             )
 
@@ -474,7 +462,7 @@ class FSMAdminMixin(BaseModelAdmin):
             path(
                 "<path:object_id>/fsm-transition/<str:transition_name>/",
                 self.admin_site.admin_view(self.fsm_transition_view),
-                name="%s_%s_fsm_transition" % info,
+                name="{}_{}_fsm_transition".format(*info),
             ),
         ]
         return custom_urls + urls
@@ -507,11 +495,11 @@ class FSMAdminMixin(BaseModelAdmin):
 
         # Get the transition method
         transition_method = getattr(obj, transition_name, None)
-        if transition_method is None or not hasattr(transition_method, "_django_fsm_2"):
+        if transition_method is None or not hasattr(transition_method, "_django_fsm_rx"):
             return HttpResponseBadRequest(f"'{transition_name}' is not a valid transition")
 
         # Get transition metadata
-        meta = transition_method._django_fsm_2
+        meta = transition_method._django_fsm_rx
         current_state = meta.field.get_state(obj)
         transition = meta.get_transition(current_state)
 
@@ -544,9 +532,7 @@ class FSMAdminMixin(BaseModelAdmin):
             except Exception as err:
                 self.message_user(
                     request,
-                    self.fsm_transition_error_msg.format(
-                        transition_name=transition_name, error=str(err)
-                    ),
+                    self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
                     level=messages.ERROR,
                 )
             return self.get_fsm_response(request, obj)
@@ -556,31 +542,23 @@ class FSMAdminMixin(BaseModelAdmin):
             form = form_class(request.POST, request.FILES)
             if form.is_valid():
                 try:
-                    if self._execute_transition(
-                        request, obj, transition_name, form.cleaned_data
-                    ):
+                    if self._execute_transition(request, obj, transition_name, form.cleaned_data):
                         self.message_user(
                             request,
-                            self.fsm_transition_success_msg.format(
-                                transition_name=transition_name
-                            ),
+                            self.fsm_transition_success_msg.format(transition_name=transition_name),
                             level=messages.SUCCESS,
                         )
                     return self.get_fsm_response(request, obj)
                 except TransitionNotAllowed:
                     self.message_user(
                         request,
-                        self.fsm_transition_not_allowed_msg.format(
-                            transition_name=transition_name
-                        ),
+                        self.fsm_transition_not_allowed_msg.format(transition_name=transition_name),
                         level=messages.ERROR,
                     )
                 except Exception as err:
                     self.message_user(
                         request,
-                        self.fsm_transition_error_msg.format(
-                            transition_name=transition_name, error=str(err)
-                        ),
+                        self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
                         level=messages.ERROR,
                     )
         else:

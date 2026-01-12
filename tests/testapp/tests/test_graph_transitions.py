@@ -10,8 +10,8 @@ from django.core.exceptions import FieldDoesNotExist
 from django.core.management import call_command
 from django.test import TestCase
 
-from django_fsm_2.management.commands.graph_transitions import get_graphviz_layouts
-from django_fsm_2.management.commands.graph_transitions import node_label
+from django_fsm_rx.management.commands.graph_transitions import get_graphviz_layouts
+from django_fsm_rx.management.commands.graph_transitions import node_label
 from tests.testapp.models import BlogPost
 from tests.testapp.models import BlogPostState
 

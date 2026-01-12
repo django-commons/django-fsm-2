@@ -1,467 +1,346 @@
-# Django friendly finite state machine support
+# Django FSM RX - Remanufactured Finite State Machine
 
-[![CI tests](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml/badge.svg)](https://github.com/django-commons/django-fsm-2/actions/workflows/test.yml)
-[![codecov](https://codecov.io/github/django-commons/django-fsm-2/graph/badge.svg?token=gxsNL3cBl3)](https://codecov.io/github/django-commons/django-fsm-2)
-[![Documentation](https://img.shields.io/static/v1?label=Docs&message=READ&color=informational&style=plastic)](https://github.com/django-commons/django-fsm-2#settings)
-[![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/django-commons/anymail-history/LICENSE)
+[![CI tests](https://github.com/vivster7/django-fsm-rx/actions/workflows/test.yml/badge.svg)](https://github.com/vivster7/django-fsm-rx/actions/workflows/test.yml)
+[![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/vivster7/django-fsm-rx/LICENSE)
 
+Django-fsm-rx adds simple declarative state management for Django models.
 
-django-fsm adds simple declarative state management for django models.
+## What does RX mean?
 
-> [!IMPORTANT]
-> Django FSM-2 is a maintained fork of [Django FSM](https://github.com/viewflow/django-fsm).
->
-> Big thanks to Mikhail Podgurskiy for starting this awesome project and maintaining it for so many years.
->
-> Unfortunately, after 2 years without any releases, the project was brutally archived. [Viewflow](https://github.com/viewflow/viewflow) is presented as an alternative but the transition is not that easy.
->
-> If what you need is just a simple state machine, tailor-made for Django, Django FSM-2 is the successor of Django FSM, with dependencies updates, typing (planned)
+**RX = Remanufactured**
 
-## Introduction
+In the automotive and mechanic shop world, "RX" commonly denotes a remanufactured part - rebuilt to meet or exceed original specifications, often with improvements. This project follows that philosophy: taking the battle-tested django-fsm codebase and remanufacturing it with modern enhancements.
 
-**FSM really helps to structure the code, and centralize the lifecycle of your Models.**
+## About This Project
 
-Instead of adding a CharField field to a django model and manage its
-values by hand everywhere, `FSMFields` offer the ability to declare your
-`transitions` once with the decorator. These methods could contain side-effects, permissions, or logic to make the lifecycle management easier.
+Django FSM RX is an independent fork that combines the best features from the django-fsm ecosystem:
 
-Nice introduction is available here: <https://gist.github.com/Nagyman/9502133>
+- **Core FSM functionality** from the original [django-fsm](https://github.com/viewflow/django-fsm) by Mikhail Podgurskiy
+- **Admin integration** inspired by [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) and [django-fsm-2-admin](https://github.com/coral-li/django-fsm-2-admin)
+- **Transition logging** inspired by [django-fsm-log](https://github.com/gizmag/django-fsm-log)
+- **Full type hints** for modern Python development
+
+This is a new independent branch, separate from both [Django Commons](https://github.com/django-commons) and [Jazzband](https://github.com/jazzband). The goal is to provide a unified, actively maintained package that combines all essential FSM features in one place.
+
+### Why a new fork?
+
+The original django-fsm was archived after 2 years without releases. While django-fsm-2 under Django Commons continued maintenance, this project takes a different approach by:
+
+1. **Combining features** - Admin, logging, and core FSM in one package
+2. **Independent governance** - Not tied to any organization's processes
+3. **Opinionated defaults** - Built for mechanic shop / automotive industry workflows
 
 ## Installation
 
-First, install the package with pip.
-
-``` bash
-$ pip install django-fsm-2
+```bash
+pip install django-fsm-rx
 ```
 
-Or, for the latest git version
-
-``` bash
-$ pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
-```
-
-Register django_fsm in your list of Django applications
+Add to your Django settings:
 
 ```python
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     ...,
-    'django_fsm',
+    'django_fsm_rx',
     ...,
-)
-```
-
-## Migration from django-fsm
-
-django-fsm-2 is a drop-in replacement, it's actually the same project but from a different source.
-So all you need to do is to replace `django-fsm` dependency with `django-fsm-2`. And voila!
-
-``` bash
-$ pip install django-fsm-2
-```
-
-
-## Usage
-
-Add FSMState field to your model
-
-``` python
-from django_fsm import FSMField, transition
-
-class BlogPost(models.Model):
-    state = FSMField(default='new')
-```
-
-Use the `transition` decorator to annotate model methods
-
-``` python
-@transition(field=state, source='new', target='published')
-def publish(self):
-    """
-    This function may contain side-effects,
-    like updating caches, notifying users, etc.
-    The return value will be discarded.
-    """
-```
-
-The `field` parameter accepts both a string attribute name or an actual
-field instance.
-
-If calling publish() succeeds without raising an exception, the state
-field will be changed, but not written to the database.
-
-``` python
-from django_fsm import can_proceed
-
-def publish_view(request, post_id):
-    post = get_object_or_404(BlogPost, pk=post_id)
-    if not can_proceed(post.publish):
-        raise PermissionDenied
-
-    post.publish()
-    post.save()
-    return redirect('/')
-```
-
-If some conditions are required to be met before changing the state, use
-the `conditions` argument to `transition`. `conditions` must be a list
-of functions taking one argument, the model instance. The function must
-return either `True` or `False` or a value that evaluates to `True` or
-`False`. If all functions return `True`, all conditions are considered
-to be met and the transition is allowed to happen. If one of the
-functions returns `False`, the transition will not happen. These
-functions should not have any side effects.
-
-You can use ordinary functions
-
-``` python
-def can_publish(instance):
-    # No publishing after 17 hours
-    if datetime.datetime.now().hour > 17:
-        return False
-    return True
-```
-
-Or model methods
-
-``` python
-def can_destroy(self):
-    return self.is_under_investigation()
-```
-
-Use the conditions like this:
-
-``` python
-@transition(field=state, source='new', target='published', conditions=[can_publish])
-def publish(self):
-    """
-    Side effects galore
-    """
-
-@transition(field=state, source='*', target='destroyed', conditions=[can_destroy])
-def destroy(self):
-    """
-    Side effects galore
-    """
-```
-
-You can instantiate a field with `protected=True` to prevent direct state
-field assignment (the only supported way to change state is through
-transitions).
-
-``` python
-class BlogPost(models.Model):
-    state = FSMField(default='new', protected=True)
-
-model = BlogPost()
-model.state = 'invalid' # Raises AttributeError
-model.refresh_from_db() # Raises AttributeError
-```
-
-Note that calling
-[refresh_from_db](https://docs.djangoproject.com/en/1.8/ref/models/instances/#django.db.models.Model.refresh_from_db)
-will also attempt to assign the field value, so a protected FSMField
-raises an exception there as well.
-
-To work around this, use `FSMModelMixin`. It temporarily disables
-`protected` behavior during `refresh_from_db` so the in-memory instance
-can be refreshed without allowing arbitrary writes elsewhere.
-
-
-``` python
-from django_fsm import FSMModelMixin
-
-class BlogPost(FSMModelMixin, models.Model):
-    state = FSMField(default='new', protected=True)
-
-model = BlogPost()
-model.state = 'invalid' # Raises AttributeError
-model.refresh_from_db() # Working
-```
-
-### `source` state
-
-`source` parameter accepts a list of states, or an individual state or
-`django_fsm.State` implementation.
-
-You can use `*` for `source` to allow switching to `target` from any
-state.
-
-You can use `+` for `source` to allow switching to `target` from any
-state excluding `target` state.
-
-### `target` state
-
-`target` state parameter could point to a specific state or
-`django_fsm.State` implementation
-
-``` python
-from django_fsm import FSMField, transition, RETURN_VALUE, GET_STATE
-@transition(field=state,
-            source='*',
-            target=RETURN_VALUE('for_moderators', 'published'))
-def publish(self, is_public=False):
-    return 'for_moderators' if is_public else 'published'
-
-@transition(
-    field=state,
-    source='for_moderators',
-    target=GET_STATE(
-        lambda self, allowed: 'published' if allowed else 'rejected',
-        states=['published', 'rejected']))
-def moderate(self, allowed):
-    pass
-
-@transition(
-    field=state,
-    source='for_moderators',
-    target=GET_STATE(
-        lambda self, **kwargs: 'published' if kwargs.get("allowed", True) else 'rejected',
-        states=['published', 'rejected']))
-def moderate(self, allowed=True):
-    pass
-```
-
-### `custom` properties
-
-Custom properties can be added by providing a dictionary to the `custom`
-keyword on the `transition` decorator.
-
-``` python
-@transition(field=state,
-            source='*',
-            target='onhold',
-            custom=dict(verbose='Hold for legal reasons'))
-def legal_hold(self):
-    """
-    Side effects galore
-    """
-```
-
-### `on_error` state
-
-If the transition method raises an exception, you can provide a specific
-target state
-
-``` python
-@transition(field=state, source='new', target='published', on_error='failed')
-def publish(self):
-   """
-   Some exception could happen here
-   """
-```
-
-### `state_choices`
-
-Instead of passing a two-item iterable `choices` you can instead use the
-three-element `state_choices`, the last element being a string reference
-to a model proxy class.
-
-The base class instance would be dynamically changed to the
-corresponding Proxy class instance, depending on the state. Even for
-queryset results, you will get Proxy class instances, even if the
-QuerySet is executed on the base class.
-
-Check the [test
-case](https://github.com/kmmbvnr/django-fsm/blob/master/tests/testapp/tests/test_state_transitions.py)
-for example usage. Or read about [implementation
-internals](http://schinckel.net/2013/06/13/django-proxy-model-state-machine/)
-
-### Permissions
-
-It is common to have permissions attached to each model transition.
-`django-fsm` handles this with `permission` keyword on the `transition`
-decorator. `permission` accepts a permission string, or callable that
-expects `instance` and `user` arguments and returns True if the user can
-perform the transition.
-
-``` python
-@transition(field=state, source='*', target='published',
-            permission=lambda instance, user: not user.has_perm('myapp.can_make_mistakes'))
-def publish(self):
-    pass
-
-@transition(field=state, source='*', target='removed',
-            permission='myapp.can_remove_post')
-def remove(self):
-    pass
-```
-
-You can check permission with `has_transition_permission` method
-
-``` python
-from django_fsm import has_transition_perm
-def publish_view(request, post_id):
-    post = get_object_or_404(BlogPost, pk=post_id)
-    if not has_transition_perm(post.publish, request.user):
-        raise PermissionDenied
-
-    post.publish()
-    post.save()
-    return redirect('/')
-```
-
-### Model methods
-
-`get_all_FIELD_transitions` Enumerates all declared transitions
-
-`get_available_FIELD_transitions` Returns all transitions data available
-in current state
-
-`get_available_user_FIELD_transitions` Enumerates all transitions data
-available in current state for provided user
-
-### Foreign Key constraints support
-
-If you store the states in the db table you could use FSMKeyField to
-ensure Foreign Key database integrity.
-
-In your model :
-
-``` python
-class DbState(models.Model):
-    id = models.CharField(primary_key=True)
-    label = models.CharField()
-
-    def __str__(self):
-        return self.label
-
-
-class BlogPost(models.Model):
-    state = FSMKeyField(DbState, default='new')
-
-    @transition(field=state, source='new', target='published')
-    def publish(self):
-        pass
-```
-
-In your fixtures/initial_data.json :
-
-``` json
-[
-    {
-        "pk": "new",
-        "model": "myapp.dbstate",
-        "fields": {
-            "label": "_NEW_"
-        }
-    },
-    {
-        "pk": "published",
-        "model": "myapp.dbstate",
-        "fields": {
-            "label": "_PUBLISHED_"
-        }
-    }
 ]
 ```
 
-Note : source and target parameters in \@transition decorator use pk
-values of DBState model as names, even if field \"real\" name is used,
-without \_id postfix, as field parameter.
+## Migration Guide
 
-### Integer Field support
+### From django-fsm
 
-You can also use `FSMIntegerField`. This is handy when you want to use
-enum style constants.
+```bash
+pip uninstall django-fsm
+pip install django-fsm-rx
+```
 
-``` python
-class BlogPostStateEnum(object):
-    NEW = 10
-    PUBLISHED = 20
-    HIDDEN = 30
+Your existing `from django_fsm import ...` imports will continue to work (with a deprecation warning). Update imports at your convenience:
 
-class BlogPostWithIntegerField(models.Model):
-    state = FSMIntegerField(default=BlogPostStateEnum.NEW)
+```python
+# Old (still works)
+from django_fsm import FSMField, transition
 
-    @transition(field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED)
-    def publish(self):
+# New (recommended)
+from django_fsm_rx import FSMField, transition
+```
+
+### From django-fsm-2
+
+```bash
+pip uninstall django-fsm-2
+pip install django-fsm-rx
+```
+
+Your existing `from django_fsm_2 import ...` imports will continue to work (with a deprecation warning). Update imports at your convenience:
+
+```python
+# Old (still works)
+from django_fsm_2 import FSMField, transition
+
+# New (recommended)
+from django_fsm_rx import FSMField, transition
+```
+
+## Quick Start
+
+```python
+from django.db import models
+from django_fsm_rx import FSMField, transition
+
+class RepairOrder(models.Model):
+    state = FSMField(default='intake')
+
+    @transition(field=state, source='intake', target='diagnosis')
+    def begin_diagnosis(self):
+        """Vehicle moved to diagnostic bay."""
         pass
+
+    @transition(field=state, source='diagnosis', target='awaiting_approval')
+    def submit_estimate(self):
+        """Estimate ready for customer approval."""
+        pass
+
+    @transition(field=state, source='awaiting_approval', target='in_progress')
+    def approve_repair(self):
+        """Customer approved the repair."""
+        pass
+
+    @transition(field=state, source='in_progress', target='complete')
+    def complete_repair(self):
+        """Repair finished, ready for pickup."""
+        pass
+```
+
+## Usage
+
+### Basic Transitions
+
+Add an FSMField to your model and use the `transition` decorator:
+
+```python
+from django_fsm_rx import FSMField, transition
+
+class BlogPost(models.Model):
+    state = FSMField(default='draft')
+
+    @transition(field=state, source='draft', target='published')
+    def publish(self):
+        """This method may contain side effects."""
+        pass
+```
+
+Call the transition method to change state:
+
+```python
+post = BlogPost()
+post.publish()
+post.save()  # State change is not persisted until save()
+```
+
+### Checking if Transition is Allowed
+
+```python
+from django_fsm_rx import can_proceed
+
+if can_proceed(post.publish):
+    post.publish()
+    post.save()
+```
+
+### Conditions
+
+Add conditions that must be met before a transition can occur:
+
+```python
+def is_business_hours(instance):
+    return 9 <= datetime.now().hour < 17
+
+@transition(field=state, source='draft', target='published', conditions=[is_business_hours])
+def publish(self):
+    pass
+```
+
+### Protected Fields
+
+Prevent direct state assignment:
+
+```python
+class BlogPost(FSMModelMixin, models.Model):
+    state = FSMField(default='draft', protected=True)
+
+post = BlogPost()
+post.state = 'published'  # Raises AttributeError
+```
+
+### Source State Options
+
+```python
+# From any state
+@transition(field=state, source='*', target='cancelled')
+def cancel(self):
+    pass
+
+# From any state except target
+@transition(field=state, source='+', target='reset')
+def reset(self):
+    pass
+
+# From multiple specific states
+@transition(field=state, source=['draft', 'review'], target='published')
+def publish(self):
+    pass
+```
+
+### Dynamic Target State
+
+```python
+from django_fsm_rx import RETURN_VALUE, GET_STATE
+
+@transition(field=state, source='review', target=RETURN_VALUE('published', 'rejected'))
+def moderate(self, approved):
+    return 'published' if approved else 'rejected'
+
+@transition(
+    field=state,
+    source='review',
+    target=GET_STATE(
+        lambda self, approved: 'published' if approved else 'rejected',
+        states=['published', 'rejected']
+    )
+)
+def moderate(self, approved):
+    pass
+```
+
+### Permissions
+
+```python
+@transition(field=state, source='draft', target='published', permission='blog.can_publish')
+def publish(self):
+    pass
+
+@transition(
+    field=state,
+    source='*',
+    target='deleted',
+    permission=lambda instance, user: user.is_superuser
+)
+def delete(self):
+    pass
+```
+
+Check permissions:
+
+```python
+from django_fsm_rx import has_transition_perm
+
+if has_transition_perm(post.publish, user):
+    post.publish()
+    post.save()
+```
+
+### Error Handling
+
+Specify a fallback state if transition raises an exception:
+
+```python
+@transition(field=state, source='processing', target='complete', on_error='failed')
+def process(self):
+    # If this raises, state becomes 'failed'
+    do_risky_operation()
 ```
 
 ### Signals
 
-`django_fsm.signals.pre_transition` and
-`django_fsm.signals.post_transition` are called before and after allowed
-transition. No signals on invalid transition are called.
+```python
+from django_fsm_rx.signals import pre_transition, post_transition
 
-Arguments sent with these signals:
+@receiver(pre_transition)
+def on_pre_transition(sender, instance, name, source, target, **kwargs):
+    print(f"{instance} transitioning from {source} to {target}")
 
-**sender** The model class.
+@receiver(post_transition)
+def on_post_transition(sender, instance, name, source, target, **kwargs):
+    print(f"{instance} transitioned to {target}")
+```
 
-**instance** The actual instance being processed
+### Optimistic Locking
 
-**name** Transition name
+Prevent concurrent state changes:
 
-**source** Source model state
-
-**target** Target model state
-
-## Optimistic locking
-
-`django-fsm` provides optimistic locking mixin, to avoid concurrent
-model state changes. If model state was changed in database
-`django_fsm.ConcurrentTransition` exception would be raised on
-model.save()
-
-``` python
-from django_fsm import FSMField, ConcurrentTransitionMixin
+```python
+from django_fsm_rx import ConcurrentTransitionMixin
 
 class BlogPost(ConcurrentTransitionMixin, models.Model):
-    state = FSMField(default='new')
+    state = FSMField(default='draft')
 ```
 
-For guaranteed protection against race conditions caused by concurrently
-executed transitions, make sure:
+### Integer States
 
--   Your transitions do not have any side effects except for changes in
-    the database,
--   You always run the save() method on the object within
-    `django.db.transaction.atomic()` block.
+```python
+class OrderStatus:
+    PENDING = 10
+    PROCESSING = 20
+    SHIPPED = 30
 
-Following these recommendations, you can rely on
-ConcurrentTransitionMixin to cause a rollback of all the changes that
-have been executed in an inconsistent (out of sync) state, thus
-practically negating their effect.
+class Order(models.Model):
+    status = FSMIntegerField(default=OrderStatus.PENDING)
 
-## Drawing transitions
-
-Renders a graphical overview of your models states transitions
-
-1. You need `pip install "graphviz>=0.4"` library
-
-2. Make sure `django_fsm` is in your `INSTALLED_APPS` settings:
-
-``` python
-INSTALLED_APPS = (
-    ...
-    'django_fsm',
-    ...
-)
+    @transition(field=status, source=OrderStatus.PENDING, target=OrderStatus.PROCESSING)
+    def process(self):
+        pass
 ```
 
-3. Then you can use `graph_transitions` command:
+### Foreign Key States
 
-``` bash
-# Create a dot file
-$ ./manage.py graph_transitions > transitions.dot
+```python
+class OrderState(models.Model):
+    id = models.CharField(primary_key=True, max_length=50)
+    label = models.CharField(max_length=100)
 
-# Create a PNG image file only for specific model
-$ ./manage.py graph_transitions -o blog_transitions.png myapp.Blog
-
-# Exclude some transitions
-$ ./manage.py graph_transitions -e transition_1,transition_2 myapp.Blog
+class Order(models.Model):
+    state = FSMKeyField(OrderState, default='pending', on_delete=models.PROTECT)
 ```
 
-## Extensions
+### Model Methods
 
-You may also take a look at django-fsm-2-admin project containing a mixin
-and template tags to integrate django-fsm-2 state transitions into the
-django admin.
+```python
+# Get all declared transitions
+post.get_all_state_transitions()
 
-<https://github.com/coral-li/django-fsm-2-admin>
+# Get transitions available from current state
+post.get_available_state_transitions()
 
-Transition logging support could be achieved with help of django-fsm-log
-package
+# Get transitions available for a specific user
+post.get_available_user_state_transitions(user)
+```
 
-<https://github.com/gizmag/django-fsm-log>
+## Graph Visualization
+
+Generate a visual representation of your state machine:
+
+```bash
+# Output as DOT format
+python manage.py graph_transitions myapp.BlogPost > states.dot
+
+# Output as PNG
+python manage.py graph_transitions -o states.png myapp.BlogPost
+```
+
+Requires the `graphviz` package:
+
+```bash
+pip install django-fsm-rx[graphviz]
+```
+
+## Credits
+
+- **Mikhail Podgurskiy** - Original django-fsm creator
+- **Django Commons** - django-fsm-2 maintenance
+- **Jazzband** - Original community support
+- All contributors to the django-fsm ecosystem
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

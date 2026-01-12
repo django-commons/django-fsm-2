@@ -39,7 +39,7 @@ Signal Handlers:
 
 Example:
     >>> from django.dispatch import receiver
-    >>> from django_fsm_2.signals import pre_transition, post_transition
+    >>> from django_fsm_rx.signals import pre_transition, post_transition
     >>>
     >>> @receiver(pre_transition)
     ... def log_transition_start(sender, instance, name, source, target, **kwargs):

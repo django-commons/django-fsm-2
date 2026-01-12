@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from django_fsm_2.log import FSMLogDescriptor
-from django_fsm_2.log import fsm_log_by
-from django_fsm_2.log import fsm_log_context
-from django_fsm_2.log import fsm_log_description
+from django_fsm_rx.log import FSMLogDescriptor
+from django_fsm_rx.log import fsm_log_context
 
 from ..models import LoggableArticle
 
@@ -87,7 +84,7 @@ class FSMLogByDecoratorTests(TestCase):
             nonlocal logged_by
             logged_by = getattr(instance, "_fsm_log_by", None)
 
-        from django_fsm_2.signals import post_transition
+        from django_fsm_rx.signals import post_transition
 
         post_transition.connect(capture_by)
         try:
@@ -124,7 +121,7 @@ class FSMLogDescriptionDecoratorTests(TestCase):
             nonlocal logged_description
             logged_description = getattr(instance, "_fsm_log_description", None)
 
-        from django_fsm_2.signals import post_transition
+        from django_fsm_rx.signals import post_transition
 
         post_transition.connect(capture_description)
         try:
@@ -170,7 +167,7 @@ class FSMLogContextTests(TestCase):
             logged_by = getattr(instance, "_fsm_log_by", None)
             logged_description = getattr(instance, "_fsm_log_description", None)
 
-        from django_fsm_2.signals import post_transition
+        from django_fsm_rx.signals import post_transition
 
         post_transition.connect(capture_log)
         try:
@@ -232,7 +229,7 @@ class FSMLogIntegrationTests(TestCase):
             transition_log["by"] = getattr(instance, "_fsm_log_by", None)
             transition_log["description"] = getattr(instance, "_fsm_log_description", None)
 
-        from django_fsm_2.signals import post_transition
+        from django_fsm_rx.signals import post_transition
 
         post_transition.connect(log_handler)
         try:
@@ -254,14 +251,16 @@ class FSMLogIntegrationTests(TestCase):
         transition_logs = []
 
         def log_handler(sender, instance, name, source, target, **kwargs):
-            transition_logs.append({
-                "name": name,
-                "source": source,
-                "target": target,
-                "by": getattr(instance, "_fsm_log_by", None),
-            })
+            transition_logs.append(
+                {
+                    "name": name,
+                    "source": source,
+                    "target": target,
+                    "by": getattr(instance, "_fsm_log_by", None),
+                }
+            )
 
-        from django_fsm_2.signals import post_transition
+        from django_fsm_rx.signals import post_transition
 
         post_transition.connect(log_handler)
         try:

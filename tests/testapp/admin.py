@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from django_fsm_2.admin import FSMAdminMixin
+from django_fsm_rx.admin import FSMAdminMixin
 
 from .models import AdminArticle
 from .models import AdminBlogPost

@@ -15,26 +15,26 @@ import os
 from django.db import models
 from django.test import TestCase
 
-import django_fsm_2
-from django_fsm_2 import ConcurrentTransition
-from django_fsm_2 import ConcurrentTransitionMixin
-from django_fsm_2 import FSMField
-from django_fsm_2 import FSMFieldMixin
-from django_fsm_2 import FSMIntegerField
-from django_fsm_2 import FSMKeyField
-from django_fsm_2 import FSMModelMixin
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import InvalidResultState
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import State
-from django_fsm_2 import Transition
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import has_transition_perm
-from django_fsm_2 import transition
-
+import django_fsm_rx
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import ConcurrentTransition
+from django_fsm_rx import ConcurrentTransitionMixin
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMFieldMixin
+from django_fsm_rx import FSMIntegerField
+from django_fsm_rx import FSMKeyField
+from django_fsm_rx import FSMModelMixin
+from django_fsm_rx import InvalidResultState
+from django_fsm_rx import State
+from django_fsm_rx import Transition
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import has_transition_perm
+from django_fsm_rx import transition
 
 # Define models at module level to avoid registration conflicts
+
 
 class TypingTestTransitionModel(models.Model):
     state = FSMField(default="new")
@@ -192,7 +192,7 @@ class TestPublicAPIExports(TestCase):
             "Transition",
             "FSMMeta",
         }
-        actual = set(django_fsm_2.__all__)
+        actual = set(django_fsm_rx.__all__)
         # Check all expected are present (may have more)
         self.assertTrue(expected.issubset(actual), f"Missing: {expected - actual}")
 
@@ -202,37 +202,44 @@ class TestTypeAliasesExist(TestCase):
 
     def test_state_value_type_alias(self):
         """StateValue type alias should be accessible."""
-        from django_fsm_2 import StateValue
+        from django_fsm_rx import StateValue
+
         self.assertIsNotNone(StateValue)
 
     def test_condition_func_type_alias(self):
         """ConditionFunc type alias should be accessible."""
-        from django_fsm_2 import ConditionFunc
+        from django_fsm_rx import ConditionFunc
+
         self.assertIsNotNone(ConditionFunc)
 
     def test_permission_func_type_alias(self):
         """PermissionFunc type alias should be accessible."""
-        from django_fsm_2 import PermissionFunc
+        from django_fsm_rx import PermissionFunc
+
         self.assertIsNotNone(PermissionFunc)
 
     def test_permission_type_alias(self):
         """PermissionType type alias should be accessible."""
-        from django_fsm_2 import PermissionType
+        from django_fsm_rx import PermissionType
+
         self.assertIsNotNone(PermissionType)
 
     def test_state_target_type_alias(self):
         """StateTarget type alias should be accessible."""
-        from django_fsm_2 import StateTarget
+        from django_fsm_rx import StateTarget
+
         self.assertIsNotNone(StateTarget)
 
     def test_state_source_type_alias(self):
         """StateSource type alias should be accessible."""
-        from django_fsm_2 import StateSource
+        from django_fsm_rx import StateSource
+
         self.assertIsNotNone(StateSource)
 
     def test_custom_dict_type_alias(self):
         """CustomDict type alias should be accessible."""
-        from django_fsm_2 import CustomDict
+        from django_fsm_rx import CustomDict
+
         self.assertIsNotNone(CustomDict)
 
 
@@ -241,12 +248,9 @@ class TestPEP561Compliance(TestCase):
 
     def test_py_typed_marker_exists(self):
         """py.typed marker file should exist for PEP 561."""
-        package_dir = os.path.dirname(django_fsm_2.__file__)
+        package_dir = os.path.dirname(django_fsm_rx.__file__)
         py_typed_path = os.path.join(package_dir, "py.typed")
-        self.assertTrue(
-            os.path.exists(py_typed_path),
-            f"py.typed marker not found at {py_typed_path}"
-        )
+        self.assertTrue(os.path.exists(py_typed_path), f"py.typed marker not found at {py_typed_path}")
 
 
 class TestTransitionClassTyping(TestCase):
@@ -339,6 +343,7 @@ class TestStateClassTyping(TestCase):
 
     def test_get_state_with_func(self):
         """GET_STATE should call func to determine state."""
+
         def compute(instance, *args, **kwargs):
             return "computed"
 
@@ -348,6 +353,7 @@ class TestStateClassTyping(TestCase):
 
     def test_get_state_with_args(self):
         """GET_STATE should pass args to func."""
+
         def compute(instance, x, y):
             return f"{x}_{y}"
 
@@ -357,6 +363,7 @@ class TestStateClassTyping(TestCase):
 
     def test_get_state_invalid_result(self):
         """GET_STATE should raise for invalid computed states."""
+
         def compute(instance):
             return "invalid"
 
@@ -370,12 +377,13 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_exported(self):
         """FSMMeta should be exported."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
+
         self.assertIsNotNone(FSMMeta)
 
     def test_fsm_meta_transitions_dict(self):
         """FSMMeta should maintain transitions dict."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         self.assertIsInstance(meta.transitions, dict)
@@ -383,7 +391,7 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_add_transition(self):
         """FSMMeta.add_transition should add transitions."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         meta.add_transition(
@@ -395,7 +403,7 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_duplicate_transition_raises(self):
         """FSMMeta should raise on duplicate source transitions."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         meta.add_transition(method=lambda: None, source="new", target="done")
@@ -405,7 +413,7 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_has_transition(self):
         """FSMMeta.has_transition should check state availability."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         meta.add_transition(method=lambda: None, source="new", target="done")
@@ -415,7 +423,7 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_wildcard_transition(self):
         """FSMMeta should handle wildcard '*' transitions."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         meta.add_transition(method=lambda: None, source="*", target="done")
@@ -425,7 +433,7 @@ class TestFSMMetaTyping(TestCase):
 
     def test_fsm_meta_plus_transition(self):
         """FSMMeta should handle '+' (any except target) transitions."""
-        from django_fsm_2 import FSMMeta
+        from django_fsm_rx import FSMMeta
 
         meta = FSMMeta(field="test", method=lambda: None)
         meta.add_transition(method=lambda: None, source="+", target="done")
@@ -491,8 +499,9 @@ class TestSignalsTyping(TestCase):
     def test_signals_are_signal_instances(self):
         """Signals should be Django Signal instances."""
         from django.dispatch import Signal
-        from django_fsm_2.signals import post_transition
-        from django_fsm_2.signals import pre_transition
+
+        from django_fsm_rx.signals import post_transition
+        from django_fsm_rx.signals import pre_transition
 
         self.assertIsInstance(pre_transition, Signal)
         self.assertIsInstance(post_transition, Signal)

@@ -10,22 +10,20 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import ConcurrentTransitionMixin
-from django_fsm_2 import FSMField
-from django_fsm_2 import FSMIntegerField
-from django_fsm_2 import FSMModelMixin
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import TransitionNotAllowed
-from django_fsm_2 import can_proceed
-from django_fsm_2 import has_transition_perm
-from django_fsm_2 import transition
-
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMIntegerField
+from django_fsm_rx import FSMModelMixin
+from django_fsm_rx import can_proceed
+from django_fsm_rx import has_transition_perm
+from django_fsm_rx import transition
 
 User = get_user_model()
 
 
 # Define all models at module level to avoid Django model registration conflicts
+
 
 class MultiSourceListModel(models.Model):
     state = FSMField(default="a")
@@ -276,6 +274,7 @@ class StringFieldNameModel(models.Model):
 
 
 # Test classes
+
 
 class TestMultipleSourceStates(TestCase):
     """Test transitions from multiple source states."""

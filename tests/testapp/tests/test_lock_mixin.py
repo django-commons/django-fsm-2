@@ -4,10 +4,10 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm_2 import ConcurrentTransition
-from django_fsm_2 import ConcurrentTransitionMixin
-from django_fsm_2 import FSMField
-from django_fsm_2 import transition
+from django_fsm_rx import ConcurrentTransition
+from django_fsm_rx import ConcurrentTransitionMixin
+from django_fsm_rx import FSMField
+from django_fsm_rx import transition
 
 
 class LockedBlogPost(ConcurrentTransitionMixin, models.Model):

@@ -37,14 +37,12 @@ from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
 from django.utils.encoding import force_str
 
-from django_fsm_2 import GET_STATE
-from django_fsm_2 import RETURN_VALUE
-from django_fsm_2 import FSMFieldMixin
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMFieldMixin
 
 if TYPE_CHECKING:
     from django.db.models import Model
-
-    from django_fsm_2 import Transition
 
 
 def all_fsm_fields_data(model: type[Model]) -> list[tuple[FSMFieldMixin, type[Model]]]:
@@ -57,11 +55,7 @@ def all_fsm_fields_data(model: type[Model]) -> list[tuple[FSMFieldMixin, type[Mo
     Returns:
         List of (field, model) tuples for each FSM field found.
     """
-    return [
-        (field, model)
-        for field in model._meta.get_fields()
-        if isinstance(field, FSMFieldMixin)
-    ]
+    return [(field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)]
 
 
 def node_name(field: FSMFieldMixin, state: str | int) -> str:
@@ -76,9 +70,7 @@ def node_name(field: FSMFieldMixin, state: str | int) -> str:
         A unique identifier string for the node.
     """
     opts = field.model._meta
-    return "{}.{}.{}.{}".format(
-        opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state
-    )
+    return "{}.{}.{}.{}".format(opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state)
 
 
 def node_label(field: FSMFieldMixin, state: str | int) -> str:
@@ -145,28 +137,21 @@ def generate_dot(  # noqa: C901
                 # Handle GET_STATE/RETURN_VALUE with allowed_states
                 if isinstance(transition.target, (GET_STATE, RETURN_VALUE)):
                     if transition.target.allowed_states:
-                        _targets: tuple[Any, ...] = tuple(
-                            state for state in transition.target.allowed_states
-                        )
+                        _targets: tuple[Any, ...] = tuple(state for state in transition.target.allowed_states)
                     else:
                         # No allowed_states specified - skip graphing dynamic targets
                         continue
                 else:
                     _targets = (transition.target,)
                 source_name_pair: tuple[tuple[Any, str], ...] = (
-                    tuple(
-                        (state, node_name(field, state))
-                        for state in transition.source.allowed_states
-                    )
+                    tuple((state, node_name(field, state)) for state in transition.source.allowed_states)
                     if isinstance(transition.source, (GET_STATE, RETURN_VALUE))
                     else ((transition.source, node_name(field, transition.source)),)
                 )
                 for source, source_name in source_name_pair:
                     if transition.on_error:
                         on_error_name = node_name(field, transition.on_error)
-                        targets.add(
-                            (on_error_name, node_label(field, transition.on_error))
-                        )
+                        targets.add((on_error_name, node_label(field, transition.on_error)))
                         edges.add((source_name, on_error_name, (("style", "dotted"),)))
                     for target in _targets:
                         add_transition(
@@ -181,10 +166,7 @@ def generate_dot(  # noqa: C901
                         )
 
         targets.update(
-            {
-                (node_name(field, target), node_label(field, target))
-                for target, _ in chain(any_targets, any_except_targets)
-            }
+            {(node_name(field, target), node_label(field, target)) for target, _ in chain(any_targets, any_except_targets)}
         )
         for target, name in any_targets:
             target_name = node_name(field, target)
@@ -301,10 +283,7 @@ class Command(BaseCommand):
             "-o",
             action="store",
             dest="outputfile",
-            help=(
-                "Render output file. Type of output dependent on file extensions. "
-                "Use png or jpg to render graph to image."
-            ),
+            help=("Render output file. Type of output dependent on file extensions. Use png or jpg to render graph to image."),
         )
         parser.add_argument(
             "--layout",
@@ -338,7 +317,7 @@ class Command(BaseCommand):
         graph.format = format
         graph.render(filename)
 
-    def handle(self, *args: str, **options: Any) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:
         """
         Execute the command.
 
