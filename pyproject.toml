@@ -27,7 +27,10 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["django>=4.2"]
+dependencies = [
+    "django>=4.2",
+    "typing-extensions>=4.13.2",
+]
 
 [project.urls]
 Homepage = "http://github.com/django-commons/django-fsm-2"

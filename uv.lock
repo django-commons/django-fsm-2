@@ -123,6 +123,7 @@ version = "4.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -146,6 +147,7 @@ dev = [
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
     { name = "graphviz", marker = "extra == 'graphviz'" },
+    { name = "typing-extensions", specifier = ">=4.13.2" },
 ]
 provides-extras = ["graphviz"]
 
