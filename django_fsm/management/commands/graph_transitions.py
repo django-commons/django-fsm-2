@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from itertools import chain
 
 import graphviz
@@ -11,31 +12,48 @@ from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
 from django_fsm import FSMFieldMixin
 
+if typing.TYPE_CHECKING:  # pragma: no cover
+    from argparse import ArgumentParser
+    from collections.abc import Sequence
 
-def all_fsm_fields_data(model):
+    from django.db import models
+
+    from django_fsm import _StateValue
+
+
+def all_fsm_fields_data(
+    model: type[models.Model],
+) -> list[tuple[FSMFieldMixin, type[models.Model]]]:
     return [
         (field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)
     ]
 
 
-def one_fsm_fields_data(model, field_name):
-    return (model._meta.get_field(field_name), model)
+def one_fsm_fields_data(
+    model: type[models.Model], field_name: str
+) -> tuple[FSMFieldMixin, type[models.Model]]:
+    field = model._meta.get_field(field_name)
+    assert isinstance(field, FSMFieldMixin)
+    return (field, model)
 
 
-def node_name(field, state) -> str:
+def node_name(field: FSMFieldMixin, state: str | int) -> str:
     opts = field.model._meta
     return "{}.{}.{}.{}".format(
         opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state
     )
 
 
-def node_label(field, state: str | None) -> str:
+def node_label(field: FSMFieldMixin, state: _StateValue | None) -> str:
     if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
 
 
-def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # noqa: C901, PLR0912
+def generate_dot(  # noqa: C901, PLR0912
+    fields_data: Sequence[tuple[FSMFieldMixin, type[models.Model]]],
+    ignore_transitions: Sequence[str] | None = None,
+) -> graphviz.Digraph:
     ignore_transitions = ignore_transitions or []
     result = graphviz.Digraph()
 
@@ -127,22 +145,22 @@ def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # n
 
 
 def add_transition(
-    transition_source,
-    transition_target,
-    transition_name,
-    source_name,
-    field,
-    sources,
-    targets,
-    edges,
-):
+    transition_source: _StateValue,
+    transition_target: _StateValue,
+    transition_name: str,
+    source_name: str,
+    field: FSMFieldMixin,
+    sources: set[tuple[str, str]],
+    targets: set[tuple[str, str]],
+    edges: set[tuple[str, str, tuple[tuple[str, str], ...]]],
+) -> None:
     target_name = node_name(field, transition_target)
     sources.add((source_name, node_label(field, transition_source)))
     targets.add((target_name, node_label(field, transition_target)))
     edges.add((source_name, target_name, (("label", transition_name),)))
 
 
-def get_graphviz_layouts():
+def get_graphviz_layouts() -> set[str] | Sequence[str]:
     try:
         import graphviz
     except ModuleNotFoundError:
@@ -154,7 +172,7 @@ def get_graphviz_layouts():
 class Command(BaseCommand):
     help = "Creates a GraphViz dot file with transitions for selected fields"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
             "--output",
             "-o",
@@ -181,15 +199,15 @@ class Command(BaseCommand):
         )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
-    def render_output(self, graph, **options):
+    def render_output(self, graph: graphviz.Digraph, **options: typing.Any) -> None:
         filename, graph_format = options["outputfile"].rsplit(".", 1)
 
         graph.engine = options["layout"]
         graph.format = graph_format
         graph.render(filename)
 
-    def handle(self, *args, **options):
-        fields_data = []
+    def handle(self, *args: str, **options: typing.Any) -> None:
+        fields_data: list[tuple[FSMFieldMixin, type[models.Model]]] = []
         if len(args) != 0:
             for arg in args:
                 field_spec = arg.split(".")
@@ -210,7 +228,8 @@ class Command(BaseCommand):
 
         dotdata = generate_dot(fields_data, ignore_transitions=options["exclude"].split(","))
 
-        if options["outputfile"]:
+        outputfile = options["outputfile"]
+        if outputfile:
             self.render_output(dotdata, **options)
         else:
             self.stdout.write(str(dotdata))
