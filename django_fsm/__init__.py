@@ -69,6 +69,10 @@ class Transition:
     def name(self):
         return self.method.__name__
 
+    @property
+    def qualname(self):
+        return self.method.__qualname__
+
     def has_perm(self, instance, user):
         if not self.permission:
             return True
@@ -81,14 +85,13 @@ class Transition:
         return False
 
     def __hash__(self):
-        return hash(self.name)
+        return hash(self.qualname)
 
     def __eq__(self, other):
+        if isinstance(other, Transition):
+            return hash(other) == hash(self)
         if isinstance(other, str):
             return other == self.name
-        if isinstance(other, Transition):
-            return other.name == self.name
-
         return False
 
 
