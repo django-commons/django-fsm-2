@@ -33,7 +33,7 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        run: uv run coverage run -m pytest --cov=django_fsm --cov-report=xml
+        run: uv run coverage run -m pytest --cov=django_fsm_rx --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
