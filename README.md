@@ -1,6 +1,7 @@
 # Django FSM RX - Remanufactured Finite State Machine
 
 [![CI tests](https://github.com/specialorange/django-fsm-rx/actions/workflows/test.yml/badge.svg)](https://github.com/specialorange/django-fsm-rx/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/specialorange/django-fsm-rx/branch/main/graph/badge.svg)](https://codecov.io/gh/specialorange/django-fsm-rx)
 [![MIT License](https://img.shields.io/static/v1?label=License&message=MIT&color=informational&style=plastic)](https://github.com/specialorange/django-fsm-rx/LICENSE)
 
 Django-fsm-rx adds simple declarative state management for Django models.
