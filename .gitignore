@@ -133,6 +133,3 @@ test.db
 
 # django fsm command tests
 exports/*
-
-# Claude Code settings
-.claude/

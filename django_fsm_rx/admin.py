@@ -46,8 +46,11 @@ if TYPE_CHECKING:
     from django.db.models import Model
     from django.forms import Form
 
+from django_fsm_rx.widgets import FSMCascadeWidget
+
 __all__ = [
     "FSMAdminMixin",
+    "FSMCascadeWidget",
     "FSMObjectTransitions",
 ]
 
@@ -111,6 +114,10 @@ class FSMAdminMixin(BaseModelAdmin):
     # List of FSM field names to manage
     fsm_fields: list[str] = []
 
+    # Cascade widget configuration for hierarchical status codes
+    # Format: {"field_name": {"levels": 3, "separator": "-", "labels": ["Cat", "Sub", "Status"]}}
+    fsm_cascade_fields: dict[str, dict[str, Any]] = {}
+
     # Message templates
     fsm_transition_success_msg: str = _("FSM transition '{transition_name}' succeeded.")
     fsm_transition_error_msg: str = _("FSM transition '{transition_name}' failed: {error}.")
@@ -164,6 +171,38 @@ class FSMAdminMixin(BaseModelAdmin):
                 readonly_fields.append(fsm_field_name)
 
         return tuple(readonly_fields)
+
+    def formfield_for_dbfield(self, db_field: Any, request: HttpRequest, **kwargs: Any) -> Any:
+        """
+        Configure form field widgets, including cascade widget for configured fields.
+
+        If a field is configured in fsm_cascade_fields, uses FSMCascadeWidget.
+
+        Args:
+            db_field: The database field.
+            request: The current request.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The form field instance.
+        """
+        if db_field.name in self.fsm_cascade_fields:
+            config = self.fsm_cascade_fields[db_field.name]
+            choices = getattr(db_field, "choices", None) or []
+
+            # Get allowed transitions if we have an object
+            allowed_targets = None
+            # Note: allowed_targets filtering happens in the widget
+
+            kwargs["widget"] = FSMCascadeWidget(
+                levels=config.get("levels", 2),
+                separator=config.get("separator", "-"),
+                labels=config.get("labels"),
+                choices=list(choices),
+                allowed_targets=allowed_targets,
+            )
+
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def get_fsm_block_label(self, fsm_field_name: str) -> str:
         """

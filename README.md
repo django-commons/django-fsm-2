@@ -316,6 +316,106 @@ post.get_available_state_transitions()
 post.get_available_user_state_transitions(user)
 ```
 
+## Category Wildcards
+
+For hierarchical status codes (e.g., `WRK-REP-PRG`, `WRK-INS-PRG`), use prefix wildcards:
+
+```python
+from django_fsm_rx import FSMField, transition
+
+class Job(models.Model):
+    """Job with hierarchical status codes: CATEGORY-SUBCATEGORY-STATUS."""
+    status = FSMField(default='DRF-NEW-CRT')
+
+    # Match any status starting with "WRK-" (Work category)
+    @transition(field=status, source='WRK-*', target='CMP-STD-DON')
+    def complete(self):
+        """Complete any in-progress work."""
+        pass
+
+    # Match multiple categories
+    @transition(field=status, source=['SCH-*', 'PND-*'], target='WRK-REP-PRG')
+    def start_work(self):
+        """Start work from scheduled or pending status."""
+        pass
+```
+
+Supported patterns:
+- `*` - Match any state
+- `+` - Match any state except target
+- `WRK-*` - Match any state starting with "WRK-" (prefix wildcard)
+- `['A', 'B']` - Match specific states
+
+## Cascade Widget (Hierarchical Status Selector)
+
+For admin interfaces with hierarchical status codes, use `FSMCascadeWidget` to render cascading dropdowns:
+
+```python
+from django.contrib import admin
+from django_fsm_rx.admin import FSMAdminMixin, FSMCascadeWidget
+
+@admin.register(Job)
+class JobAdmin(FSMAdminMixin, admin.ModelAdmin):
+    fsm_fields = ['status']
+
+    # Option 1: Simple configuration
+    fsm_cascade_fields = {
+        'status': {
+            'levels': 3,
+            'separator': '-',
+            'labels': ['Category', 'Type', 'Status'],
+        }
+    }
+
+    # Option 2: Manual widget configuration
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'status':
+            kwargs['widget'] = FSMCascadeWidget(
+                levels=3,
+                separator='-',
+                labels=['Category', 'Type', 'Status'],
+                choices=Job.STATUS_CHOICES,
+            )
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+```
+
+The widget renders three dropdown selects that filter based on selection:
+```
+[Category ▼] → [Type ▼] → [Status ▼]
+   DRF           NEW        CRT
+   WRK           REP        PRG
+   CMP           INS        DON
+```
+
+## on_success Callbacks
+
+Execute code after a successful transition without using signals:
+
+```python
+def log_completion(instance, source, target, **kwargs):
+    """Called after successful transition."""
+    AuditLog.objects.create(
+        job=instance,
+        from_status=source,
+        to_status=target,
+    )
+
+@transition(
+    field=status,
+    source='WRK-*',
+    target='CMP-STD-DON',
+    on_success=log_completion
+)
+def complete(self):
+    self.completed_at = timezone.now()
+```
+
+The callback receives:
+- `instance` - The model instance
+- `source` - The state before transition
+- `target` - The state after transition
+- `**kwargs` - Any additional arguments passed to the transition method
+
 ## Graph Visualization
 
 Generate a visual representation of your state machine:

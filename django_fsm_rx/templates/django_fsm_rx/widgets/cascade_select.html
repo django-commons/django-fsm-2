@@ -1,0 +1,47 @@
+{% load static %}
+{#
+  FSM Cascade Select Widget Template
+
+  Renders a cascading dropdown for hierarchical status codes.
+  Each dropdown filters the next based on selection.
+
+  Context:
+    widget.levels: Number of hierarchy levels
+    widget.separator: Character separating levels (e.g., "-")
+    widget.level_data: List of dicts with level info (index, label, choices, selected, field_name)
+    widget.hierarchy_json: JSON string of the hierarchy structure
+    widget.hidden_name: Name of the hidden input storing the combined value
+    widget.current_value: Current combined value
+    widget.attrs: HTML attributes for the container
+#}
+<div class="fsm-cascade-widget{% if widget.attrs.class %} {{ widget.attrs.class }}{% endif %}"
+     data-hierarchy="{{ widget.hierarchy_json }}"
+     data-separator="{{ widget.separator }}"
+     data-levels="{{ widget.levels }}"
+     {% for key, value in widget.attrs.items %}{% if key != 'class' %}{{ key }}="{{ value }}" {% endif %}{% endfor %}>
+
+    {# Hidden input stores the combined value for form submission #}
+    <input type="hidden"
+           name="{{ widget.hidden_name }}"
+           id="id_{{ widget.hidden_name }}"
+           value="{{ widget.current_value }}">
+
+    {% for level in widget.level_data %}
+    {% if not forloop.first %}
+    <div class="fsm-cascade-arrow" aria-hidden="true"></div>
+    {% endif %}
+
+    <div class="fsm-cascade-level">
+        <label for="id_{{ level.field_name }}">{{ level.label }}</label>
+        <select name="{{ level.field_name }}"
+                id="id_{{ level.field_name }}"
+                data-level="{{ level.index }}"
+                {% if not level.choices %}disabled{% endif %}>
+            <option value="">-- Select --</option>
+            {% for value, label in level.choices %}
+            <option value="{{ value }}"{% if value == level.selected %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endfor %}
+</div>
