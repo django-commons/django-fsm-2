@@ -604,6 +604,10 @@ class RepairOrder(FSMModelMixin, models.Model):
 
 When using hierarchical status codes, the standard dropdown becomes unwieldy with dozens of options. `FSMCascadeWidget` renders cascading dropdowns that filter based on selection.
 
+![FSMCascadeWidget Example](docs/images/cascade_widget_example.png)
+
+*The cascade widget showing three linked dropdowns (Category → Type → Status) with status history below.*
+
 ### Basic Configuration
 
 ```python
