@@ -1188,6 +1188,7 @@ class ConcurrentTransitionMixin:
         values: Any,
         update_fields: Sequence[str] | None,
         forced_update: bool,
+        *args: Any,
         **kwargs: Any,
     ) -> int:
         """
@@ -1203,7 +1204,8 @@ class ConcurrentTransitionMixin:
             values: Values to update.
             update_fields: Specific fields to update.
             forced_update: Whether to force UPDATE vs INSERT.
-            **kwargs: Additional arguments for forward compatibility (e.g., returning_fields in Django 6.0+).
+            *args: Additional positional arguments for forward compatibility (e.g., returning_fields in Django 6.0+).
+            **kwargs: Additional keyword arguments for forward compatibility.
 
         Returns:
             Number of rows updated.
@@ -1221,12 +1223,13 @@ class ConcurrentTransitionMixin:
         state_filter = {field.attname: self.__initial_states[field.attname] for field in filter_on}
 
         updated: int = super()._do_update(  # type: ignore[misc]
-            base_qs=base_qs.filter(**state_filter),
-            using=using,
-            pk_val=pk_val,
-            values=values,
-            update_fields=update_fields,
-            forced_update=forced_update,
+            base_qs.filter(**state_filter),
+            using,
+            pk_val,
+            values,
+            update_fields,
+            forced_update,
+            *args,
             **kwargs,
         )
 
