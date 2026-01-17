@@ -7,11 +7,13 @@ work correctly to integrate django-rules with FSM transitions.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from django_fsm_rx.contrib.rules import rules_permission, rules_predicate
+from django_fsm_rx.contrib.rules import rules_permission
+from django_fsm_rx.contrib.rules import rules_predicate
 
 
 class TestRulesPermission:
@@ -70,9 +72,7 @@ class TestRulesPermission:
             result = perm_checker(mock_instance, mock_user)
 
         assert result is True
-        mock_rules.test_rule.assert_called_once_with(
-            "blog.can_publish", mock_user, mock_instance
-        )
+        mock_rules.test_rule.assert_called_once_with("blog.can_publish", mock_user, mock_instance)
 
     def test_rules_permission_returns_false_when_denied(self):
         """Should return False when rules.test_rule returns False."""
@@ -254,7 +254,8 @@ class TestModuleExports:
 
     def test_can_import_from_module(self):
         """Should be able to import functions from module."""
-        from django_fsm_rx.contrib.rules import rules_permission, rules_predicate
+        from django_fsm_rx.contrib.rules import rules_permission
+        from django_fsm_rx.contrib.rules import rules_predicate
 
         assert callable(rules_permission)
         assert callable(rules_predicate)

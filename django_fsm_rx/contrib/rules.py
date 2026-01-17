@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from django.db.models import Model
 
 
-def rules_permission(rule_name: str) -> Callable[[Any, "AbstractBaseUser"], bool]:
+def rules_permission(rule_name: str) -> Callable[[Any, AbstractBaseUser], bool]:
     """
     Create an FSM permission checker from a django-rules rule name.
 
@@ -82,15 +82,12 @@ def rules_permission(rule_name: str) -> Callable[[Any, "AbstractBaseUser"], bool
         when the permission is checked.
     """
 
-    def check_permission(instance: "Model", user: "AbstractBaseUser") -> bool:
+    def check_permission(instance: Model, user: AbstractBaseUser) -> bool:
         """Check if user has permission according to django-rules."""
         try:
             import rules
         except ImportError as e:
-            raise ImportError(
-                "django-rules is required for rules_permission(). "
-                "Install it with: pip install rules"
-            ) from e
+            raise ImportError("django-rules is required for rules_permission(). Install it with: pip install rules") from e
 
         return rules.test_rule(rule_name, user, instance)
 
@@ -101,7 +98,7 @@ def rules_permission(rule_name: str) -> Callable[[Any, "AbstractBaseUser"], bool
     return check_permission
 
 
-def rules_predicate(predicate: Callable[..., bool]) -> Callable[[Any, "AbstractBaseUser"], bool]:
+def rules_predicate(predicate: Callable[..., bool]) -> Callable[[Any, AbstractBaseUser], bool]:
     """
     Wrap a django-rules predicate for direct use as an FSM permission.
 
@@ -134,7 +131,7 @@ def rules_predicate(predicate: Callable[..., bool]) -> Callable[[Any, "AbstractB
         ...     pass
     """
 
-    def check_permission(instance: "Model", user: "AbstractBaseUser") -> bool:
+    def check_permission(instance: Model, user: AbstractBaseUser) -> bool:
         """Check if user passes the predicate."""
         # django-rules predicates take (user, obj), FSM takes (instance, user)
         return bool(predicate(user, instance))

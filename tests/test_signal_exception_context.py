@@ -10,13 +10,14 @@ These tests verify:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call
-
 import pytest
 from django.db import models
 
-from django_fsm_rx import FSMField, TransitionNotAllowed, transition
-from django_fsm_rx.signals import post_transition, pre_transition
+from django_fsm_rx import FSMField
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import transition
+from django_fsm_rx.signals import post_transition
+from django_fsm_rx.signals import pre_transition
 
 
 class SignalExceptionModel(models.Model):
@@ -58,24 +59,28 @@ class SignalTracker:
         self.post_calls = []
 
         def pre_handler(sender, instance, name, source, target, **kwargs):
-            self.pre_calls.append({
-                "sender": sender,
-                "instance": instance,
-                "name": name,
-                "source": source,
-                "target": target,
-                "kwargs": kwargs,
-            })
+            self.pre_calls.append(
+                {
+                    "sender": sender,
+                    "instance": instance,
+                    "name": name,
+                    "source": source,
+                    "target": target,
+                    "kwargs": kwargs,
+                }
+            )
 
         def post_handler(sender, instance, name, source, target, **kwargs):
-            self.post_calls.append({
-                "sender": sender,
-                "instance": instance,
-                "name": name,
-                "source": source,
-                "target": target,
-                "kwargs": kwargs,
-            })
+            self.post_calls.append(
+                {
+                    "sender": sender,
+                    "instance": instance,
+                    "name": name,
+                    "source": source,
+                    "target": target,
+                    "kwargs": kwargs,
+                }
+            )
 
         self.pre_handler = pre_handler
         self.post_handler = post_handler

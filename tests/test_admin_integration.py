@@ -11,19 +11,19 @@ These tests verify the admin interface functionality including:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from django.contrib import admin
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth.models import User
 from django.contrib.messages.storage.cookie import CookieStorage
-from django.http import HttpRequest
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory
+from django.test import override_settings
 
-from django_fsm_rx import ConcurrentTransition, TransitionNotAllowed
-from django_fsm_rx.admin import FSMAdminMixin, FSMCascadeWidget, FSMObjectTransitions
-from tests.testapp.models import AdminArticle, AdminBlogPost
+from django_fsm_rx.admin import FSMAdminMixin
+from tests.testapp.models import AdminArticle
+from tests.testapp.models import AdminBlogPost
 
 
 class MockSuperUser:
@@ -399,9 +399,7 @@ class TestFSMAdminTransitionView:
         """Test GET request to transition view shows form."""
         article = AdminArticle.objects.create(title="Test", state="pending")
 
-        request = request_factory.get(
-            f"/admin/testapp/adminarticle/{article.pk}/fsm-transition/publish/"
-        )
+        request = request_factory.get(f"/admin/testapp/adminarticle/{article.pk}/fsm-transition/publish/")
         request.user = MockSuperUser()
         setup_request_with_messages(request)
 
@@ -445,9 +443,7 @@ class TestFSMAdminTransitionView:
         """Test transition view with invalid transition name."""
         article = AdminArticle.objects.create(title="Test", state="draft")
 
-        request = request_factory.get(
-            f"/admin/testapp/adminarticle/{article.pk}/fsm-transition/nonexistent/"
-        )
+        request = request_factory.get(f"/admin/testapp/adminarticle/{article.pk}/fsm-transition/nonexistent/")
         request.user = MockSuperUser()
 
         response = article_admin.fsm_transition_view(request, str(article.pk), "nonexistent")
@@ -512,9 +508,7 @@ class TestFSMAdminChangeView:
         with patch.object(admin.ModelAdmin, "change_view") as mock_change_view:
             mock_change_view.return_value = MagicMock()
 
-            article_admin.change_view(
-                admin_request, str(article.pk), extra_context={}
-            )
+            article_admin.change_view(admin_request, str(article.pk), extra_context={})
 
             # Check extra_context was passed with FSM data
             call_kwargs = mock_change_view.call_args.kwargs

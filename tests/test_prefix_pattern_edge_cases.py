@@ -12,17 +12,13 @@ These tests verify edge cases in prefix pattern matching:
 
 from __future__ import annotations
 
-import pytest
 from django.db import models
 
-from django_fsm_rx import (
-    FSMField,
-    FSMIntegerField,
-    TransitionNotAllowed,
-    can_proceed,
-    has_transition_perm,
-    transition,
-)
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMIntegerField
+from django_fsm_rx import can_proceed
+from django_fsm_rx import has_transition_perm
+from django_fsm_rx import transition
 
 
 # Module-level condition functions for prefix pattern tests
@@ -492,9 +488,7 @@ class TestPrefixPatternInLists:
         class MultiPrefixModel(models.Model):
             state = FSMField(default="DRF-NEW-CRT")
 
-            @transition(
-                field=state, source=["DRF-*", "WRK-*", "QC-*"], target="CAN-USR-REQ"
-            )
+            @transition(field=state, source=["DRF-*", "WRK-*", "QC-*"], target="CAN-USR-REQ")
             def cancel(self):
                 pass
 

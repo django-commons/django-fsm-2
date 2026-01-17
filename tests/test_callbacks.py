@@ -8,7 +8,6 @@ side effects after successful transitions.
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-from unittest.mock import call
 
 import pytest
 from django.db import models
@@ -16,7 +15,6 @@ from django.db import models
 from django_fsm_rx import FSMField
 from django_fsm_rx import TransitionNotAllowed
 from django_fsm_rx import transition
-
 
 # Track callback invocations for testing
 callback_log: list[dict] = []
@@ -29,23 +27,27 @@ def reset_callback_log():
 
 def simple_callback(instance, source, target, **kwargs):
     """Simple callback that logs the transition."""
-    callback_log.append({
-        "instance": instance,
-        "source": source,
-        "target": target,
-        "kwargs": kwargs,
-    })
+    callback_log.append(
+        {
+            "instance": instance,
+            "source": source,
+            "target": target,
+            "kwargs": kwargs,
+        }
+    )
 
 
 def callback_with_args(instance, source, target, method_args, method_kwargs, **kwargs):
     """Callback that also captures method arguments."""
-    callback_log.append({
-        "instance": instance,
-        "source": source,
-        "target": target,
-        "method_args": method_args,
-        "method_kwargs": method_kwargs,
-    })
+    callback_log.append(
+        {
+            "instance": instance,
+            "source": source,
+            "target": target,
+            "method_args": method_args,
+            "method_kwargs": method_kwargs,
+        }
+    )
 
 
 class CallbackModel(models.Model):

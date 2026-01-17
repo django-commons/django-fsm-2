@@ -4,10 +4,11 @@ Tests for FSMCascadeWidget.
 Tests the cascading dropdown widget for hierarchical status codes.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest
-from django.test import RequestFactory
 
 from django_fsm_rx.widgets import FSMCascadeWidget
 

@@ -11,21 +11,19 @@ These tests verify callback behavior in edge cases:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 
 import pytest
-from django.db import models, transaction
+from django.db import models
 
-from django_fsm_rx import (
-    FSMField,
-    GET_STATE,
-    RETURN_VALUE,
-    TransitionNotAllowed,
-    can_proceed,
-    transition,
-)
-from django_fsm_rx.signals import post_transition, pre_transition
-
+from django_fsm_rx import GET_STATE
+from django_fsm_rx import RETURN_VALUE
+from django_fsm_rx import FSMField
+from django_fsm_rx import TransitionNotAllowed
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
+from django_fsm_rx.signals import post_transition
+from django_fsm_rx.signals import pre_transition
 
 # Track callback and signal invocations
 invocation_log: list[dict] = []
@@ -38,12 +36,14 @@ def reset_invocation_log():
 
 def logging_callback(instance, source, target, **kwargs):
     """Callback that logs invocation with timestamp-like ordering."""
-    invocation_log.append({
-        "type": "callback",
-        "source": source,
-        "target": target,
-        "order": len(invocation_log),
-    })
+    invocation_log.append(
+        {
+            "type": "callback",
+            "source": source,
+            "target": target,
+            "order": len(invocation_log),
+        }
+    )
 
 
 def exception_callback(instance, source, target, **kwargs):
@@ -55,12 +55,14 @@ def exception_callback(instance, source, target, **kwargs):
 def db_operation_callback(instance, source, target, **kwargs):
     """Callback that performs database operations."""
     # This simulates creating an audit log entry
-    invocation_log.append({
-        "type": "db_callback",
-        "instance_pk": instance.pk,
-        "source": source,
-        "target": target,
-    })
+    invocation_log.append(
+        {
+            "type": "db_callback",
+            "instance_pk": instance.pk,
+            "source": source,
+            "target": target,
+        }
+    )
 
 
 def modifying_callback(instance, source, target, **kwargs):
@@ -243,20 +245,24 @@ class TestCallbackSignalOrder:
         self.post_handler = MagicMock()
 
         def pre_signal_handler(sender, instance, name, source, target, **kwargs):
-            invocation_log.append({
-                "type": "pre_signal",
-                "source": source,
-                "target": target,
-                "order": len(invocation_log),
-            })
+            invocation_log.append(
+                {
+                    "type": "pre_signal",
+                    "source": source,
+                    "target": target,
+                    "order": len(invocation_log),
+                }
+            )
 
         def post_signal_handler(sender, instance, name, source, target, **kwargs):
-            invocation_log.append({
-                "type": "post_signal",
-                "source": source,
-                "target": target,
-                "order": len(invocation_log),
-            })
+            invocation_log.append(
+                {
+                    "type": "post_signal",
+                    "source": source,
+                    "target": target,
+                    "order": len(invocation_log),
+                }
+            )
 
         self.pre_signal_handler = pre_signal_handler
         self.post_signal_handler = post_signal_handler
@@ -441,10 +447,12 @@ class TestCallbackWithArguments:
         args_log = []
 
         def capturing_callback(instance, source, target, method_args=None, method_kwargs=None, **kwargs):
-            args_log.append({
-                "method_args": method_args,
-                "method_kwargs": method_kwargs,
-            })
+            args_log.append(
+                {
+                    "method_args": method_args,
+                    "method_kwargs": method_kwargs,
+                }
+            )
 
         class ArgsModel(models.Model):
             state = FSMField(default="draft")
@@ -468,10 +476,12 @@ class TestCallbackWithArguments:
         args_log = []
 
         def capturing_callback(instance, source, target, method_args=None, method_kwargs=None, **kwargs):
-            args_log.append({
-                "method_args": method_args,
-                "method_kwargs": method_kwargs,
-            })
+            args_log.append(
+                {
+                    "method_args": method_args,
+                    "method_kwargs": method_kwargs,
+                }
+            )
 
         class KwargsModel(models.Model):
             state = FSMField(default="draft")

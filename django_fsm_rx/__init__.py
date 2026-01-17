@@ -456,8 +456,7 @@ class FSMMeta:
             return transition
 
         # 4. Any-except-target wildcard '+'
-        transition = self.transitions.get("+", None)
-        return transition
+        return self.transitions.get("+", None)
 
     def add_transition(
         self,

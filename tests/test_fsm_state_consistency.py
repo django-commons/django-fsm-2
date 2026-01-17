@@ -12,16 +12,14 @@ These tests verify:
 from __future__ import annotations
 
 import pytest
-from django.db import models, transaction
+from django.db import models
+from django.db import transaction
 
-from django_fsm_rx import (
-    ConcurrentTransitionMixin,
-    FSMField,
-    FSMModelMixin,
-    TransitionNotAllowed,
-    can_proceed,
-    transition,
-)
+from django_fsm_rx import ConcurrentTransitionMixin
+from django_fsm_rx import FSMField
+from django_fsm_rx import FSMModelMixin
+from django_fsm_rx import can_proceed
+from django_fsm_rx import transition
 
 
 class ConsistencyModel(models.Model):

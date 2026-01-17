@@ -8,13 +8,9 @@ dropdown widget for hierarchical status codes.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django import forms
-from django.utils.safestring import mark_safe
-
-if TYPE_CHECKING:
-    from django.db.models import Model
 
 __all__ = [
     "FSMCascadeWidget",

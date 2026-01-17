@@ -1,0 +1,13 @@
+# Typos configuration
+# https://github.com/crate-ci/typos
+
+[default.extend-words]
+# Test abbreviations for hierarchical status codes
+WRK = "WRK"
+CMP = "CMP"
+REP = "REP"
+INS = "INS"
+PRG = "PRG"
+HLD = "HLD"
+DON = "DON"
+STD = "STD"
