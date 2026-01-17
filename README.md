@@ -83,6 +83,69 @@ from django_fsm_2 import FSMField, transition
 from django_fsm_rx import FSMField, transition
 ```
 
+### Database Migrations for FSM Fields
+
+Understanding when Django migrations are required:
+
+#### Adding a New FSMField
+
+When adding a new FSM field to a model, a migration **is required** (just like any new field):
+
+```python
+# Adding a new field - migration required
+class Order(models.Model):
+    status = FSMField(default='pending')  # New field
+```
+
+Run `python manage.py makemigrations` to create the migration.
+
+#### Converting an Existing CharField to FSMField
+
+Converting from `CharField` to `FSMField` requires **no database schema changes** because `FSMField` inherits directly from `CharField`:
+
+```python
+# Before
+status = models.CharField(max_length=50, default='pending')
+
+# After - same database column, just Python-side FSM behavior added
+status = FSMField(max_length=50, default='pending')
+```
+
+**However**, Django's migration system will detect the field class change and generate a migration. This migration is safe to run - it updates Django's internal state but makes no database changes (the column remains a VARCHAR).
+
+You can either:
+1. **Run the migration** (recommended) - It's a no-op at the database level
+2. **Fake it** - `python manage.py migrate --fake` if you want to skip execution
+
+#### Converting Other Field Types
+
+| Original Field | Target FSM Field | Migration Impact |
+|----------------|------------------|------------------|
+| `CharField` | `FSMField` | ✅ No schema change (same column type) |
+| `IntegerField` | `FSMIntegerField` | ✅ No schema change (same column type) |
+| `CharField` | `FSMIntegerField` | ⚠️ Schema change required (VARCHAR → INTEGER) |
+| `IntegerField` | `FSMField` | ⚠️ Schema change required (INTEGER → VARCHAR) |
+| `ForeignKey` | `FSMKeyField` | ✅ No schema change (same column type) |
+| Any other type | Any FSM field | ⚠️ Check if base types match |
+
+**Rule of thumb**: If the base Django field type matches, no schema migration is needed.
+
+#### The `protected` Parameter
+
+The `protected=True` parameter is Python-only and has no database impact:
+
+```python
+# protected=False (default) - allows direct assignment for backward compatibility
+status = FSMField(default='pending', protected=False)
+instance.status = 'approved'  # Works
+
+# protected=True - enforces transitions only
+status = FSMField(default='pending', protected=True)
+instance.status = 'approved'  # Raises AttributeError
+```
+
+Use `protected=False` when converting existing code that assigns directly to the field, then gradually migrate to using transitions.
+
 ## Quick Start
 
 ```python
