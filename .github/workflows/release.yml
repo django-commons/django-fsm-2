@@ -6,9 +6,8 @@ on:
       - '*.*.*'
 
 env:
-  # Change these for your project's URLs
-  PYPI_URL: https://pypi.org/p/django-fsm-2
-  PYPI_TEST_URL: https://test.pypi.org/p/django-fsm-2
+  PYPI_URL: https://pypi.org/p/django-fsm-rx
+  PYPI_TEST_URL: https://test.pypi.org/p/django-fsm-rx
 
 jobs:
 
