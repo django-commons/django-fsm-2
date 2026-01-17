@@ -1188,6 +1188,7 @@ class ConcurrentTransitionMixin:
         values: Any,
         update_fields: Sequence[str] | None,
         forced_update: bool,
+        **kwargs: Any,
     ) -> int:
         """
         Perform the actual UPDATE with optimistic locking.
@@ -1202,6 +1203,7 @@ class ConcurrentTransitionMixin:
             values: Values to update.
             update_fields: Specific fields to update.
             forced_update: Whether to force UPDATE vs INSERT.
+            **kwargs: Additional arguments for forward compatibility (e.g., returning_fields in Django 6.0+).
 
         Returns:
             Number of rows updated.
@@ -1225,6 +1227,7 @@ class ConcurrentTransitionMixin:
             values=values,
             update_fields=update_fields,
             forced_update=forced_update,
+            **kwargs,
         )
 
         # It may happen that nothing was updated not because of unmatching state,
