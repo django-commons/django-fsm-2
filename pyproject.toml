@@ -1,6 +1,6 @@
 [project]
 name = "django-fsm-rx"
-version = "5.0.0"
+version = "5.0.1"
 description = "Django friendly finite state machine support. RX = Remanufactured."
 readme = "README.md"
 license = "MIT"
