@@ -100,8 +100,8 @@ wheels = [
 ]
 
 [[package]]
-name = "django-fsm-2"
-version = "4.1.0"
+name = "django-fsm-rx"
+version = "5.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },

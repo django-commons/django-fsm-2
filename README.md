@@ -334,6 +334,25 @@ Requires the `graphviz` package:
 pip install django-fsm-rx[graphviz]
 ```
 
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions.
+
+### Quick Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/specialorange/django-fsm-rx.git
+cd django-fsm-rx
+uv sync
+
+# Run tests
+uv run pytest -v
+
+# Run linting
+uv run ruff check .
+```
+
 ## Credits
 
 - **Mikhail Podgurskiy** - Original django-fsm creator

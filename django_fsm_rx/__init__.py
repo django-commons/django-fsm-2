@@ -59,6 +59,7 @@ __all__ = [
     "RETURN_VALUE",
     "State",
     "Transition",
+    "TransitionCallback",
     "FSMMeta",
 ]
 
@@ -84,6 +85,29 @@ StateSource = Union[StateValue, Sequence[StateValue], str]  # noqa: UP007
 
 CustomDict = dict[str, Any]
 """Custom properties dictionary for transitions."""
+
+TransitionCallback = Callable[..., None]
+"""
+Callback function invoked after successful transition.
+
+The callback receives:
+- instance: The model instance that transitioned
+- source: The source state (before transition)
+- target: The target state (after transition)
+- **kwargs: Additional keyword arguments including method_args and method_kwargs
+
+Example:
+    def log_transition(instance, source, target, **kwargs):
+        TransitionLog.objects.create(
+            model_instance=instance,
+            from_state=source,
+            to_state=target,
+        )
+
+    @transition(field=state, source='draft', target='published', on_success=log_transition)
+    def publish(self):
+        pass
+"""
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 """TypeVar for decorated transition methods."""
@@ -172,6 +196,7 @@ class Transition:
         conditions: List of condition functions that must all return True.
         permission: Permission string or callable for access control.
         custom: Dictionary of custom properties attached to the transition.
+        on_success: Callback function invoked after successful transition.
         name: The name of the transition method (read-only property).
 
     Example:
@@ -189,6 +214,7 @@ class Transition:
     conditions: list[ConditionFunc] | None
     permission: PermissionType
     custom: CustomDict
+    on_success: TransitionCallback | None
 
     def __init__(
         self,
@@ -199,6 +225,7 @@ class Transition:
         conditions: list[ConditionFunc] | None,
         permission: PermissionType,
         custom: CustomDict,
+        on_success: TransitionCallback | None = None,
     ) -> None:
         self.method = method
         self.source = source
@@ -207,6 +234,7 @@ class Transition:
         self.conditions = conditions
         self.permission = permission
         self.custom = custom
+        self.on_success = on_success
 
     @property
     def name(self) -> str:
@@ -346,14 +374,65 @@ class FSMMeta:
         self.field = field
         self.transitions = {}  # source -> Transition
 
+    def _matches_prefix_pattern(self, pattern: str, state: StateValue) -> bool:
+        """
+        Check if state matches a prefix wildcard pattern.
+
+        Supports patterns like 'WRK-*' which matches 'WRK-REP-PRG', 'WRK-INS-PRG', etc.
+        This enables hierarchical status codes (e.g., AAA-BBB-CCC format).
+
+        Args:
+            pattern: A pattern ending with '-*' (e.g., 'WRK-*', 'WRK-REP-*')
+            state: The current state value to check
+
+        Returns:
+            True if the state starts with the pattern prefix.
+        """
+        if not isinstance(pattern, str) or not pattern.endswith("-*"):
+            return False
+        if not isinstance(state, str):
+            return False
+        prefix = pattern[:-1]  # Remove the '*', keep the '-'
+        return state.startswith(prefix)
+
+    def _find_prefix_transition(self, state: StateValue) -> Transition | None:
+        """
+        Find a transition matching a prefix wildcard pattern.
+
+        Searches through registered transitions for prefix patterns (ending in '-*')
+        that match the given state. Returns the most specific match (longest prefix).
+
+        Args:
+            state: The current state value.
+
+        Returns:
+            The matching Transition or None.
+        """
+        if not isinstance(state, str):
+            return None
+
+        # Find all matching prefix patterns, sorted by specificity (longest first)
+        matches: list[tuple[str, Transition]] = []
+        for pattern, transition in self.transitions.items():
+            if self._matches_prefix_pattern(pattern, state):
+                matches.append((pattern, transition))
+
+        if not matches:
+            return None
+
+        # Return the most specific match (longest prefix)
+        matches.sort(key=lambda x: len(x[0]), reverse=True)
+        return matches[0][1]
+
     def get_transition(self, source: StateValue) -> Transition | None:
         """
         Get the transition for a given source state.
 
         Looks up transitions in order:
         1. Exact source state match
-        2. Wildcard '*' (any state)
-        3. Wildcard '+' (any state except target)
+        2. Prefix wildcard match (e.g., 'WRK-*' matches 'WRK-REP-PRG')
+        3. Wildcard '*' (any state)
+        4. Wildcard '+' (any state except target)
 
         Args:
             source: The source state to look up.
@@ -361,11 +440,23 @@ class FSMMeta:
         Returns:
             The Transition object if found, None otherwise.
         """
+        # 1. Exact match
         transition = self.transitions.get(source, None)
-        if transition is None:
-            transition = self.transitions.get("*", None)
-        if transition is None:
-            transition = self.transitions.get("+", None)
+        if transition is not None:
+            return transition
+
+        # 2. Prefix wildcard match (e.g., 'WRK-*')
+        transition = self._find_prefix_transition(source)
+        if transition is not None:
+            return transition
+
+        # 3. Universal wildcard '*'
+        transition = self.transitions.get("*", None)
+        if transition is not None:
+            return transition
+
+        # 4. Any-except-target wildcard '+'
+        transition = self.transitions.get("+", None)
         return transition
 
     def add_transition(
@@ -377,6 +468,7 @@ class FSMMeta:
         conditions: list[ConditionFunc] | None = None,
         permission: PermissionType = None,
         custom: CustomDict | None = None,
+        on_success: TransitionCallback | None = None,
     ) -> None:
         """
         Register a new transition from a source state.
@@ -389,6 +481,7 @@ class FSMMeta:
             conditions: List of condition functions.
             permission: Permission string or callable.
             custom: Custom properties dictionary.
+            on_success: Callback function invoked after successful transition.
 
         Raises:
             AssertionError: If a transition from this source already exists.
@@ -404,6 +497,7 @@ class FSMMeta:
             conditions=conditions if conditions is not None else [],
             permission=permission,
             custom=custom if custom is not None else {},
+            on_success=on_success,
         )
 
     def has_transition(self, state: StateValue) -> bool:
@@ -411,6 +505,7 @@ class FSMMeta:
         Check if a transition exists from the given state.
 
         Handles wildcard transitions:
+        - Prefix wildcards like 'WRK-*' match 'WRK-REP-PRG', 'WRK-INS-PRG', etc.
         - '*' matches any state
         - '+' matches any state except the target state
 
@@ -420,12 +515,19 @@ class FSMMeta:
         Returns:
             True if a transition exists from this state.
         """
+        # Exact match
         if state in self.transitions:
             return True
 
+        # Prefix wildcard match (e.g., 'WRK-*')
+        if self._find_prefix_transition(state) is not None:
+            return True
+
+        # Universal wildcard '*'
         if "*" in self.transitions:
             return True
 
+        # Any-except-target wildcard '+'
         if "+" in self.transitions and self.transitions["+"].target != state:
             return True
 
@@ -767,6 +869,17 @@ class FSMFieldMixin:
             raise
         else:
             post_transition.send(**signal_kwargs)
+
+            # Call on_success callback if defined
+            transition = meta.get_transition(current_state)
+            if transition and transition.on_success:
+                transition.on_success(
+                    instance=instance,
+                    source=current_state,
+                    target=next_state,
+                    method_args=args,
+                    method_kwargs=kwargs,
+                )
 
         return result
 
@@ -1151,6 +1264,7 @@ def transition(
     conditions: list[ConditionFunc] | None = None,
     permission: PermissionType = None,
     custom: CustomDict | None = None,
+    on_success: TransitionCallback | None = None,
 ) -> Callable[[_F], _F]:
     """
     Decorator to mark a method as a state transition.
@@ -1161,13 +1275,15 @@ def transition(
     3. Execute the method
     4. Change the state to target (if successful)
     5. Send pre/post transition signals
+    6. Call on_success callback (if provided)
 
     Args:
         field: The FSM field to transition on. Can be the field instance
             or its name as a string.
         source: Source state(s) from which this transition is allowed.
             Can be a single state, a list of states, '*' (any state),
-            or '+' (any state except target). Default is '*'.
+            '+' (any state except target), or prefix wildcards like 'WRK-*'.
+            Default is '*'.
         target: Target state after transition. Can be a state value,
             RETURN_VALUE (use method return), GET_STATE (compute dynamically),
             or None (no state change, just validation). Default is None.
@@ -1181,16 +1297,24 @@ def transition(
             taking (instance, user) and returning bool. Default is None.
         custom: Dictionary of custom properties accessible on the Transition
             object. Default is empty dict.
+        on_success: Callback function invoked after successful transition.
+            Receives (instance, source, target, method_args, method_kwargs).
+            This is an alternative to using signals for side effects.
+            Default is None.
 
     Returns:
         A decorator that wraps the method with transition logic.
 
     Example:
+        >>> def log_publish(instance, source, target, **kwargs):
+        ...     print(f"Published! {source} -> {target}")
+        ...
         >>> class BlogPost(models.Model):
         ...     state = FSMField(default='draft')
         ...
         ...     @transition(field=state, source='draft', target='published',
-        ...                 conditions=[is_valid], permission='blog.publish')
+        ...                 conditions=[is_valid], permission='blog.publish',
+        ...                 on_success=log_publish)
         ...     def publish(self):
         ...         '''Publish the blog post.'''
         ...         self.published_at = timezone.now()
@@ -1213,9 +1337,9 @@ def transition(
 
         if isinstance(source, (list, tuple, set)):
             for state in source:
-                func._django_fsm_rx.add_transition(func, state, target, on_error, conditions, permission, custom)
+                func._django_fsm_rx.add_transition(func, state, target, on_error, conditions, permission, custom, on_success)
         else:
-            func._django_fsm_rx.add_transition(func, source, target, on_error, conditions, permission, custom)
+            func._django_fsm_rx.add_transition(func, source, target, on_error, conditions, permission, custom, on_success)
 
         @wraps(func)
         def _change_state(instance: Model, *args: Any, **kwargs: Any) -> Any:
