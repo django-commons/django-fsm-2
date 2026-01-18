@@ -36,8 +36,12 @@ Homepage = "http://github.com/django-commons/django-fsm-2"
 Repository = "http://github.com/django-commons/django-fsm-2"
 Documentation = "http://github.com/django-commons/django-fsm-2"
 
+[project.optional-dependencies]
+graphviz = [
+    "graphviz",
+]
+
 [dependency-groups]
-graphviz = ["graphviz"]
 dev = [
     "coverage",
     "django-guardian",
@@ -51,7 +55,6 @@ dev = [
 
 [tool.uv]
 default-groups = [
-    "graphviz",
     "dev",
 ]
 
@@ -69,7 +72,7 @@ build-backend = "hatchling.build"
 DJANGO_SETTINGS_MODULE = "tests.settings"
 
 [tool.ruff]
-line-length = 130
+line-length = 100
 target-version = "py38"
 fix = true
 
@@ -98,6 +101,7 @@ extend-ignore = [
 fixable = [
     "I",  # isort
     "RUF100",  # Unused `noqa` directive
+    "E501",
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]

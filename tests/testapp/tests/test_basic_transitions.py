@@ -191,7 +191,13 @@ class TestFieldTransitionsInspect(TestCase):
     def test_available_conditions_from_new(self):
         transitions = self.model.get_available_state_transitions()
         actual = {(transition.source, transition.target) for transition in transitions}
-        expected = {("*", "moderated"), ("new", "published"), ("new", "removed"), ("*", ""), ("+", "blocked")}
+        expected = {
+            ("*", "moderated"),
+            ("new", "published"),
+            ("new", "removed"),
+            ("*", ""),
+            ("+", "blocked"),
+        }
         assert actual == expected
 
     def test_available_conditions_from_published(self):

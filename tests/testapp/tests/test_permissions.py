@@ -15,8 +15,12 @@ class PermissionFSMFieldTest(TestCase):
         self.privileged = User.objects.create(username="privileged")
         self.staff = User.objects.create(username="staff", is_staff=True)
 
-        self.privileged.user_permissions.add(Permission.objects.get_by_natural_key("can_publish_post", "testapp", "blogpost"))
-        self.privileged.user_permissions.add(Permission.objects.get_by_natural_key("can_remove_post", "testapp", "blogpost"))
+        self.privileged.user_permissions.add(
+            Permission.objects.get_by_natural_key("can_publish_post", "testapp", "blogpost")
+        )
+        self.privileged.user_permissions.add(
+            Permission.objects.get_by_natural_key("can_remove_post", "testapp", "blogpost")
+        )
 
     def test_privileged_access_succeed(self):
         assert has_transition_perm(self.model.publish, self.privileged)

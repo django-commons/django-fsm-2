@@ -21,7 +21,10 @@ class MultiResultTest(models.Model):
     @transition(
         field=state,
         source="for_moderators",
-        target=GET_STATE(lambda _, allowed: "published" if allowed else "rejected", states=["published", "rejected"]),
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+            states=["published", "rejected"],
+        ),
     )
     def moderate(self, allowed):
         pass

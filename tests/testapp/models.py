@@ -248,7 +248,11 @@ class BlogPost(models.Model):
     def restore(self):
         pass
 
-    @transition(field=state, source=[BlogPostState.PUBLISHED, BlogPostState.HIDDEN], target=BlogPostState.STOLEN)
+    @transition(
+        field=state,
+        source=[BlogPostState.PUBLISHED, BlogPostState.HIDDEN],
+        target=BlogPostState.STOLEN,
+    )
     def steal(self):
         pass
 
