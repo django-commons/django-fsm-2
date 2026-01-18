@@ -1,11 +1,11 @@
 [project]
 name = "django-fsm-rx"
-version = "5.0.1"
+version = "5.0.2"
 description = "Django friendly finite state machine support. RX = Remanufactured."
 readme = "README.md"
 license = "MIT"
 authors = [
-    { name = "Mikhail Podgurskiy", email = "kmmbvnr@gmail.com" },
+    { name = "specialorange" },
 ]
 requires-python = ">=3.10"
 dependencies = [
