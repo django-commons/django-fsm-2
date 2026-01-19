@@ -25,7 +25,10 @@ class GraphTransitionsCommandTest(TestCase):
     EXTENSIONS_TO_TEST = ["png", "jpg", "jpeg"]
 
     def test_node_label(self):
-        assert node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value) == BlogPostState.PUBLISHED.label
+        assert (
+            node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value)
+            == BlogPostState.PUBLISHED.label
+        )
 
     def _call_command(self, *args, **kwargs):
         out = StringIO()

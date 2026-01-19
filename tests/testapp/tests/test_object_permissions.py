@@ -31,7 +31,10 @@ class ObjectPermissionTestModel(models.Model):
 
 
 @override_settings(
-    AUTHENTICATION_BACKENDS=("django.contrib.auth.backends.ModelBackend", "guardian.backends.ObjectPermissionBackend")
+    AUTHENTICATION_BACKENDS=(
+        "django.contrib.auth.backends.ModelBackend",
+        "guardian.backends.ObjectPermissionBackend",
+    )
 )
 class ObjectPermissionFSMFieldTest(TestCase):
     def setUp(self):

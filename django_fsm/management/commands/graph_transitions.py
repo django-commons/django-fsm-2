@@ -13,7 +13,9 @@ from django_fsm import FSMFieldMixin
 
 
 def all_fsm_fields_data(model):
-    return [(field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)]
+    return [
+        (field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)
+    ]
 
 
 def one_fsm_fields_data(model, field_name):
@@ -22,7 +24,9 @@ def one_fsm_fields_data(model, field_name):
 
 def node_name(field, state) -> str:
     opts = field.model._meta
-    return "{}.{}.{}.{}".format(opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state)
+    return "{}.{}.{}.{}".format(
+        opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state
+    )
 
 
 def node_label(field, state: str | None) -> str:
@@ -65,10 +69,22 @@ def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # n
                     elif transition.source == "+":
                         any_except_targets.add((target, transition.name))
                     else:
-                        add_transition(source, target, transition.name, source_name, field, sources, targets, edges)
+                        add_transition(
+                            source,
+                            target,
+                            transition.name,
+                            source_name,
+                            field,
+                            sources,
+                            targets,
+                            edges,
+                        )
 
         targets.update(
-            {(node_name(field, target), node_label(field, target)) for target, _ in chain(any_targets, any_except_targets)}
+            {
+                (node_name(field, target), node_label(field, target))
+                for target, _ in chain(any_targets, any_except_targets)
+            }
         )
         for target, name in any_targets:
             target_name = node_name(field, target)
@@ -110,7 +126,16 @@ def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # n
     return result
 
 
-def add_transition(transition_source, transition_target, transition_name, source_name, field, sources, targets, edges):
+def add_transition(
+    transition_source,
+    transition_target,
+    transition_name,
+    source_name,
+    field,
+    sources,
+    targets,
+    edges,
+):
     target_name = node_name(field, transition_target)
     sources.add((source_name, node_label(field, transition_source)))
     targets.add((target_name, node_label(field, transition_target)))
@@ -135,7 +160,8 @@ class Command(BaseCommand):
             "-o",
             action="store",
             dest="outputfile",
-            help="Render output file. Type of output dependent on file extensions. Use png or jpg to render graph to image.",
+            help="Render output file. Type of output depends on file extensions."
+            "Use png or jpg to render graph to image.",
         )
         parser.add_argument(
             "--layout",
@@ -143,7 +169,7 @@ class Command(BaseCommand):
             action="store",
             dest="layout",
             default="dot",
-            help=f"Layout to be used by GraphViz for visualization. Layouts: {get_graphviz_layouts()}.",
+            help=f"Layout to be used by GraphViz for visualization: {get_graphviz_layouts()}.",
         )
         parser.add_argument(
             "--exclude",

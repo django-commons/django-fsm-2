@@ -50,7 +50,9 @@ class FKBlogPost(models.Model):
 
 class FSMKeyFieldTest(TestCase):
     def setUp(self):
-        DbState.objects.bulk_create(DbState(pk=item[0], label=item[1]) for item in FK_AVAILABLE_STATES)
+        DbState.objects.bulk_create(
+            DbState(pk=item[0], label=item[1]) for item in FK_AVAILABLE_STATES
+        )
         self.model = FKBlogPost()
 
     def test_initial_state_instantiated(self):
