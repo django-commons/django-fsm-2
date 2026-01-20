@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing
+
 from django.db import models
 
 from django_fsm import GET_STATE
@@ -7,6 +9,9 @@ from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
 from django_fsm import FSMKeyField
 from django_fsm import transition
+
+if typing.TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractUser
 
 
 class Application(models.Model):
@@ -18,19 +23,19 @@ class Application(models.Model):
     state = FSMField(default="new")
 
     @transition(field=state, source="new", target="published")
-    def standard(self):
+    def standard(self) -> None:
         pass
 
     @transition(field=state, source="published")
-    def no_target(self):
+    def no_target(self) -> None:
         pass
 
     @transition(field=state, source="*", target="blocked")
-    def any_source(self):
+    def any_source(self) -> None:
         pass
 
     @transition(field=state, source="+", target="hidden")
-    def any_source_except_target(self):
+    def any_source_except_target(self) -> None:
         pass
 
     @transition(
@@ -41,7 +46,7 @@ class Application(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state(self, *, allowed: bool):
+    def get_state(self, *, allowed: bool) -> None:
         pass
 
     @transition(
@@ -52,7 +57,7 @@ class Application(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state_any_source(self, *, allowed: bool):
+    def get_state_any_source(self, *, allowed: bool) -> None:
         pass
 
     @transition(
@@ -63,23 +68,23 @@ class Application(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state_any_source_except_target(self, *, allowed: bool):
+    def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
     @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value(self):
+    def return_value(self) -> str:
         return "published"
 
     @transition(field=state, source="*", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value_any_source(self):
+    def return_value_any_source(self) -> str:
         return "published"
 
     @transition(field=state, source="+", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value_any_source_except_target(self):
+    def return_value_any_source_except_target(self) -> str:
         return "published"
 
     @transition(field=state, source="new", target="published", on_error="failed")
-    def on_error(self):
+    def on_error(self) -> None:
         pass
 
 
@@ -105,19 +110,19 @@ class FKApplication(models.Model):
     state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     @transition(field=state, source="new", target="published")
-    def standard(self):
+    def standard(self) -> None:
         pass
 
     @transition(field=state, source="published")
-    def no_target(self):
+    def no_target(self) -> None:
         pass
 
     @transition(field=state, source="*", target="blocked")
-    def any_source(self):
+    def any_source(self) -> None:
         pass
 
     @transition(field=state, source="+", target="hidden")
-    def any_source_except_target(self):
+    def any_source_except_target(self) -> None:
         pass
 
     @transition(
@@ -128,7 +133,7 @@ class FKApplication(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state(self, *, allowed: bool):
+    def get_state(self, *, allowed: bool) -> None:
         pass
 
     @transition(
@@ -139,7 +144,7 @@ class FKApplication(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state_any_source(self, *, allowed: bool):
+    def get_state_any_source(self, *, allowed: bool) -> None:
         pass
 
     @transition(
@@ -150,23 +155,23 @@ class FKApplication(models.Model):
             states=["published", "rejected"],
         ),
     )
-    def get_state_any_source_except_target(self, *, allowed: bool):
+    def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
     @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value(self):
+    def return_value(self) -> str:
         return "published"
 
     @transition(field=state, source="*", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value_any_source(self):
+    def return_value_any_source(self) -> str:
         return "published"
 
     @transition(field=state, source="+", target=RETURN_VALUE("moderated", "blocked"))
-    def return_value_any_source_except_target(self):
+    def return_value_any_source_except_target(self) -> str:
         return "published"
 
     @transition(field=state, source="new", target="published", on_error="failed")
-    def on_error(self):
+    def on_error(self) -> None:
         pass
 
 
@@ -174,7 +179,7 @@ class MultiStateApplication(Application):
     another_state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     @transition(field=another_state, source="new", target="published")
-    def another_state_standard(self):
+    def another_state_standard(self) -> None:
         pass
 
 
@@ -202,8 +207,8 @@ class BlogPost(models.Model):
             ("can_remove_post", "Can remove post"),
         ]
 
-    def can_restore(self, user):
-        return user.is_superuser or user.is_staff
+    def can_restore(self: models.Model, user: AbstractUser) -> bool:
+        return bool(user.is_superuser or user.is_staff)
 
     @transition(
         field=state,
@@ -212,11 +217,11 @@ class BlogPost(models.Model):
         on_error=BlogPostState.FAILED,
         permission="testapp.can_publish_post",
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @transition(field=state, source=BlogPostState.PUBLISHED)
-    def notify_all(self):
+    def notify_all(self) -> None:
         pass
 
     @transition(
@@ -225,7 +230,7 @@ class BlogPost(models.Model):
         target=BlogPostState.HIDDEN,
         on_error=BlogPostState.FAILED,
     )
-    def hide(self):
+    def hide(self) -> None:
         pass
 
     @transition(
@@ -235,7 +240,7 @@ class BlogPost(models.Model):
         on_error=BlogPostState.FAILED,
         permission=lambda _, u: u.has_perm("testapp.can_remove_post"),
     )
-    def remove(self):
+    def remove(self) -> None:
         raise Exception(f"No rights to delete {self}")
 
     @transition(
@@ -245,7 +250,7 @@ class BlogPost(models.Model):
         on_error=BlogPostState.FAILED,
         permission=can_restore,
     )
-    def restore(self):
+    def restore(self) -> None:
         pass
 
     @transition(
@@ -253,9 +258,9 @@ class BlogPost(models.Model):
         source=[BlogPostState.PUBLISHED, BlogPostState.HIDDEN],
         target=BlogPostState.STOLEN,
     )
-    def steal(self):
+    def steal(self) -> None:
         pass
 
     @transition(field=state, source="*", target=BlogPostState.MODERATED)
-    def moderate(self):
+    def moderate(self) -> None:
         pass

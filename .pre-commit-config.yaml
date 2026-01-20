@@ -51,5 +51,5 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - django-stubs==5.2.8
+          - django-stubs==5.2.9
           - django-guardian
