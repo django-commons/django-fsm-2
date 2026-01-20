@@ -167,7 +167,7 @@ class TestFieldTransitionsInspect(TestCase):
 
     def test_in_operator_for_available_transitions(self):
         # store the generator in a list, so we can reuse the generator and do multiple asserts
-        transitions = list(self.model.get_available_state_transitions())
+        transitions = list(self.model.get_available_state_transitions())  # type: ignore[attr-defined]
 
         assert "publish" in transitions
         assert "xyz" not in transitions
@@ -181,15 +181,15 @@ class TestFieldTransitionsInspect(TestCase):
             source="",
             target="",
             on_error="",
-            conditions="",
+            conditions=None,
             permission="",
-            custom="",
+            custom=None,
         )
 
         assert obj in transitions
 
     def test_available_conditions_from_new(self):
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {
             ("*", "moderated"),
@@ -202,7 +202,7 @@ class TestFieldTransitionsInspect(TestCase):
 
     def test_available_conditions_from_published(self):
         self.model.publish()
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {
             ("*", "moderated"),
@@ -217,7 +217,7 @@ class TestFieldTransitionsInspect(TestCase):
     def test_available_conditions_from_hidden(self):
         self.model.publish()
         self.model.hide()
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("hidden", "stolen"), ("*", ""), ("+", "blocked")}
         assert actual == expected
@@ -225,27 +225,27 @@ class TestFieldTransitionsInspect(TestCase):
     def test_available_conditions_from_stolen(self):
         self.model.publish()
         self.model.steal()
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", ""), ("+", "blocked")}
         assert actual == expected
 
     def test_available_conditions_from_blocked(self):
         self.model.block()
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", "")}
         assert actual == expected
 
     def test_available_conditions_from_empty(self):
         self.model.empty()
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {("*", "moderated"), ("*", ""), ("+", "blocked")}
         assert actual == expected
 
     def test_all_conditions(self):
-        transitions = self.model.get_all_state_transitions()
+        transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
 
         actual = {(transition.source, transition.target) for transition in transitions}
         expected = {

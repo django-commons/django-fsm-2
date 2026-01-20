@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import typing
 from io import StringIO
 from pathlib import Path
 
@@ -12,8 +13,12 @@ from django.test import TestCase
 
 from django_fsm.management.commands.graph_transitions import get_graphviz_layouts
 from django_fsm.management.commands.graph_transitions import node_label
+from django_fsm.management.commands.graph_transitions import node_name
+from tests.testapp.models import Application
 from tests.testapp.models import BlogPost
 from tests.testapp.models import BlogPostState
+from tests.testapp.tests.test_model_create_with_generic import Task
+from tests.testapp.tests.test_model_create_with_generic import TaskState
 
 
 class GraphTransitionsCommandTest(TestCase):
@@ -24,13 +29,20 @@ class GraphTransitionsCommandTest(TestCase):
 
     EXTENSIONS_TO_TEST = ["png", "jpg", "jpeg"]
 
+    def test_node_name(self):
+        assert node_name(Task.state.field, TaskState.DONE) == "testapp.task.state.done"
+        assert node_name(BlogPost.state.field, BlogPostState.NEW) == "testapp.blog_post.state.0"
+
     def test_node_label(self):
+        assert node_label(Application.state.field, "new") == "new"
         assert (
             node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value)
             == BlogPostState.PUBLISHED.label
         )
+        # choices is not declared, fallbacking to the value instead
+        assert node_label(Task.state.field, TaskState.DONE.value) == TaskState.DONE.value
 
-    def _call_command(self, *args, **kwargs):
+    def _call_command(self, *args: typing.Any, **kwargs: typing.Any) -> str:
         out = StringIO()
         call_command("graph_transitions", *args, **kwargs, stdout=out)
         return out.getvalue()

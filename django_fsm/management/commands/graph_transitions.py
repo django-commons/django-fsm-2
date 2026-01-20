@@ -37,15 +37,16 @@ def one_fsm_fields_data(
     return (field, model)
 
 
-def node_name(field: FSMFieldMixin, state: str | int) -> str:
+def node_name(field: FSMFieldMixin, state: _StateValue) -> str:
     opts = field.model._meta
+    assert opts.verbose_name
     return "{}.{}.{}.{}".format(
         opts.app_label, opts.verbose_name.replace(" ", "_"), field.name, state
     )
 
 
 def node_label(field: FSMFieldMixin, state: _StateValue | None) -> str:
-    if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
+    if hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
 
@@ -58,7 +59,11 @@ def generate_dot(  # noqa: C901, PLR0912
     result = graphviz.Digraph()
 
     for field, model in fields_data:
-        sources, targets, edges, any_targets, any_except_targets = set(), set(), set(), set(), set()
+        sources: set[tuple[(str, str)]] = set()
+        targets: set[tuple[str, str]] = set()
+        edges: set[tuple[str, str, tuple[tuple[str, ...]]]] = set()
+        any_targets: set[tuple[_StateValue, str]] = set()
+        any_except_targets: set[tuple[str, str]] = set()
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):
@@ -166,7 +171,7 @@ def get_graphviz_layouts() -> set[str] | Sequence[str]:
     except ModuleNotFoundError:
         return {"sfdp", "circo", "twopi", "dot", "neato", "fdp", "osage", "patchwork"}
     else:
-        return graphviz.ENGINES
+        return graphviz.ENGINES  # type: ignore[no-any-return]
 
 
 class Command(BaseCommand):
@@ -213,7 +218,7 @@ class Command(BaseCommand):
                 match arg.split("."):
                     case [app_label]:
                         app = apps.get_app_config(app_label)
-                        for model in apps.get_models(app):
+                        for model in app.get_models():
                             fields_data += all_fsm_fields_data(model)
                     case [app_label, model_name]:
                         model = apps.get_model(app_label, model_name)

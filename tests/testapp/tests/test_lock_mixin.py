@@ -14,6 +14,8 @@ class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
     state = FSMField(default="new")
     text = models.CharField(max_length=50)
 
+    objects: models.Manager[LockedBlogPost] = models.Manager()
+
     @transition(field=state, source="new", target="published")
     def publish(self):
         pass
@@ -26,6 +28,8 @@ class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
 class ExtendedBlogPost(LockedBlogPost):
     review_state = FSMField(default="waiting", protected=True)
     notes = models.CharField(max_length=50)
+
+    objects: models.Manager[ExtendedBlogPost] = models.Manager()
 
     @transition(field=review_state, source="waiting", target="rejected")
     def reject(self):

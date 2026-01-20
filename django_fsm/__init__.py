@@ -32,14 +32,14 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     from django.utils.functional import _StrOrPromise
 
     _Field = models.Field[typing.Any, typing.Any]
-    CharField = models.CharField[typing.Any, typing.Any]
-    IntegerField = models.IntegerField[typing.Any, typing.Any]
+    CharField = models.CharField[str, str]
+    IntegerField = models.IntegerField[int, int]
     ForeignKey = models.ForeignKey[typing.Any, typing.Any]
 
     _FSMModel = models.Model
     _StateValue: typing.TypeAlias = str | int
-    _Permission: typing.TypeAlias = str | Callable[[_FSMModel, UserWithPermissions], bool]
-    _Condition: typing.TypeAlias = Callable[[_FSMModel], bool]
+    _Permission: typing.TypeAlias = str | Callable[[_FSMModel, typing.Any], bool]
+    _Condition: typing.TypeAlias = Callable[[models.Model], bool]
 
 else:
     _FSMModel = object
@@ -96,7 +96,7 @@ class ConcurrentTransition(Exception):  # noqa: N818
 class Transition:
     def __init__(
         self,
-        method: Callable[..., _StateValue | typing.Any],
+        method: Callable[..., _StateValue],
         source: _StateValue | Sequence[_StateValue] | State,
         target: _StateValue,
         on_error: _StateValue | None,
@@ -179,7 +179,7 @@ class FSMMeta:
     Models methods transitions meta information
     """
 
-    def __init__(self, field: FSMFieldMixin, method: typing.Any) -> None:
+    def __init__(self, field: FSMFieldMixin | str, method: bool) -> None:  # noqa: FBT001
         self.field = field
         self.transitions: dict[_StateValue, Transition] = {}  # source -> Transition
 
@@ -193,7 +193,7 @@ class FSMMeta:
 
     def add_transition(
         self,
-        method: Callable[..., _StateValue | typing.Any],
+        method: Callable[..., _StateValue],
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None = None,
@@ -216,7 +216,7 @@ class FSMMeta:
 
     def has_transition(self, state: _StateValue) -> bool:
         """
-        Lookup if typing.Any transition exists from current model state using current method
+        Lookup if any transition exists from current model state using current method
         """
         if state in self.transitions:
             return True
@@ -420,10 +420,16 @@ class FSMFieldMixin(_Field):
             yield from meta.transitions.values()
 
     @override
-    def contribute_to_class(self, cls: type[_FSMModel], name: str, **kwargs: typing.Any) -> None:  # type: ignore[override]
+    def contribute_to_class(
+        self,
+        cls: type[_FSMModel],
+        name: str,
+        private_only: bool = False,
+        **kwargs: typing.Any,
+    ) -> None:
         self.base_cls = cls
 
-        super().contribute_to_class(cls, name, **kwargs)
+        super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
         setattr(cls, self.name, self.descriptor_class(self))
         setattr(
             cls,
@@ -489,7 +495,7 @@ class FSMIntegerField(FSMFieldMixin, IntegerField):
     """
 
 
-class FSMKeyField(FSMFieldMixin, ForeignKey):  # type: ignore[misc]
+class FSMKeyField(FSMFieldMixin, ForeignKey):
     """
     State Machine support for Django model
     """
@@ -572,8 +578,8 @@ class ConcurrentTransitionMixin(_FSMModel):
         forced_update: bool,
         returning_fields: bool | None = None,
     ) -> bool:
-        # _do_update is called once for each model class in the inheritance hierarchy.
-        # We can only filter the base_qs on state fields (can be more than one!) present in this model.
+        # _do_update is called once for each model class in the inheritance hierarchy. We can only
+        # filter the base_qs on state fields (can be more than one!) present in this specific model.
 
         # Select state fields to filter on
         filter_on = filter(lambda field: field.model == base_qs.model, self.state_fields)
@@ -634,7 +640,7 @@ class ConcurrentTransitionMixin(_FSMModel):
 
 
 def transition(
-    field: FSMFieldMixin,
+    field: FSMFieldMixin | str,
     source: _StateValue | Sequence[_StateValue] = "*",
     target: _StateValue | State | None = None,
     on_error: _StateValue | None = None,
@@ -670,6 +676,7 @@ def transition(
         def _change_state(
             instance: _FSMModel, *args: typing.Any, **kwargs: typing.Any
         ) -> typing.Any:
+            assert isinstance(fsm_meta.field, FSMFieldMixin)
             return fsm_meta.field.change_state(instance, func, *args, **kwargs)
 
         if not wrapper_installed:
@@ -751,7 +758,7 @@ class RETURN_VALUE(State):  # noqa: N801
 class GET_STATE(State):  # noqa: N801
     def __init__(
         self,
-        func: Callable[..., _StateValue | typing.Any],
+        func: Callable[..., _StateValue],
         states: Sequence[_StateValue] | None = None,
     ) -> None:
         self.func = func
@@ -761,7 +768,7 @@ class GET_STATE(State):  # noqa: N801
         self,
         model: _FSMModel,
         transition: Transition,
-        result: _StateValue | typing.Any,
+        result: _StateValue,
         args: Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
     ) -> typing.Any:

@@ -19,6 +19,8 @@ class Insect(models.Model):
 
     state = FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
 
+    objects: models.Manager[Insect] = models.Manager()
+
     @transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
     def cocoon(self):
         pass
