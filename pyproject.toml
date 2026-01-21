@@ -25,11 +25,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "django>=4.2",
-    "typing-extensions>=4.13.2",
+    "typing-extensions; python_version < '3.12'",
 ]
 
 [project.urls]
@@ -46,6 +47,7 @@ graphviz = [
 dev = [
     "coverage",
     "django-guardian",
+    "django-stubs-ext",
     "graphviz",
     "pre-commit",
     "pytest",
@@ -56,7 +58,7 @@ dev = [
 
 [tool.uv]
 default-groups = [
-    "dev",
+    "dev"
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -156,9 +158,3 @@ module = [
     "django_fsm.tests.*"
 ]
 disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = [
-    "django_fsm.management.commands.graph_transitions.*",
-]
-ignore_errors = true

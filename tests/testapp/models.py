@@ -22,7 +22,7 @@ class Application(models.Model):
 
     state = FSMField(default="new")
 
-    @transition(field=state, source="new", target="published")
+    @transition(field=state, source="new", target="published", on_error="failed")
     def standard(self) -> None:
         pass
 

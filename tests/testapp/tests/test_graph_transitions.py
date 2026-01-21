@@ -6,12 +6,12 @@ import typing
 from io import StringIO
 from pathlib import Path
 
+import graphviz
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 from django.core.management import call_command
 from django.test import TestCase
 
-from django_fsm.management.commands.graph_transitions import get_graphviz_layouts
 from django_fsm.management.commands.graph_transitions import node_label
 from django_fsm.management.commands.graph_transitions import node_name
 from tests.testapp.models import Application
@@ -71,7 +71,7 @@ class GraphTransitionsCommandTest(TestCase):
 
     def test_single_model_with_layouts(self):
         for model in self.MODELS_TO_TEST:
-            for layout in get_graphviz_layouts():
+            for layout in graphviz.ENGINES:
                 self._call_command("-l", layout, model)
 
     def test_single_model_with_output(self):
@@ -107,3 +107,358 @@ class GraphTransitionsCommandTest(TestCase):
     def test_single_field_fail(self):
         with pytest.raises((LookupError, FieldDoesNotExist)):
             self._call_command("testapp.MultiStateApplication.unknown_field")
+
+        with pytest.raises(LookupError):
+            self._call_command("testapp.MultiStateApplication.id")
+
+    def test_output_contains_subgraph_label(self):  # noqa: PLR0915
+        output = self._call_command("testapp.Application")
+
+        assert "subgraph cluster_testapp_Application_state {" in output
+        assert 'graph [label="testapp.Application.state"]' in output
+        assert '"testapp.application.state.new" [label=new shape=circle]' in output
+        assert '"testapp.application.state._initial" [label="" shape=point]' in output
+        assert '"testapp.application.state._initial" -> "testapp.application.state.new"' in output
+        assert '"testapp.application.state.failed" [label=failed shape=circle]' in output
+        assert '"testapp.application.state.None" [label=None shape=circle]' in output
+        assert '"testapp.application.state.blocked" [label=blocked shape=circle]' in output
+        assert '"testapp.application.state.hidden" [label=hidden shape=circle]' in output
+        assert '"testapp.application.state.rejected" [label=rejected shape=circle]' in output
+        assert '"testapp.application.state.moderated" [label=moderated shape=circle]' in output
+        assert '"testapp.application.state.published" [label=published shape=circle]' in output
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.rejected" [label=get_state]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.published" [label=on_error]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.moderated" [label=return_value]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.blocked" [label=return_value]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.None" [label=no_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.failed" [style=dotted]'
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.published" [label=get_state]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.moderated" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.failed" [style=dotted]'
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.published" [label=standard]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.hidden" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.blocked" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.new" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.rejected" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.published" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.rejected" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.published" [label=get_state_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.None" -> "testapp.application.state.rejected" [label=get_state_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.blocked" [label=any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.failed" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.moderated" -> "testapp.application.state.blocked" [label=return_value_any_source]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.blocked" -> "testapp.application.state.moderated" [label=return_value_any_source_except_target]'  # noqa: E501
+            in output
+        )
+        assert (
+            '"testapp.application.state.published" -> "testapp.application.state.hidden" [label=any_source_except_target]'  # noqa: E501
+            in output
+        )

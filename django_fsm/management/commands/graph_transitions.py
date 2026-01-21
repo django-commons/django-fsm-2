@@ -33,7 +33,8 @@ def one_fsm_fields_data(
     model: type[models.Model], field_name: str
 ) -> tuple[FSMFieldMixin, type[models.Model]]:
     field = model._meta.get_field(field_name)
-    assert isinstance(field, FSMFieldMixin)
+    if not isinstance(field, FSMFieldMixin):
+        raise LookupError(f"{field_name} is not an FSMField")  # noqa: TRY004
     return (field, model)
 
 
@@ -61,9 +62,9 @@ def generate_dot(  # noqa: C901, PLR0912
     for field, model in fields_data:
         sources: set[tuple[(str, str)]] = set()
         targets: set[tuple[str, str]] = set()
-        edges: set[tuple[str, str, tuple[tuple[str, ...]]]] = set()
+        edges: set[tuple[str, str, tuple[tuple[str, str]]]] = set()
         any_targets: set[tuple[_StateValue, str]] = set()
-        any_except_targets: set[tuple[str, str]] = set()
+        any_except_targets: set[tuple[_StateValue, str]] = set()
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):
@@ -80,6 +81,7 @@ def generate_dot(  # noqa: C901, PLR0912
                 if isinstance(transition.source, GET_STATE | RETURN_VALUE)
                 else ((transition.source, node_name(field, transition.source)),)
             )
+
             for source, source_name in source_name_pair:
                 if transition.on_error:
                     on_error_name = node_name(field, transition.on_error)
@@ -92,16 +94,10 @@ def generate_dot(  # noqa: C901, PLR0912
                     elif transition.source == "+":
                         any_except_targets.add((target, transition.name))
                     else:
-                        add_transition(
-                            source,
-                            target,
-                            transition.name,
-                            source_name,
-                            field,
-                            sources,
-                            targets,
-                            edges,
-                        )
+                        target_name = node_name(field, target)
+                        sources.add((source_name, node_label(field, source)))
+                        targets.add((target_name, node_label(field, target)))
+                        edges.add((source_name, target_name, (("label", transition.name),)))
 
         targets.update(
             {
@@ -134,44 +130,21 @@ def generate_dot(  # noqa: C901, PLR0912
         final_states = targets - sources
         for name, label in final_states:
             subgraph.node(name, label=label, shape="doublecircle")
+
         for name, label in (sources | targets) - final_states:
             subgraph.node(name, label=label, shape="circle")
             # Adding initial state notation
             if field.default and label == field.default:
                 initial_name = node_name(field, "_initial")
                 subgraph.node(name=initial_name, label="", shape="point")
-                subgraph.edge(initial_name, name)
+                subgraph.edge(tail_name=initial_name, head_name=name)
+
         for source_name, target_name, attrs in edges:
-            subgraph.edge(source_name, target_name, **dict(attrs))
+            subgraph.edge(tail_name=source_name, head_name=target_name, **dict(attrs))
 
         result.subgraph(subgraph)
 
     return result
-
-
-def add_transition(
-    transition_source: _StateValue,
-    transition_target: _StateValue,
-    transition_name: str,
-    source_name: str,
-    field: FSMFieldMixin,
-    sources: set[tuple[str, str]],
-    targets: set[tuple[str, str]],
-    edges: set[tuple[str, str, tuple[tuple[str, str], ...]]],
-) -> None:
-    target_name = node_name(field, transition_target)
-    sources.add((source_name, node_label(field, transition_source)))
-    targets.add((target_name, node_label(field, transition_target)))
-    edges.add((source_name, target_name, (("label", transition_name),)))
-
-
-def get_graphviz_layouts() -> set[str] | Sequence[str]:
-    try:
-        import graphviz
-    except ModuleNotFoundError:
-        return {"sfdp", "circo", "twopi", "dot", "neato", "fdp", "osage", "patchwork"}
-    else:
-        return graphviz.ENGINES  # type: ignore[no-any-return]
 
 
 class Command(BaseCommand):
@@ -192,7 +165,7 @@ class Command(BaseCommand):
             action="store",
             dest="layout",
             default="dot",
-            help=f"Layout to be used by GraphViz for visualization: {get_graphviz_layouts()}.",
+            help=f"Layout to be used by GraphViz for visualization: {graphviz.ENGINES}.",
         )
         parser.add_argument(
             "--exclude",
@@ -203,13 +176,6 @@ class Command(BaseCommand):
             help="Ignore transitions with this name.",
         )
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
-
-    def render_output(self, graph: graphviz.Digraph, **options: typing.Any) -> None:
-        filename, graph_format = options["outputfile"].rsplit(".", 1)
-
-        graph.engine = options["layout"]
-        graph.format = graph_format
-        graph.render(filename)
 
     def handle(self, *args: str, **options: typing.Any) -> None:
         fields_data: list[tuple[FSMFieldMixin, type[models.Model]]] = []
@@ -232,8 +198,11 @@ class Command(BaseCommand):
 
         dotdata = generate_dot(fields_data, ignore_transitions=options["exclude"].split(","))
 
-        outputfile = options["outputfile"]
-        if outputfile:
-            self.render_output(dotdata, **options)
+        if outputfile := options["outputfile"]:
+            filename, graph_format = outputfile.rsplit(".", 1)
+
+            dotdata.engine = options["layout"]
+            dotdata.format = graph_format
+            dotdata.render(filename)
         else:
             self.stdout.write(str(dotdata))
