@@ -97,7 +97,7 @@ class Transition:
     def __init__(
         self,
         method: Callable[..., _StateValue],
-        source: _StateValue | Sequence[_StateValue] | State,
+        source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
         conditions: list[_Condition] | None,
@@ -415,9 +415,7 @@ class FSMFieldMixin(_Field):
         transitions = self.transitions[instance_cls]
 
         for transition in transitions.values():
-            meta = transition._django_fsm
-
-            yield from meta.transitions.values()
+            yield from transition._django_fsm.transitions.values()
 
     @override
     def contribute_to_class(
@@ -725,6 +723,8 @@ def has_transition_perm(bound_method: typing.Any, user: UserWithPermissions) -> 
 
 
 class State:
+    allowed_states: Sequence[_StateValue]
+
     def get_state(
         self,
         model: _FSMModel,
@@ -737,8 +737,8 @@ class State:
 
 
 class RETURN_VALUE(State):  # noqa: N801
-    def __init__(self, *allowed_states: Sequence[_StateValue]) -> None:
-        self.allowed_states = allowed_states if allowed_states else None
+    def __init__(self, *allowed_states: _StateValue) -> None:
+        self.allowed_states = allowed_states or []
 
     def get_state(
         self,
@@ -762,7 +762,7 @@ class GET_STATE(State):  # noqa: N801
         states: Sequence[_StateValue] | None = None,
     ) -> None:
         self.func = func
-        self.allowed_states = states
+        self.allowed_states = states or []
 
     def get_state(
         self,

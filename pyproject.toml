@@ -158,9 +158,3 @@ module = [
     "django_fsm.tests.*"
 ]
 disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = [
-    "django_fsm.management.commands.graph_transitions.*",
-]
-ignore_errors = true
