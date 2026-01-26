@@ -11,6 +11,8 @@ from django_fsm import transition
 class ProtectedAccessModel(models.Model):
     status = FSMField(default="new", protected=True)
 
+    objects: models.Manager[ProtectedAccessModel] = models.Manager()
+
     @transition(field=status, source="new", target="published")
     def publish(self):
         pass
@@ -19,6 +21,8 @@ class ProtectedAccessModel(models.Model):
 class MultiProtectedAccessModel(models.Model):
     status1 = FSMField(default="new", protected=True)
     status2 = FSMField(default="new", protected=True)
+
+    objects: models.Manager[MultiProtectedAccessModel] = models.Manager()
 
 
 class TestDirectAccessModels(TestCase):
@@ -31,7 +35,7 @@ class TestDirectAccessModels(TestCase):
         instance = ProtectedAccessModel()
         assert instance.status == "new"
 
-        def try_change():
+        def try_change() -> None:
             instance.status = "change"
 
         with pytest.raises(AttributeError):

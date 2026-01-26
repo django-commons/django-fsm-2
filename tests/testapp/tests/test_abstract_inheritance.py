@@ -53,11 +53,11 @@ class TestinheritedModel(TestCase):
     def test_field_available_transitions_works(self):
         self.model.publish()
         assert self.model.state == "published"
-        transitions = self.model.get_available_state_transitions()
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         assert [data.target for data in transitions] == ["sticked"]
 
     def test_field_all_transitions_works(self):
-        transitions = self.model.get_all_state_transitions()
+        transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
         assert {("new", "published"), ("published", "sticked")} == {
             (data.source, data.target) for data in transitions
         }

@@ -10,17 +10,17 @@ from django_fsm import can_proceed
 from django_fsm import transition
 
 
-def condition_func(instance):
+def condition_func(instance: models.Model) -> bool:
     return True
 
 
 class BlogPostWithConditions(models.Model):
     state = FSMField(default="new")
 
-    def model_condition(self):
+    def model_condition(self: models.Model) -> bool:
         return True
 
-    def unmet_condition(self):
+    def unmet_condition(self: models.Model) -> bool:
         return False
 
     @transition(

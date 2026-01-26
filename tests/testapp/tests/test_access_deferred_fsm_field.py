@@ -11,6 +11,8 @@ from django_fsm import transition
 class DeferrableModel(models.Model):
     state = FSMField(default="new")
 
+    objects: models.Manager[DeferrableModel] = models.Manager()
+
     @transition(field=state, source="new", target="published")
     def publish(self):
         pass

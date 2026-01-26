@@ -9,7 +9,8 @@ from django_fsm import FSMField
 from django_fsm import transition
 
 
-class Ticket(models.Model): ...
+class Ticket(models.Model):
+    objects: models.Manager[Ticket] = models.Manager()
 
 
 class TaskState(models.TextChoices):
@@ -22,6 +23,8 @@ class Task(models.Model):
     object_id = models.PositiveIntegerField()
     causality = GenericForeignKey("content_type", "object_id")
     state = FSMField(default=TaskState.NEW)
+
+    objects: models.Manager[Task] = models.Manager()
 
     @transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
     def do(self):

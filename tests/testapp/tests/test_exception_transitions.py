@@ -26,7 +26,7 @@ class FSMFieldExceptionTest(TestCase):
     def setUp(self):
         self.model = ExceptionalBlogPost()
         post_transition.connect(self.on_post_transition, sender=ExceptionalBlogPost)
-        self.post_transition_data = None
+        self.post_transition_data = {}
 
     def on_post_transition(self, **kwargs):
         self.post_transition_data = kwargs
@@ -44,4 +44,4 @@ class FSMFieldExceptionTest(TestCase):
         with pytest.raises(Exception, match="Upss"):
             self.model.delete()
         assert self.model.state == "new"
-        assert self.post_transition_data is None
+        assert self.post_transition_data == {}

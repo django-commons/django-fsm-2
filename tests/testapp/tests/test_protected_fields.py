@@ -12,6 +12,8 @@ from django_fsm import transition
 class RefreshableProtectedAccessModel(models.Model):
     status = FSMField(default="new", protected=True)
 
+    objects: models.Manager[RefreshableProtectedAccessModel] = models.Manager()
+
     @transition(field=status, source="new", target="published")
     def publish(self):
         pass
