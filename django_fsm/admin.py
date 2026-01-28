@@ -18,7 +18,7 @@ import django_fsm as fsm
 
 try:
     import django_fsm_log  # noqa: F401
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     FSM_LOG_ENABLED = False
 else:
     FSM_LOG_ENABLED = True
@@ -31,7 +31,7 @@ class FSMObjectTransition:
     available_transitions: list[fsm.Transition]
 
 
-class FSMAdminMixin(BaseModelAdmin):
+class FSMTransitionMixin(BaseModelAdmin):
     change_form_template: str = "django_fsm/fsm_admin_change_form.html"
 
     fsm_fields: list[str] = []
@@ -65,7 +65,9 @@ class FSMAdminMixin(BaseModelAdmin):
     def get_fsm_block_label(fsm_field_name: str) -> str:
         return f"Transition ({fsm_field_name})"
 
-    def get_fsm_object_transitions(self, request: HttpRequest, obj: Any) -> list[FSMObjectTransition]:
+    def get_fsm_object_transitions(
+        self, request: HttpRequest, obj: Any
+    ) -> list[FSMObjectTransition]:
         fsm_object_transitions = []
 
         for field_name in sorted(self.fsm_fields):
@@ -75,7 +77,9 @@ class FSMAdminMixin(BaseModelAdmin):
                         fsm_field=field_name,
                         block_label=self.get_fsm_block_label(fsm_field_name=field_name),
                         available_transitions=[
-                            t for t in func(user=request.user) if t.custom.get("admin", self.default_disallow_transition)
+                            t
+                            for t in func(user=request.user)
+                            if t.custom.get("admin", self.default_disallow_transition)
                         ],
                     )
                 )
@@ -160,7 +164,9 @@ class FSMAdminMixin(BaseModelAdmin):
             except fsm.ConcurrentTransition as err:
                 self.message_user(
                     request=request,
-                    message=self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
+                    message=self.fsm_transition_error_msg.format(
+                        transition_name=transition_name, error=str(err)
+                    ),
                     level=messages.ERROR,
                 )
             else:

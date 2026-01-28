@@ -25,7 +25,11 @@ class ModelAdminTest(TestCase):
         cls.blog_post = blog_post
 
         cls.request = RequestFactory().get(path="/path")
-        cls.request.user = get_user_model().objects.create_user(username="jacob", password="password", is_staff=True)  # noqa: S106
+        cls.request.user = get_user_model().objects.create_user(
+            username="jacob",
+            password="password",  # noqa: S106
+            is_staff=True,
+        )
 
     def setUp(self):
         self.model_admin = AdminBlogPostAdmin(AdminBlogPost, AdminSite())
@@ -40,10 +44,14 @@ class ModelAdminTest(TestCase):
         assert self.model_admin.get_readonly_fields(request=self.request) == ("state",)
 
     def test_get_fsm_block_label(self):
-        assert self.model_admin.get_fsm_block_label(fsm_field_name="MyField") == "Transition (MyField)"
+        assert (
+            self.model_admin.get_fsm_block_label(fsm_field_name="MyField") == "Transition (MyField)"
+        )
 
     def test_get_fsm_object_transitions(self):
-        fsm_object_transitions = self.model_admin.get_fsm_object_transitions(request=self.request, obj=self.blog_post)
+        fsm_object_transitions = self.model_admin.get_fsm_object_transitions(
+            request=self.request, obj=self.blog_post
+        )
 
         assert len(fsm_object_transitions) == 2  # noqa: PLR2004
         state_transition, step_transition = fsm_object_transitions
@@ -63,7 +71,7 @@ class ModelAdminTest(TestCase):
         assert self.model_admin.get_fsm_redirect_url(request=self.request, obj=None) == "/path"
 
     @patch("django.contrib.admin.ModelAdmin.change_view")
-    @patch("django_fsm.admin.FSMAdminMixin.get_fsm_object_transitions")
+    @patch("django_fsm.admin.FSMTransitionMixin.get_fsm_object_transitions")
     def test_change_view_context(
         self,
         mock_get_fsm_object_transitions,
@@ -103,7 +111,11 @@ class ResponseChangeTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = get_user_model().objects.create_user(username="jacob", password="password", is_staff=True)  # noqa: S106
+        cls.user = get_user_model().objects.create_user(
+            username="jacob",
+            password="password",  # noqa: S106
+            is_staff=True,
+        )
 
     def test_unknown_transition(self, mock_message_user):
         assert StateLog.objects.count() == 0

@@ -433,13 +433,13 @@ INSTALLED_APPS = (
 NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
 
 
-2. In your admin.py file, use FSMAdminMixin to add behaviour to your ModelAdmin. FSMAdminMixin should be before ModelAdmin, the order is important.
+2. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
 
 ``` python
-from django_fsm.admin import FSMAdminMixin
+from django_fsm.admin import FSMTransitionMixin
 
 @admin.register(AdminBlogPost)
-class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
     fsm_field = ['my_fsm_field']
     ...
 ```
@@ -475,7 +475,7 @@ Then one must explicitly allow that a transition method shows up in the admin in
 
 ``` python
 @admin.register(AdminBlogPost)
-class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
     default_disallow_transition = False
     ...
 ```
