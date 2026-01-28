@@ -183,6 +183,11 @@ dependencies = [
     { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
 
+[package.optional-dependencies]
+graphviz = [
+    { name = "graphviz" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
@@ -196,15 +201,14 @@ dev = [
     { name = "tox", version = "4.30.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "tox", version = "4.33.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
-graphviz = [
-    { name = "graphviz" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
+    { name = "graphviz", marker = "extra == 'graphviz'" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
 ]
+provides-extras = ["graphviz"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -217,7 +221,6 @@ dev = [
     { name = "pytest-django" },
     { name = "tox" },
 ]
-graphviz = [{ name = "graphviz" }]
 
 [[package]]
 name = "django-guardian"
