@@ -110,7 +110,7 @@ class Transition:
         self.on_error = on_error
         self.conditions = conditions
         self.permission = permission
-        self.custom = custom
+        self.custom = custom or {}
 
     @property
     def name(self) -> str:
@@ -644,7 +644,7 @@ def transition(
     on_error: _StateValue | None = None,
     conditions: list[_Condition] | None = None,
     permission: _Permission | None = None,
-    custom: dict[str, _StrOrPromise] | None = None,
+    custom: dict[str, typing.Any] | None = None,
 ) -> Callable[[typing.Any], typing.Any]:
     """
     Method decorator to mark allowed transitions.

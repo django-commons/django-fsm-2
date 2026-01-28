@@ -6,7 +6,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.admin.options import BaseModelAdmin
+from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest
@@ -18,7 +18,7 @@ import django_fsm as fsm
 
 try:
     import django_fsm_log  # noqa: F401
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     FSM_LOG_ENABLED = False
 else:
     FSM_LOG_ENABLED = True
@@ -31,8 +31,8 @@ class FSMObjectTransition:
     available_transitions: list[fsm.Transition]
 
 
-class FSMAdminMixin(BaseModelAdmin):
-    change_form_template: str = "django_fsm/fsm_admin_change_form.html"
+class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
+    change_form_template = "django_fsm/fsm_admin_change_form.html"
 
     fsm_fields: list[str] = []
     fsm_transition_success_msg = _("FSM transition '{transition_name}' succeeded.")
@@ -45,27 +45,33 @@ class FSMAdminMixin(BaseModelAdmin):
 
     def get_fsm_field_instance(self, fsm_field_name: str) -> fsm.FSMField | None:
         try:
-            return self.model._meta.get_field(fsm_field_name)
+            field = self.model._meta.get_field(fsm_field_name)
         except FieldDoesNotExist:
             return None
+        else:
+            if isinstance(field, fsm.FSMField):
+                return field
+        return None
 
-    def get_readonly_fields(self, request: HttpRequest, obj: Any = None) -> tuple[str]:
-        read_only_fields = super().get_readonly_fields(request, obj)
+    def get_readonly_fields(self, request: HttpRequest, obj: Any = None) -> tuple[str, ...]:
+        read_only_fields = list(super().get_readonly_fields(request, obj))
 
         for fsm_field_name in self.fsm_fields:
             if fsm_field_name in read_only_fields:
                 continue
             field = self.get_fsm_field_instance(fsm_field_name=fsm_field_name)
             if field and getattr(field, "protected", False):
-                read_only_fields += (fsm_field_name,)
+                read_only_fields.append(fsm_field_name)
 
-        return read_only_fields
+        return tuple(read_only_fields)
 
     @staticmethod
     def get_fsm_block_label(fsm_field_name: str) -> str:
         return f"Transition ({fsm_field_name})"
 
-    def get_fsm_object_transitions(self, request: HttpRequest, obj: Any) -> list[FSMObjectTransition]:
+    def get_fsm_object_transitions(
+        self, request: HttpRequest, obj: Any
+    ) -> list[FSMObjectTransition]:
         fsm_object_transitions = []
 
         for field_name in sorted(self.fsm_fields):
@@ -75,7 +81,9 @@ class FSMAdminMixin(BaseModelAdmin):
                         fsm_field=field_name,
                         block_label=self.get_fsm_block_label(fsm_field_name=field_name),
                         available_transitions=[
-                            t for t in func(user=request.user) if t.custom.get("admin", self.default_disallow_transition)
+                            t
+                            for t in func(user=request.user)
+                            if t.custom.get("admin", self.default_disallow_transition)
                         ],
                     )
                 )
@@ -160,7 +168,9 @@ class FSMAdminMixin(BaseModelAdmin):
             except fsm.ConcurrentTransition as err:
                 self.message_user(
                     request=request,
-                    message=self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(err)),
+                    message=self.fsm_transition_error_msg.format(
+                        transition_name=transition_name, error=str(err)
+                    ),
                     level=messages.ERROR,
                 )
             else:

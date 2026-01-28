@@ -12,13 +12,17 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from __future__ import annotations
 
-import typing
+import sys
 from pathlib import Path
 
-if typing.TYPE_CHECKING:
-    import django_stubs_ext
+import django_stubs_ext
 
-    django_stubs_ext.monkeypatch()
+django_stubs_ext.monkeypatch()
+
+
+# Enforce local path resolution to avoid using version declared as a dependency by django-fsm-log
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

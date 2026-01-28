@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "django>=4.2",
+    "django-stubs-ext",
     "typing-extensions; python_version < '3.12'",
 ]
 
@@ -48,7 +49,6 @@ dev = [
     "coverage",
     "django_fsm_log",
     "django-guardian",
-    "django-stubs-ext",
     "graphviz",
     "pre-commit",
     "pytest",
@@ -63,10 +63,10 @@ default-groups = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["django_fsm", "django_fsm/py.typed"]
+include = ["django_fsm", "fsm_admin", "django_fsm/py.typed"]
 
 [tool.hatch.build.targets.wheel]
-include = ["django_fsm", "django_fsm/py.typed"]
+include = ["django_fsm", "fsm_admin", "django_fsm/py.typed"]
 
 [build-system]
 requires = ["hatchling"]
