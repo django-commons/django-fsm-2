@@ -44,6 +44,7 @@ graphviz = [
 [dependency-groups]
 dev = [
     "coverage",
+    "django_fsm_log",
     "django-guardian",
     "graphviz",
     "pre-commit",
@@ -59,10 +60,10 @@ default-groups = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["django_fsm"]
+include = ["django_fsm", "fsm_admin"]
 
 [tool.hatch.build.targets.wheel]
-include = ["django_fsm"]
+include = ["django_fsm", "fsm_admin"]
 
 [build-system]
 requires = ["hatchling"]
