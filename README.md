@@ -418,6 +418,45 @@ executed transitions, make sure:
 Following these recommendations, `ConcurrentTransitionMixin` will cause a
 rollback of all changes executed in an inconsistent state.
 
+## Transition tracking
+
+Use `@django_fsm.track()` to write state changes to a log table.
+By default, it writes to `django_fsm.StateLog` (single table).
+If you prefer one table per model, define your own log model and pass it in.
+You can also capture `author` and `description` for each transition.
+
+```python
+import django_fsm
+from django_fsm.log import fsm_log_by
+from django_fsm.log import fsm_log_description
+from django.db import models
+
+
+@django_fsm.track()
+class BlogPost(models.Model):
+    state = django_fsm.FSMField(default="new")
+
+    @fsm_log_by
+    @fsm_log_description
+    @django_fsm.transition(field=state, source="new", target="published")
+    def publish(self):
+        pass
+```
+
+```python
+import django_fsm
+from django.db import models
+
+
+class BlogPostLog(django_fsm.TransitionLogBase):
+    post = models.ForeignKey("BlogPost", on_delete=models.CASCADE, related_name="transition_logs")
+
+
+@django_fsm.track(log_model=BlogPostLog, relation_field="post")
+class BlogPost(models.Model):
+    state = django_fsm.FSMField(default="new")
+```
+
 ## Drawing transitions
 
 Render a graphical overview of your model transitions.
@@ -460,7 +499,6 @@ INSTALLED_APPS = (
 ## Extensions
 
 - Admin integration: <https://github.com/coral-li/django-fsm-2-admin>
-- Transition logging: <https://github.com/gizmag/django-fsm-log>
 
 ## Contributing
 
