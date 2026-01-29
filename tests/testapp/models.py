@@ -9,6 +9,10 @@ from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
 from django_fsm import FSMKeyField
 from django_fsm import transition
+from django_fsm.log import fsm_log_by
+from django_fsm.log import fsm_log_description
+from django_fsm.log import track
+from django_fsm.models import TransitionLogBase
 
 if typing.TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -263,4 +267,34 @@ class BlogPost(models.Model):
 
     @transition(field=state, source="*", target=BlogPostState.MODERATED)
     def moderate(self) -> None:
+        pass
+
+
+class TrackedPostLog(TransitionLogBase):
+    post = models.ForeignKey(
+        "TrackedPost",
+        on_delete=models.CASCADE,
+        related_name="transition_logs",
+    )
+
+
+@track(log_model=TrackedPostLog, relation_field="post")
+class TrackedPost(models.Model):
+    state = FSMField(default="new")
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
+        pass
+
+
+@track()
+class GenericTrackedPost(models.Model):
+    state = FSMField(default="new")
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
         pass
