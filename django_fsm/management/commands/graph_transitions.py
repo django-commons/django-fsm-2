@@ -30,7 +30,7 @@ def node_name(field, state) -> str:
 
 
 def node_label(field, state: str | None) -> str:
-    if isinstance(state, (int, bool)) and hasattr(field, "choices") and field.choices:
+    if isinstance(state, int | bool) and hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
 
@@ -49,12 +49,12 @@ def generate_dot(fields_data, ignore_transitions: list[str] | None = None):  # n
 
             _targets = list(
                 (state for state in transition.target.allowed_states)
-                if isinstance(transition.target, (GET_STATE, RETURN_VALUE))
+                if isinstance(transition.target, GET_STATE | RETURN_VALUE)
                 else (transition.target,)
             )
             source_name_pair = (
                 ((state, node_name(field, state)) for state in transition.source.allowed_states)
-                if isinstance(transition.source, (GET_STATE, RETURN_VALUE))
+                if isinstance(transition.source, GET_STATE | RETURN_VALUE)
                 else ((transition.source, node_name(field, transition.source)),)
             )
             for source, source_name in source_name_pair:
@@ -190,20 +190,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         fields_data = []
-        if len(args) != 0:
+        if args:
             for arg in args:
-                field_spec = arg.split(".")
-
-                if len(field_spec) == 1:
-                    app = apps.get_app_config(field_spec[0])
-                    for model in apps.get_models(app):
+                match arg.split("."):
+                    case [app_label]:
+                        app = apps.get_app_config(app_label)
+                        for model in apps.get_models(app):
+                            fields_data += all_fsm_fields_data(model)
+                    case [app_label, model_name]:
+                        model = apps.get_model(app_label, model_name)
                         fields_data += all_fsm_fields_data(model)
-                if len(field_spec) == 2:  # noqa: PLR2004
-                    model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += all_fsm_fields_data(model)
-                if len(field_spec) == 3:  # noqa: PLR2004
-                    model = apps.get_model(field_spec[0], field_spec[1])
-                    fields_data += [one_fsm_fields_data(model, field_spec[2])]
+                    case [app_label, model_name, field_name]:
+                        model = apps.get_model(app_label, model_name)
+                        fields_data += [one_fsm_fields_data(model, field_name)]
         else:
             for model in apps.get_models():
                 fields_data += all_fsm_fields_data(model)
