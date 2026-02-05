@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "django>=4.2",
+    "django-stubs-ext",
     "typing-extensions; python_version < '3.12'",
 ]
 
@@ -47,7 +48,6 @@ graphviz = [
 dev = [
     "coverage",
     "django-guardian",
-    "django-stubs-ext",
     "graphviz",
     "pre-commit",
     "pytest",
