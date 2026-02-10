@@ -8,9 +8,9 @@ from functools import partial
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
-from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import ImproperlyConfigured
 from django.forms import Form
 from django.forms import ModelForm
 from django.http import HttpRequest
@@ -26,9 +26,6 @@ from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
 import django_fsm as fsm
-
-if typing.TYPE_CHECKING:
-    from collections.abc import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +53,7 @@ class TransitionContext:
     form_class: type[Form | ModelForm[typing.Any]] | None
 
 
-class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
+class FSMTransitionMixin(admin.ModelAdmin[fsm._FSMModel]):
     change_form_template = "django_fsm/fsm_admin_change_form.html"
 
     fsm_fields: list[str] = []
@@ -69,13 +66,29 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
     default_disallow_transition = not getattr(settings, "FSM_ADMIN_FORCE_PERMIT", False)
     fsm_transition_form_template = "django_fsm/fsm_admin_transition_form.html"
 
-    def get_fsm_field_instance(self, fsm_field_name: str) -> fsm.FSMField | None:
+    def _validate_fsm_fields(self) -> None:
+        if not getattr(self, "fsm_fields", None):
+            raise ImproperlyConfigured("FSMTransitionMixin requires fsm_fields to be declared.")
+
+        for fsm_field_name in self.fsm_fields:
+            try:
+                field = self.model._meta.get_field(fsm_field_name)
+            except FieldDoesNotExist as exc:
+                raise ImproperlyConfigured(
+                    f"FSM field '{fsm_field_name}' was not found on {self.model.__name__}."
+                ) from exc
+            if not isinstance(field, fsm.FSMFieldMixin):
+                raise ImproperlyConfigured(
+                    f"FSM field '{fsm_field_name}' on {self.model.__name__} is not an FSMField."
+                )
+
+    def get_fsm_field_instance(self, fsm_field_name: str) -> fsm.FSMFieldMixin | None:
         try:
             field = self.model._meta.get_field(fsm_field_name)
         except FieldDoesNotExist:
             return None
         else:
-            if isinstance(field, fsm.FSMField):
+            if isinstance(field, fsm.FSMFieldMixin):
                 return field
         return None
 
@@ -91,6 +104,7 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
         ]
 
     def get_readonly_fields(self, request: HttpRequest, obj: typing.Any = None) -> tuple[str, ...]:
+        self._validate_fsm_fields()
         read_only_fields = list(super().get_readonly_fields(request, obj))
 
         for fsm_field_name in self.fsm_fields:
@@ -126,7 +140,8 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
 
     def _get_fsm_object_transitions(
         self, request: HttpRequest, obj: typing.Any
-    ) -> Generator[FSMObjectTransition]:
+    ) -> typing.Generator[FSMObjectTransition]:
+        self._validate_fsm_fields()
         for field_name in sorted(self.fsm_fields):
             transition_func = getattr(obj, f"get_available_user_{field_name}_transitions", None)
             if transition_func and callable(transition_func):
@@ -155,13 +170,6 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
         self, request: HttpRequest, obj: typing.Any, transition_name: str
     ) -> HttpResponse:
         context = self._get_transition_context(obj, transition_name)
-        if not context:
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_not_valid_msg.format(transition_name=transition_name),
-                level=messages.ERROR,
-            )
-            return self.get_fsm_response(request=request, obj=obj)
 
         has_form = bool(
             self.get_fsm_transition_custom(
@@ -183,21 +191,28 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
             request, obj, context.transition_method, transition_name
         )
 
-    def _is_valid_transition_method(self, obj: typing.Any, transition_name: str) -> bool:
+    def _get_transition_method(
+        self, obj: typing.Any, transition_name: str
+    ) -> typing.Callable[..., typing.Any]:
         """Validate that transition method exists, is callable, and is an FSM transition."""
         if not hasattr(obj, transition_name):
-            return False
+            raise AttributeError(
+                f"{obj.__class__.__name__} has no transition method '{transition_name}'."
+            )
 
-        transition_func = getattr(obj, transition_name)
-        if not callable(transition_func):
-            return False
+        transition_func = self._require_callable(getattr(obj, transition_name), transition_name)
 
         # Security: Only allow FSM transition methods
         if not hasattr(transition_func, "_django_fsm"):
-            logger.warning("Attempted to call non-FSM method %s", transition_name)
-            return False
+            raise ValueError(f"Method '{transition_name}' is not an FSM transition.")
 
-        return True
+        return transition_func
+
+    @staticmethod
+    def _require_callable(value: object, name: str) -> typing.Callable[..., typing.Any]:
+        if not callable(value):
+            raise TypeError(f"Attribute '{name}' is not callable.")
+        return value
 
     def _execute_fsm_transition(
         self,
@@ -328,16 +343,11 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
 
         return transitions[0] if transitions else None
 
-    def _get_transition_context(
-        self, obj: typing.Any, transition_name: str
-    ) -> TransitionContext | None:
-        if not self._is_valid_transition_method(obj, transition_name):
-            return None
-
-        transition_method = getattr(obj, transition_name)
+    def _get_transition_context(self, obj: typing.Any, transition_name: str) -> TransitionContext:
+        transition_method = self._get_transition_method(obj, transition_name)
         transition = self._get_transition_from_method(transition_method)
         if not transition:
-            return None
+            raise ValueError(f"No transitions defined for method '{transition_name}'.")
 
         return TransitionContext(
             obj=obj,
@@ -355,11 +365,6 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
         obj = self.get_object(request, kwargs["object_id"])
 
         context = self._get_transition_context(obj, transition_name)
-        if not context:
-            logger.warning("No transition found for method %s", transition_name)
-            return HttpResponseBadRequest(
-                f"No transition configuration found for {transition_name}"
-            )
 
         if not context.form_class:
             logger.warning("No form configured for transition %s", transition_name)
@@ -401,7 +406,10 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
                     self.fsm_transition_success_msg.format(transition_name=context.transition_name),
                     messages.SUCCESS,
                 )
-                return self._get_transition_redirect(context.obj)
+                return redirect(
+                    f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
+                    object_id=context.obj.id,
+                )
             except Exception as e:
                 logger.exception("Form transition %s failed", context.transition_name)
                 self.message_user(
@@ -424,43 +432,4 @@ class FSMTransitionMixin(ModelAdmin[fsm._FSMModel]):
                     "transition_form": transition_form,
                 }
             ),
-        )
-
-    def _handle_direct_transition(
-        self,
-        request: HttpRequest,
-        obj: typing.Any,
-        transition_method: typing.Callable[..., typing.Any],
-        transition_name: str,
-    ) -> HttpResponse:
-        """Handle FSM transition without form input."""
-        try:
-            transition_method()
-            obj.save()
-            self.message_user(
-                request,
-                self.fsm_transition_success_msg.format(transition_name=transition_name),
-                messages.SUCCESS,
-            )
-        except fsm.TransitionNotAllowed:
-            self.message_user(
-                request,
-                self.fsm_transition_not_allowed_msg.format(transition_name=transition_name),
-                messages.ERROR,
-            )
-        except Exception as e:
-            logger.exception("Direct transition %s failed", transition_name)
-            self.message_user(
-                request,
-                self.fsm_transition_error_msg.format(transition_name=transition_name, error=str(e)),
-                messages.ERROR,
-            )
-
-        return self._get_transition_redirect(obj)
-
-    def _get_transition_redirect(self, obj: typing.Any) -> HttpResponseRedirect:
-        """Get redirect response after transition execution."""
-        return redirect(
-            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
-            object_id=obj.id,
         )

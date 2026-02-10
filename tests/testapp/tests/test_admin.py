@@ -5,6 +5,7 @@ from http import HTTPStatus
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.contrib import messages
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
@@ -118,20 +119,11 @@ class ResponseChangeTest(TestCase):
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
-        self.model_admin.response_change(
-            request=request,
-            obj=blog_post,
-        )
-
-        mock_message_user.assert_called_once_with(
-            request=request,
-            message="FSM transition 'unknown_transition' is not a valid.",
-            level=messages.ERROR,
-        )
-
-        updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
-        assert updated_blog_post.state == AdminBlogPostState.CREATED
-        assert StateLog.objects.count() == 0
+        with pytest.raises(AttributeError):
+            self.model_admin.response_change(
+                request=request,
+                obj=blog_post,
+            )
 
     def test_transition_applied(self, mock_message_user: mock.Mock) -> None:
         assert StateLog.objects.count() == 0
@@ -225,6 +217,7 @@ class ResponseChangeTest(TestCase):
 @mock.patch("tests.testapp.admin.AdminBlogPostAdmin.message_user")
 class TransitionFormTest(TestCase):
     user: User | AnonymousUser
+    blog_post: AdminBlogPost
 
     def setUp(self):
         self.model_admin = AdminBlogPostAdmin(AdminBlogPost, AdminSite())
@@ -237,6 +230,10 @@ class TransitionFormTest(TestCase):
             is_staff=True,
         )
 
+        cls.blog_post = AdminBlogPost.objects.create(
+            title="Article name", state=AdminBlogPostState.PUBLISHED
+        )
+
     def test_transition_with_form_redirects_properly(self, mock_message_user: mock.Mock) -> None:
         assert StateLog.objects.count() == 0
         request = RequestFactory().post(
@@ -245,13 +242,9 @@ class TransitionFormTest(TestCase):
         )
         request.user = self.user
 
-        blog_post = AdminBlogPost.objects.create(
-            title="Article name", state=AdminBlogPostState.PUBLISHED
-        )
-
         res = self.model_admin.response_change(
             request=request,
-            obj=blog_post,
+            obj=self.blog_post,
         )
 
         assert isinstance(res, HttpResponseRedirect)
@@ -259,13 +252,13 @@ class TransitionFormTest(TestCase):
         assert res.url == reverse(
             f"admin:{AdminBlogPost._meta.app_label}_{AdminBlogPost._meta.model_name}_transition",
             kwargs={
-                "object_id": blog_post.pk,
+                "object_id": self.blog_post.pk,
                 "transition_name": "complex_transition",
             },
         )
         assert StateLog.objects.count() == 0
 
-        updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
+        updated_blog_post = AdminBlogPost.objects.get(pk=self.blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.PUBLISHED
         assert updated_blog_post.title == "Article name"
         mock_message_user.assert_not_called()
@@ -278,13 +271,9 @@ class TransitionFormTest(TestCase):
         )
         request.user = self.user
 
-        blog_post = AdminBlogPost.objects.create(
-            title="Article name", state=AdminBlogPostState.PUBLISHED
-        )
-
         res = self.model_admin.fsm_transition_view(
             request,
-            object_id=str(blog_post.pk),
+            object_id=str(self.blog_post.pk),
             transition_name="complex_transition",
         )
 
@@ -296,7 +285,7 @@ class TransitionFormTest(TestCase):
             messages.SUCCESS,
         )
 
-        updated_blog_post = AdminBlogPost.objects.get(pk=blog_post.pk)
+        updated_blog_post = AdminBlogPost.objects.get(pk=self.blog_post.pk)
         assert updated_blog_post.state == AdminBlogPostState.CREATED
         assert updated_blog_post.title == "New Title"
 

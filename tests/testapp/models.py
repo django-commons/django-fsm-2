@@ -15,16 +15,6 @@ from django_fsm import transition
 if typing.TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
 
-    _P = typing.ParamSpec("_P")
-    _R = typing.TypeVar("_R")
-
-    def fsm_log_by_typed(func: typing.Callable[_P, _R]) -> typing.Callable[_P, _R]: ...
-
-    def fsm_log_description_typed(func: typing.Callable[_P, _R]) -> typing.Callable[_P, _R]: ...
-else:
-    fsm_log_by_typed = fsm_log_by
-    fsm_log_description_typed = fsm_log_description
-
 
 class Application(models.Model):
     """
@@ -310,8 +300,8 @@ class AdminBlogPost(models.Model):
     def __str__(self) -> str:
         return f"{self.title} ({self.state})"
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source="*",
@@ -325,8 +315,8 @@ class AdminBlogPost(models.Model):
     ) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=AdminBlogPostState.CREATED,
@@ -335,8 +325,8 @@ class AdminBlogPost(models.Model):
     def moderate(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -348,8 +338,8 @@ class AdminBlogPost(models.Model):
     def publish(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -361,8 +351,8 @@ class AdminBlogPost(models.Model):
     def hide(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=state,
         source="*",
@@ -377,10 +367,26 @@ class AdminBlogPost(models.Model):
     ) -> None:
         self.title = new_title
 
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename (model form) *",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameModelForm",
+        },
+    )
+    def complex_transition_model_form(
+        self, *, new_title: str, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        self.title = new_title
+
     # step transitions
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_1],
@@ -392,8 +398,8 @@ class AdminBlogPost(models.Model):
     def step_two(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_2],
@@ -402,8 +408,8 @@ class AdminBlogPost(models.Model):
     def step_three(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by_typed
-    @fsm_log_description_typed
+    @fsm_log_by
+    @fsm_log_description
     @transition(
         field=step,
         source=[
