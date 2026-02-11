@@ -6,6 +6,7 @@ from django.db import models
 from django_fsm_log.decorators import fsm_log_by
 from django_fsm_log.decorators import fsm_log_description
 
+import django_fsm as fsm
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
@@ -281,7 +282,7 @@ class AdminBlogPostStep(models.TextChoices):
     STEP_3 = "step3", "Step three"
 
 
-class AdminBlogPost(models.Model):
+class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=50)
 
     state = FSMField(
@@ -297,6 +298,8 @@ class AdminBlogPost(models.Model):
     )
 
     # state transitions
+    def __str__(self) -> str:
+        return f"{self.title} ({self.state})"
 
     @fsm_log_by
     @fsm_log_description
@@ -308,17 +311,19 @@ class AdminBlogPost(models.Model):
             "admin": False,
         },
     )
-    def secret_transition(self, by=None, description=None):
+    def secret_transition(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
         pass
 
     @fsm_log_by
     @fsm_log_description
     @transition(
         field=state,
-        source=[AdminBlogPostState.CREATED],
+        source=AdminBlogPostState.CREATED,
         target=AdminBlogPostState.REVIEWED,
     )
-    def moderate(self, by=None, description=None):
+    def moderate(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
     @fsm_log_by
@@ -331,7 +336,7 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.PUBLISHED,
     )
-    def publish(self, by=None, description=None):
+    def publish(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
     @fsm_log_by
@@ -344,8 +349,40 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostState.HIDDEN,
     )
-    def hide(self, by=None, description=None):
+    def hide(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename *",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameForm",
+        },
+    )
+    def complex_transition(
+        self, *, new_title: str, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        self.title = new_title
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename model_form*",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameModelForm",
+        },
+    )
+    def complex_transition_model_form(
+        self, *, title: str, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        self.title = title
 
     # step transitions
 
@@ -359,7 +396,7 @@ class AdminBlogPost(models.Model):
             "label": "Go to Step 2",
         },
     )
-    def step_two(self, by=None, description=None):
+    def step_two(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
     @fsm_log_by
@@ -369,7 +406,7 @@ class AdminBlogPost(models.Model):
         source=[AdminBlogPostStep.STEP_2],
         target=AdminBlogPostStep.STEP_3,
     )
-    def step_three(self, by=None, description=None):
+    def step_three(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
     @fsm_log_by
@@ -382,5 +419,5 @@ class AdminBlogPost(models.Model):
         ],
         target=AdminBlogPostStep.STEP_1,
     )
-    def step_reset(self, by=None, description=None):
+    def step_reset(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass

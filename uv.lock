@@ -135,6 +135,7 @@ version = "4.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
+    { name = "django-stubs-ext" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 
@@ -148,7 +149,6 @@ dev = [
     { name = "coverage" },
     { name = "django-fsm-log" },
     { name = "django-guardian" },
-    { name = "django-stubs-ext" },
     { name = "graphviz" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -160,6 +160,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
+    { name = "django-stubs-ext" },
     { name = "graphviz", marker = "extra == 'graphviz'" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
@@ -170,7 +171,6 @@ dev = [
     { name = "coverage" },
     { name = "django-fsm-log" },
     { name = "django-guardian" },
-    { name = "django-stubs-ext" },
     { name = "graphviz" },
     { name = "pre-commit" },
     { name = "pytest" },

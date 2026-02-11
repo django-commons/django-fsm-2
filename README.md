@@ -34,7 +34,7 @@ class BlogPost(models.Model):
     state = FSMField(default='new')
 
     @transition(field=state, source='new', target='published')
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -61,7 +61,7 @@ Or install from git:
 uv pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
 ```
 
-Add `django_fsm` to your Django apps:
+Add `django_fsm` to your Django apps (Only needed to [graph transitions](#drawing-transitions)):
 
 ```python
 INSTALLED_APPS = (
@@ -104,7 +104,7 @@ class BlogPost(models.Model):
 from django_fsm import transition
 
 @transition(field=state, source='new', target='published')
-def publish(self):
+def publish(self, **kwargs):
     """
     This function may contain side effects,
     like updating caches, notifying users, etc.
@@ -119,7 +119,7 @@ changes in memory. **You must call `save()` to persist it**.
 ```python
 from django_fsm import can_proceed
 
-def publish_view(request, post_id):
+def publish_view(request, post_id, **kwargs):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not can_proceed(post.publish):
         raise PermissionDenied
@@ -136,13 +136,18 @@ instance and must return truthy/falsey. The functions should not have
 side effects.
 
 ```python
-def can_publish(instance):
+def can_publish(instance, **kwargs):
     # No publishing after 17 hours
     return datetime.datetime.now().hour <= 17
 
 class XXX()
-    @transition(field=state, source='new', target='published', conditions=[can_publish])
-    def publish(self):
+    @transition(
+        field=state,
+        source='new',
+        target='published',
+        conditions=[can_publish]
+    )
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -153,8 +158,13 @@ class XXX()
     def can_destroy(self):
         return self.is_under_investigation()
 
-    @transition(field=state, source='*', target='destroyed', conditions=[can_destroy])
-    def destroy(self):
+    @transition(
+        field=state,
+        source='*',
+        target='destroyed',
+        conditions=[can_destroy]
+    )
+    def destroy(self, **kwargs):
         pass
 ```
 
@@ -205,7 +215,7 @@ from django_fsm import FSMField, transition, RETURN_VALUE, GET_STATE
     source='*',
     target=RETURN_VALUE('for_moderators', 'published'),
 )
-def publish(self, is_public=False):
+def publish(self, is_public=False, **kwargs):
     return 'for_moderators' if is_public else 'published'
 
 @transition(
@@ -216,7 +226,7 @@ def publish(self, is_public=False):
         states=['published', 'rejected'],
     ),
 )
-def moderate(self, allowed):
+def moderate(self, allowed, **kwargs):
     pass
 
 @transition(
@@ -227,7 +237,7 @@ def moderate(self, allowed):
         states=['published', 'rejected'],
     ),
 )
-def moderate(self, allowed=True):
+def moderate(self, allowed=True, **kwargs):
     pass
 ```
 
@@ -242,7 +252,7 @@ Use `custom` to attach arbitrary data to a transition.
     target='onhold',
     custom=dict(verbose='Hold for legal reasons'),
 )
-def legal_hold(self):
+def legal_hold(self, **kwargs):
     pass
 ```
 
@@ -253,7 +263,7 @@ state.
 
 ```python
 @transition(field=state, source='new', target='published', on_error='failed')
-def publish(self):
+def publish(self, **kwargs):
     """
     Some exception could happen here
     """
@@ -271,7 +281,7 @@ accepts a permission string or a callable that receives `(instance, user)`.
     target='published',
     permission=lambda instance, user: not user.has_perm('myapp.can_make_mistakes'),
 )
-def publish(self):
+def publish(self, **kwargs):
     pass
 
 @transition(
@@ -280,7 +290,7 @@ def publish(self):
     target='removed',
     permission='myapp.can_remove_post',
 )
-def remove(self):
+def remove(self, **kwargs):
     pass
 ```
 
@@ -289,7 +299,7 @@ Check permission with `has_transition_perm`:
 ```python
 from django_fsm import has_transition_perm
 
-def publish_view(request, post_id):
+def publish_view(request, post_id, **kwargs):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not has_transition_perm(post.publish, request.user):
         raise PermissionDenied
@@ -335,7 +345,7 @@ class BlogPost(models.Model):
     state = FSMKeyField(DbState, default='new')
 
     @transition(field=state, source='new', target='published')
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -378,7 +388,7 @@ class BlogPostWithIntegerField(models.Model):
         source=BlogPostStateEnum.NEW,
         target=BlogPostStateEnum.PUBLISHED,
     )
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -420,20 +430,14 @@ rollback of all changes executed in an inconsistent state.
 
 ## Admin Integration
 
-1. Make sure `django_fsm` is in your `INSTALLED_APPS` settings:
+> NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
 
 ``` python
-INSTALLED_APPS = (
-    ...
-    'django_fsm',
-    ...
-)
+- from django_fsm_admin.mixins import FSMTransitionMixin
++ from django_fsm.admin import FSMTransitionMixin
 ```
 
-NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
-
-
-2. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
+1. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
 
 ``` python
 from django_fsm.admin import FSMTransitionMixin
@@ -444,34 +448,37 @@ class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
     ...
 ```
 
-3. You can customize the label by adding ``custom={"label": "My awesome transition"}`` to the transition decorator
+2. You can customize the button by adding `label` and `short_description` to the `custom` attribute of the transition decorator
 
 ``` python
 @transition(
     field='state',
     source=['startstate'],
     target='finalstate',
-    custom={"label": False},
+    custom={
+        "label": "My awesome transition",  # this
+        "short_description": "Rename blog post",  # and this
+    },
 )
-def do_something(self, param):
+def do_something(self, **kwargs):
        ...
 ```
 
-4. By adding ``custom={"admin": False}`` to the transition decorator, one can disallow a transition to show up in the admin interface.
+4. Hiding a transition is possible by adding ``custom={"admin": False}`` to the transition decorator:
 
 ``` python
     @transition(
        field='state',
        source=['startstate'],
        target='finalstate',
-       custom={"admin": False},
+       custom={"admin": False},  # this
     )
-    def do_something(self, param):
+    def do_something(self, **kwargs):
        # will not add a button "Do Something" to your admin model interface
 ```
 
-By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `default_disallow_transition = False` to your admin), the above restriction becomes the default.
-Then one must explicitly allow that a transition method shows up in the admin interface.
+NB: By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `default_disallow_transition = False` to your admin), the above restriction becomes the default.
+Then one must explicitly allow that a transition method shows up in the admin interface using `custom={"admin": True}`
 
 ``` python
 @admin.register(AdminBlogPost)
@@ -479,6 +486,48 @@ class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
     default_disallow_transition = False
     ...
 ```
+
+### Custom Forms
+
+You can attach a custom form to a transition so the admin prompts for input
+before the transition runs. Add a `form` entry to `custom` on the transition.
+It can be a `forms.Form`/`forms.ModelForm` class or a dotted import path.
+
+```python
+from django import forms
+from django_fsm import transition
+
+class RenameForm(forms.Form):  # DO NOT USE ModelForm
+    new_title = forms.CharField(max_length=255)
+
+class BlogPost(models.Model):
+    title = models.CharField(max_length=255)
+    state = FSMField(default="created")
+
+    @transition(
+        field=state,
+        source="*",
+        target="created",
+        custom={
+            "label": "Rename",
+            "short_description": "Rename blog post",
+            "form": "path.to.RenameForm",
+        },
+    )
+    def rename(self, new_title, **kwargs):
+        self.title = new_title
+```
+
+Behavior details:
+
+- When `form` is set, the transition button redirects to a form view instead of
+  executing immediately.
+- On submit, `cleaned_data` is passed to the transition method as keyword
+  arguments and the object is saved.
+- `RenameForm` receives the current instance automatically.
+- You can override the transition form template by setting
+  `fsm_transition_form_template` on your `ModelAdmin` (or override globally `templates/django_fsm/fsm_admin_transition_form.html`).
+
 
 ## Drawing transitions
 
