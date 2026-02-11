@@ -123,6 +123,7 @@ django_settings_module = "tests.settings"
 [tool.mypy]
 python_version = 3.12
 plugins = ["mypy_django_plugin.main"]
+mypy_path = "mypy_stubs"
 
 # Start off with these
 warn_unused_configs = true
