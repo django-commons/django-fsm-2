@@ -61,7 +61,7 @@ Or install from git:
 uv pip install -e git://github.com/django-commons/django-fsm-2.git#egg=django-fsm
 ```
 
-Add `django_fsm` to your Django apps:
+Add `django_fsm` to your Django apps (Only needed to [graph transitions](#drawing-transitions)):
 
 ```python
 INSTALLED_APPS = (
@@ -435,65 +435,127 @@ rollback of all changes executed in an inconsistent state.
 
 ## Admin Integration
 
-1. Make sure `django_fsm` is in your `INSTALLED_APPS` settings:
+> NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
+
+Update import path:
 
 ``` python
-INSTALLED_APPS = (
-    ...
-    'django_fsm',
-    ...
-)
+- from django_fsm_admin.mixins import FSMTransitionMixin
++ from django_fsm.admin import FSMTransitionMixin
 ```
 
-NB: If you're migrating from [django-fsm-admin](https://github.com/gadventures/django-fsm-admin) (or any alternative), make sure it's not installed anymore to avoid installing the old django-fsm.
-
-
-2. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
+1. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
 
 ``` python
 from django_fsm.admin import FSMTransitionMixin
 
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
-    fsm_field = ['my_fsm_field']
+    fsm_fields = ['my_fsm_field']
     ...
 ```
 
-3. You can customize the label by adding ``custom={"label": "My awesome transition"}`` to the transition decorator
+2. You can customize the button by adding `label` and `short_description` to the `custom` attribute of the transition decorator
 
 ``` python
 @transition(
     field='state',
     source=['startstate'],
     target='finalstate',
-    custom={"label": False},
+    custom={
+        "label": "My awesome transition",  # this
+        "short_description": "Rename blog post",  # and this
+    },
 )
-def do_something(self, param):
+def do_something(self, **kwargs):
        ...
 ```
 
-4. By adding ``custom={"admin": False}`` to the transition decorator, one can disallow a transition to show up in the admin interface.
+3. For forms in the admin transition flow, see the Custom Forms section below.
+
+4. Hiding a transition is possible by adding ``custom={"admin": False}`` to the transition decorator:
 
 ``` python
     @transition(
        field='state',
        source=['startstate'],
        target='finalstate',
-       custom={"admin": False},
+       custom={"admin": False},  # this
     )
-    def do_something(self, param):
+    def do_something(self, **kwargs):
        # will not add a button "Do Something" to your admin model interface
 ```
 
-By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `default_disallow_transition = False` to your admin), the above restriction becomes the default.
-Then one must explicitly allow that a transition method shows up in the admin interface.
+NB: By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `fsm_default_disallow_transition = False` to your admin), the above restriction becomes the default.
+Then one must explicitly allow that a transition method shows up in the admin interface using `custom={"admin": True}`
 
 ``` python
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
-    default_disallow_transition = False
+    fsm_default_disallow_transition = False
     ...
 ```
+
+### Custom Forms
+
+You can attach a custom form to a transition so the admin prompts for input
+before the transition runs. Add a `form` entry to `custom` on the transition,
+or define an admin-level mapping via `fsm_forms`. Both accept a `forms.Form`/
+`forms.ModelForm` class or a dotted import path.
+
+```python
+from django import forms
+from django_fsm import transition
+
+class RenameForm(forms.Form):
+    new_title = forms.CharField(max_length=255)
+    # it's also possible to declare fsm log description
+    description = forms.CharField(max_length=255)
+
+class BlogPost(models.Model):
+    title = models.CharField(max_length=255)
+    state = FSMField(default="created")
+
+    @transition(
+        field=state,
+        source="*",
+        target="created",
+        custom={
+            "label": "Rename",
+            "short_description": "Rename blog post",
+            "form": "path.to.RenameForm",
+        },
+    )
+    def rename(self, new_title, **kwargs):
+        self.title = new_title
+```
+
+You can also define forms directly on your `ModelAdmin` without touching the
+transition definition:
+
+```python
+from django_fsm.admin import FSMTransitionMixin
+
+@admin.register(AdminBlogPost)
+class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
+    fsm_fields = ["state"]
+    fsm_forms = {
+        "rename": "path.to.RenameForm",
+    }
+```
+
+Behavior details:
+
+- When `form` is set, the transition button redirects to a form view instead of
+  executing immediately.
+- If both are defined, `fsm_forms` on the admin takes precedence over
+  `custom["form"]` on the transition.
+- On submit, `cleaned_data` is passed to the transition method as keyword
+  arguments and the object is saved.
+- `RenameForm` receives the current instance automatically.
+- You can override the transition form template by setting
+  `fsm_transition_form_template` on your `ModelAdmin` (or override globally `templates/django_fsm/fsm_admin_transition_form.html`).
+
 
 ## Drawing transitions
 
@@ -540,6 +602,9 @@ Transition logging support could be achieved with help of django-fsm-log
 package : <https://github.com/gizmag/django-fsm-log>
 
 ## Contributing
+
+We welcome contributions. See `CONTRIBUTING.md` for detailed setup
+instructions.
 
 ### Quick Development Setup
 
