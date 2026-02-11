@@ -78,6 +78,7 @@ class TransitionNotAllowed(Exception):  # noqa: N818
     def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         self.object = kwargs.pop("object", None)
         self.method = kwargs.pop("method", None)
+        self.failed_condition = kwargs.pop("failed_condition", None)
         super().__init__(*args, **kwargs)
 
 
@@ -243,6 +244,26 @@ class FSMMeta:
 
         return all(condition(instance) for condition in transition.conditions)
 
+    def _get_first_unmet_condition(
+        self, instance: _FSMModel, state: _StateValue
+    ) -> _Condition | None:
+        """
+        Return the first condition callable that is not met, or None.
+
+        Evaluates conditions in declaration order, short-circuiting on first
+        failure — identical evaluation semantics to conditions_met().
+        """
+        transition = self.get_transition(state)
+
+        if transition is None or transition.conditions is None:
+            return None
+
+        for condition in transition.conditions:
+            if not condition(instance):
+                return condition
+
+        return None
+
     def has_transition_perm(
         self, instance: _FSMModel, state: _StateValue, user: UserWithPermissions
     ) -> bool:
@@ -362,11 +383,14 @@ class FSMFieldMixin(_Field):
                 object=instance,
                 method=method,
             )
-        if not meta.conditions_met(instance, current_state):
+        unmet = meta._get_first_unmet_condition(instance, current_state)
+        if unmet is not None:
             raise TransitionNotAllowed(
-                f"Transition conditions have not been met for method '{method_name}'",
+                f"Transition conditions have not been met for method '{method_name}': "
+                f"{getattr(unmet, '__name__', repr(unmet))}",
                 object=instance,
                 method=method,
+                failed_condition=unmet,
             )
 
         next_state = meta.next_state(current_state)
