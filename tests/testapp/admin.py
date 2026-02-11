@@ -3,8 +3,10 @@ from __future__ import annotations
 from django.contrib import admin
 from django_fsm_log.admin import StateLogInline
 
-from django_fsm.admin import FSMTransitionMixin
+from fsm_admin.mixins import FSMTransitionMixin
 
+from .admin_forms import ForceStateForm
+from .admin_forms import FSMLogDescriptionForm
 from .models import AdminBlogPost
 
 
@@ -21,5 +23,11 @@ class AdminBlogPostAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
         "state",
         "step",
     ]
+
+    fsm_forms = {
+        "complex_transition": "tests.testapp.admin_forms.AdminBlogPostRenameModelForm",
+        "invalid": FSMLogDescriptionForm,
+        "force_state": ForceStateForm,
+    }
 
     inlines = [StateLogInline]
