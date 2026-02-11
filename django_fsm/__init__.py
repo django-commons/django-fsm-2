@@ -110,7 +110,7 @@ class Transition:
         self.on_error = on_error
         self.conditions = conditions
         self.permission = permission
-        self.custom = custom
+        self.custom = custom or {}
 
     @property
     def name(self) -> str:
@@ -412,9 +412,7 @@ class FSMFieldMixin(_Field):
         """
         Returns [(source, target, name, method)] for all field transitions
         """
-        transitions = self.transitions[instance_cls]
-
-        for transition in transitions.values():
+        for transition in self.transitions[instance_cls].values():
             yield from transition._django_fsm.transitions.values()
 
     @override
@@ -644,7 +642,7 @@ def transition(
     on_error: _StateValue | None = None,
     conditions: list[_Condition] | None = None,
     permission: _Permission | None = None,
-    custom: dict[str, _StrOrPromise] | None = None,
+    custom: dict[str, typing.Any] | None = None,
 ) -> Callable[[typing.Any], typing.Any]:
     """
     Method decorator to mark allowed transitions.
