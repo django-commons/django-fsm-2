@@ -12,6 +12,7 @@ django-fsm-2 4.2.4 2026-03-16
 
 - Fix GET_STATE and RETURN_VALUE without allowed_states defined
 - Introduce ``ANY_STATE`` and ``ANY_OTHER_STATE`` constants
+- Add ``failed_condition`` attribute to ``TransitionNotAllowed`` exception
 
 
 django-fsm-2 4.2.3 2026-03-15
