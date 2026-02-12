@@ -5,6 +5,7 @@ Unreleased
 ~~~~~~~~~~
 
 - Add typing
+- Add ``failed_condition`` attribute to ``TransitionNotAllowed`` exception
 
 
 django-fsm-2 4.1.0 2025-11-03
