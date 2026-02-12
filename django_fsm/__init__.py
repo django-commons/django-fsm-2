@@ -373,7 +373,7 @@ class FSMFieldMixin(_Field):
     def change_state(
         self, instance: _FSMModel, method: typing.Any, *args: typing.Any, **kwargs: typing.Any
     ) -> typing.Any:
-        meta = method._django_fsm
+        meta: FSMMeta = method._django_fsm
         method_name = method.__name__
         current_state = self.get_state(instance)
 

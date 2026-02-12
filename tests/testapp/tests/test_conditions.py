@@ -79,17 +79,19 @@ class ConditionalTest(TestCase):
 
 
 def _eval_tracking_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("first")
+    instance._eval_log.append("first")  # type: ignore[attr-defined]
     return False
 
 
 def _never_reached_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("second")
+    instance._eval_log.append("second")  # type: ignore[attr-defined]
     return False
 
 
 class BlogPostShortCircuit(models.Model):
     state = FSMField(default="new")
+
+    _eval_log: list[str] = []
 
     @transition(
         field=state,
