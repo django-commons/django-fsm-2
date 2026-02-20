@@ -12,13 +12,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from __future__ import annotations
 
-import typing
 from pathlib import Path
 
-if typing.TYPE_CHECKING:
-    import django_stubs_ext
+import django_stubs_ext
 
-    django_stubs_ext.monkeypatch()
+django_stubs_ext.monkeypatch()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

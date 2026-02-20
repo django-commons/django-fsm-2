@@ -29,15 +29,14 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     from typing import Self
 
     from django.contrib.auth.models import PermissionsMixin as UserWithPermissions
-    from django.utils.functional import _StrOrPromise
 
-    _Field = models.Field[typing.Any, typing.Any]
-    CharField = models.CharField[str, str]
-    IntegerField = models.IntegerField[int, int]
-    ForeignKey = models.ForeignKey[typing.Any, typing.Any]
+    _Field: typing.TypeAlias = models.Field[typing.Any, typing.Any]
+    CharField: typing.TypeAlias = models.CharField[str, str]
+    IntegerField: typing.TypeAlias = models.IntegerField[int, int]
+    ForeignKey: typing.TypeAlias = models.ForeignKey[typing.Any, typing.Any]
 
     _FSMModel = models.Model
-    _StateValue: typing.TypeAlias = str | int
+    _StateValue: typing.TypeAlias = str | int | models.Choices
     _Permission: typing.TypeAlias = str | Callable[[_FSMModel, typing.Any], bool]
     _Condition: typing.TypeAlias = Callable[[models.Model], bool]
 
@@ -102,7 +101,7 @@ class Transition:
         on_error: _StateValue | None,
         conditions: list[_Condition] | None,
         permission: _Permission | None,
-        custom: dict[str, _StrOrPromise] | None,
+        custom: dict[str, typing.Any] | None,
     ) -> None:
         self.method = method
         self.source = source
@@ -110,7 +109,7 @@ class Transition:
         self.on_error = on_error
         self.conditions = conditions
         self.permission = permission
-        self.custom = custom
+        self.custom = custom or {}
 
     @property
     def name(self) -> str:
@@ -199,7 +198,7 @@ class FSMMeta:
         on_error: _StateValue | None = None,
         conditions: list[_Condition] | None = None,
         permission: str | Callable[[_FSMModel, UserWithPermissions], bool] | None = None,
-        custom: dict[str, _StrOrPromise] | None = None,
+        custom: dict[str, typing.Any] | None = None,
     ) -> None:
         if source in self.transitions:
             raise AssertionError(f"Duplicate transition for {source} state")
@@ -412,9 +411,8 @@ class FSMFieldMixin(_Field):
         """
         Returns [(source, target, name, method)] for all field transitions
         """
-        transitions = self.transitions[instance_cls]
 
-        for transition in transitions.values():
+        for transition in self.transitions[instance_cls].values():
             yield from transition._django_fsm.transitions.values()
 
     @override
@@ -644,7 +642,7 @@ def transition(
     on_error: _StateValue | None = None,
     conditions: list[_Condition] | None = None,
     permission: _Permission | None = None,
-    custom: dict[str, _StrOrPromise] | None = None,
+    custom: dict[str, typing.Any] | None = None,
 ) -> Callable[[typing.Any], typing.Any]:
     """
     Method decorator to mark allowed transitions.
