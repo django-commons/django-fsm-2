@@ -26,14 +26,14 @@ class PermissionFSMFieldTest(TestCase):
         assert has_transition_perm(self.model.publish, self.privileged)
         assert has_transition_perm(self.model.remove, self.privileged)
 
-        transitions = self.model.get_available_user_state_transitions(self.privileged)
+        transitions = self.model.get_available_user_state_transitions(self.privileged)  # type: ignore[attr-defined]
         assert {"publish", "remove", "moderate"} == {transition.name for transition in transitions}
 
     def test_unprivileged_access_prohibited(self):
         assert not has_transition_perm(self.model.publish, self.unprivileged)
         assert not has_transition_perm(self.model.remove, self.unprivileged)
 
-        transitions = self.model.get_available_user_state_transitions(self.unprivileged)
+        transitions = self.model.get_available_user_state_transitions(self.unprivileged)  # type: ignore[attr-defined]
         assert {"moderate"} == {transition.name for transition in transitions}
 
     def test_permission_instance_method(self):

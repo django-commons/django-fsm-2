@@ -14,6 +14,8 @@ from django_fsm import transition
 class ObjectPermissionTestModel(models.Model):
     state = FSMField(default="new")
 
+    objects: models.Manager[ObjectPermissionTestModel] = models.Manager()
+
     class Meta:
         permissions = [
             ("can_publish_objectpermissiontestmodel", "Can publish ObjectPermissionTestModel"),
@@ -26,7 +28,7 @@ class ObjectPermissionTestModel(models.Model):
         on_error="failed",
         permission="testapp.can_publish_objectpermissiontestmodel",
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 

@@ -25,9 +25,14 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["django>=4.2"]
+dependencies = [
+    "django>=4.2",
+    "django-stubs-ext",
+    "typing-extensions; python_version < '3.12'",
+]
 
 [project.urls]
 Homepage = "http://github.com/django-commons/django-fsm-2"
@@ -53,14 +58,14 @@ dev = [
 
 [tool.uv]
 default-groups = [
-    "dev",
+    "dev"
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["django_fsm"]
+include = ["django_fsm", "django_fsm/py.typed"]
 
 [tool.hatch.build.targets.wheel]
-include = ["django_fsm"]
+include = ["django_fsm", "django_fsm/py.typed"]
 
 [build-system]
 requires = ["hatchling"]
@@ -110,3 +115,46 @@ fixable = [
 [tool.ruff.lint.isort]
 force-single-line = true
 required-imports = ["from __future__ import annotations"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+[tool.mypy]
+python_version = 3.12
+plugins = ["mypy_django_plugin.main"]
+
+# Start off with these
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# Getting these passing should be easy
+strict_equality = true
+extra_checks = true
+
+# Strongly recommend enabling this one as soon as you can
+check_untyped_defs = true
+
+# These shouldn't be too much additional work, but may be tricky to
+# get passing if you use a lot of untyped libraries
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+
+# These next few are various gradations of forcing use of type annotations
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+
+# This one isn't too hard to get passing, but return on investment is lower
+no_implicit_reexport = true
+
+# This one can be tricky to get passing if you use a lot of untyped libraries
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+    "django_fsm.tests.*"
+]
+disallow_untyped_defs = false

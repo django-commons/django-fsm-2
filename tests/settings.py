@@ -14,6 +14,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import django_stubs_ext
+
+django_stubs_ext.monkeypatch()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +31,7 @@ SECRET_KEY = "nokey"  # noqa: S105
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS: list[str] = []
 
 # Application definition
 

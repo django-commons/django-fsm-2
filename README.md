@@ -34,7 +34,7 @@ class BlogPost(models.Model):
     state = FSMField(default='new')
 
     @transition(field=state, source='new', target='published')
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -104,7 +104,7 @@ class BlogPost(models.Model):
 from django_fsm import transition
 
 @transition(field=state, source='new', target='published')
-def publish(self):
+def publish(self, **kwargs):
     """
     This function may contain side effects,
     like updating caches, notifying users, etc.
@@ -119,7 +119,7 @@ changes in memory. **You must call `save()` to persist it**.
 ```python
 from django_fsm import can_proceed
 
-def publish_view(request, post_id):
+def publish_view(request, post_id, **kwargs):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not can_proceed(post.publish):
         raise PermissionDenied
@@ -141,8 +141,13 @@ def can_publish(instance):
     return datetime.datetime.now().hour <= 17
 
 class XXX()
-    @transition(field=state, source='new', target='published', conditions=[can_publish])
-    def publish(self):
+    @transition(
+        field=state,
+        source='new',
+        target='published',
+        conditions=[can_publish]
+    )
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -153,8 +158,13 @@ class XXX()
     def can_destroy(self):
         return self.is_under_investigation()
 
-    @transition(field=state, source='*', target='destroyed', conditions=[can_destroy])
-    def destroy(self):
+    @transition(
+        field=state,
+        source='*',
+        target='destroyed',
+        conditions=[can_destroy]
+    )
+    def destroy(self, **kwargs):
         pass
 ```
 
@@ -205,7 +215,7 @@ from django_fsm import FSMField, transition, RETURN_VALUE, GET_STATE
     source='*',
     target=RETURN_VALUE('for_moderators', 'published'),
 )
-def publish(self, is_public=False):
+def publish(self, is_public=False, **kwargs):
     return 'for_moderators' if is_public else 'published'
 
 @transition(
@@ -216,7 +226,7 @@ def publish(self, is_public=False):
         states=['published', 'rejected'],
     ),
 )
-def moderate(self, allowed):
+def moderate(self, allowed, **kwargs):
     pass
 
 @transition(
@@ -227,7 +237,7 @@ def moderate(self, allowed):
         states=['published', 'rejected'],
     ),
 )
-def moderate(self, allowed=True):
+def moderate(self, allowed=True, **kwargs):
     pass
 ```
 
@@ -242,7 +252,7 @@ Use `custom` to attach arbitrary data to a transition.
     target='onhold',
     custom=dict(verbose='Hold for legal reasons'),
 )
-def legal_hold(self):
+def legal_hold(self, **kwargs):
     pass
 ```
 
@@ -252,8 +262,13 @@ If a transition method raises an exception, you can specify an `on_error`
 state.
 
 ```python
-@transition(field=state, source='new', target='published', on_error='failed')
-def publish(self):
+@transition(
+    field=state,
+    source='new',
+    target='published',
+    on_error='failed'
+)
+def publish(self, **kwargs):
     """
     Some exception could happen here
     """
@@ -271,7 +286,7 @@ accepts a permission string or a callable that receives `(instance, user)`.
     target='published',
     permission=lambda instance, user: not user.has_perm('myapp.can_make_mistakes'),
 )
-def publish(self):
+def publish(self, **kwargs):
     pass
 
 @transition(
@@ -280,7 +295,7 @@ def publish(self):
     target='removed',
     permission='myapp.can_remove_post',
 )
-def remove(self):
+def remove(self, **kwargs):
     pass
 ```
 
@@ -335,7 +350,7 @@ class BlogPost(models.Model):
     state = FSMKeyField(DbState, default='new')
 
     @transition(field=state, source='new', target='published')
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 
@@ -378,7 +393,7 @@ class BlogPostWithIntegerField(models.Model):
         source=BlogPostStateEnum.NEW,
         target=BlogPostStateEnum.PUBLISHED,
     )
-    def publish(self):
+    def publish(self, **kwargs):
         pass
 ```
 

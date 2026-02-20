@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+~~~~~~~~~~
+
+- Add typing
+- Improve transition equality (#97)
+- Drop support for python 3.8 & 3.9 (#86)
+
+
 django-fsm-2 4.1.0 2025-11-03
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
