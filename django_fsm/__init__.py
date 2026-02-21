@@ -95,7 +95,7 @@ class ConcurrentTransition(Exception):  # noqa: N818
 class Transition:
     def __init__(
         self,
-        method: Callable[..., _StateValue],
+        method: Callable[..., _StateValue | None],
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
@@ -115,6 +115,10 @@ class Transition:
     def name(self) -> str:
         return self.method.__name__
 
+    @property
+    def qualname(self) -> str:
+        return self.method.__qualname__
+
     def has_perm(self, instance: _FSMModel, user: UserWithPermissions) -> bool:
         if not self.permission:
             return True
@@ -127,14 +131,13 @@ class Transition:
         return False
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self.qualname)
 
     def __eq__(self, other: object) -> bool:
+        if isinstance(other, Transition):
+            return hash(other) == hash(self)
         if isinstance(other, str):
             return other == self.name
-        if isinstance(other, Transition):
-            return other.name == self.name
-
         return False
 
 
