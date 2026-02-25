@@ -49,6 +49,12 @@ class SimpleBlogPost(models.Model):
         pass
 
 
+class AdvancedBlogPost(SimpleBlogPost):
+    @transition(field="state", source="new", target="published")
+    def publish(self):
+        pass
+
+
 class FSMFieldTest(TestCase):
     def setUp(self):
         self.model = SimpleBlogPost()
@@ -165,6 +171,70 @@ class TestFieldTransitionsInspect(TestCase):
     def setUp(self):
         self.model = SimpleBlogPost()
 
+    def test_transition_are_hashable(self) -> None:
+        transition = Transition(
+            method=self.model.publish,
+            source="new",
+            target="published",
+            on_error=None,
+            conditions=[],
+            permission=None,
+            custom={},
+        )
+
+        assert hash(transition) is not None
+
+    def test_transition_equality(self) -> None:
+        for wrong_value in [0, 1, True, False, None]:
+            assert (
+                Transition(
+                    method=AdvancedBlogPost.publish,
+                    source="new",
+                    target="published",
+                    on_error=None,
+                    conditions=[],
+                    permission=None,
+                    custom={},
+                )
+                != wrong_value
+            )
+
+        assert Transition(
+            method=AdvancedBlogPost.publish,
+            source="new",
+            target="published",
+            on_error=None,
+            conditions=[],
+            permission=None,
+            custom={},
+        ) != Transition(
+            method=SimpleBlogPost.publish,
+            source="new",
+            target="published",
+            on_error=None,
+            conditions=[],
+            permission=None,
+            custom={},
+        )
+
+        assert Transition(
+            method=AdvancedBlogPost.empty,
+            source="*",
+            target="",
+            on_error=None,
+            conditions=[],
+            permission=None,
+            custom={},
+        ) == Transition(
+            method=SimpleBlogPost.empty,
+            source="*",
+            target="",
+            on_error=None,
+            conditions=[],
+            permission=None,
+            custom={},
+        )
+
     def test_in_operator_for_available_transitions(self):
         # store the generator in a list, so we can reuse the generator and do multiple asserts
         transitions = list(self.model.get_available_state_transitions())  # type: ignore[attr-defined]
@@ -186,7 +256,7 @@ class TestFieldTransitionsInspect(TestCase):
             custom=None,
         )
 
-        assert obj in transitions
+        assert obj not in transitions
 
     def test_available_conditions_from_new(self):
         transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
