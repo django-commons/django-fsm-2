@@ -49,6 +49,10 @@ class TestSignals(TestCase):
         pre_transition.connect(self.on_pre_transition, sender=MultiResultTest)
         post_transition.connect(self.on_post_transition, sender=MultiResultTest)
 
+    def tearDown(self):
+        pre_transition.disconnect(self.on_pre_transition, sender=MultiResultTest)
+        post_transition.disconnect(self.on_post_transition, sender=MultiResultTest)
+
     def on_pre_transition(self, sender, instance, name, source, target, **kwargs):
         assert instance.state == source
         self.pre_transition_called = True

@@ -138,6 +138,10 @@ class StateSignalsTests(TestCase):
         pre_transition.connect(self.on_pre_transition, sender=SimpleBlogPost)
         post_transition.connect(self.on_post_transition, sender=SimpleBlogPost)
 
+    def tearDown(self):
+        pre_transition.disconnect(self.on_pre_transition, sender=SimpleBlogPost)
+        post_transition.disconnect(self.on_post_transition, sender=SimpleBlogPost)
+
     def on_pre_transition(self, sender, instance, name, source, target, **kwargs):
         assert instance.state == source
         self.pre_transition_called = True
@@ -165,6 +169,10 @@ class LazySenderTests(StateSignalsTests):
         self.post_transition_called = False
         pre_transition.connect(self.on_pre_transition, sender="testapp.SimpleBlogPost")
         post_transition.connect(self.on_post_transition, sender="testapp.SimpleBlogPost")
+
+    def tearDown(self):
+        pre_transition.disconnect(self.on_pre_transition, sender="testapp.SimpleBlogPost")
+        post_transition.disconnect(self.on_post_transition, sender="testapp.SimpleBlogPost")
 
 
 class TestFieldTransitionsInspect(TestCase):

@@ -28,6 +28,9 @@ class FSMFieldExceptionTest(TestCase):
         post_transition.connect(self.on_post_transition, sender=ExceptionalBlogPost)
         self.post_transition_data = {}
 
+    def tearDown(self):
+        post_transition.disconnect(self.on_post_transition, sender=ExceptionalBlogPost)
+
     def on_post_transition(self, **kwargs):
         self.post_transition_data = kwargs
 
