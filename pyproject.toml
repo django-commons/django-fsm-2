@@ -49,10 +49,12 @@ dev = [
     "coverage",
     "django-guardian",
     "graphviz",
+    "mypy",
     "pre-commit",
     "pytest",
     "pytest-cov",
     "pytest-django",
+    "pytest-randomly",
     "tox",
 ]
 
