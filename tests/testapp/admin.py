@@ -5,8 +5,8 @@ from django_fsm_log.admin import StateLogInline
 
 from fsm_admin.mixins import FSMTransitionMixin
 
-from .admin_forms import AdminBlogPostRenameForm
-from .admin_forms import AdminBlogPostRenameModelForm
+from .admin_forms import ForceStateForm
+from .admin_forms import FSMLogDescription
 from .models import AdminBlogPost
 
 
@@ -25,23 +25,9 @@ class AdminBlogPostAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
     ]
 
     fsm_forms = {
-        "complex_transition_model_form": "tests.testapp.admin_forms.AdminBlogPostRenameModelForm",
-        "invalid": "tests.testapp.admin_forms.FSMLogDescription",
-        "force_state": "tests.testapp.admin_forms.ForceStateForm",
+        "complex_transition": "tests.testapp.admin_forms.AdminBlogPostRenameModelForm",
+        "invalid": FSMLogDescription,
+        "force_state": ForceStateForm,
     }
 
     inlines = [StateLogInline]
-
-
-class ProxyAdminBlogPost(AdminBlogPost):
-    class Meta:
-        proxy = True
-
-
-@admin.register(ProxyAdminBlogPost)
-class ProxyAdminBlogPostAdmin(AdminBlogPostAdmin):
-    fsm_forms = {
-        "complex_transition": AdminBlogPostRenameForm,
-        "complex_transition_model_form": AdminBlogPostRenameModelForm,
-        "invalid": "tests.testapp.admin_forms.FSMLogDescription",
-    }

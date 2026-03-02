@@ -377,6 +377,14 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def invalid(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         raise Exception("You shall not pass!")
 
+    @transition(
+        field=state,
+        source="*",
+        target=None,
+    )
+    def non_fsm_log_invalid(self) -> None:
+        raise Exception("Domain-raised exception")
+
     @fsm_log_by
     @fsm_log_description
     @transition(
@@ -403,30 +411,15 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def complex_transition(
         self,
         *,
-        new_title: str,
+        title: str,
         comment: str | None = None,
         by: AbstractUser | None = None,
         description: str | None = None,
     ) -> None:
-        self.title = new_title
+        self.title = title
         if comment:
             ...
             # Do something with the comment
-
-    @fsm_log_by
-    @fsm_log_description
-    @transition(
-        field=state,
-        source="*",
-        target=AdminBlogPostState.CREATED,
-        custom={
-            "label": "Rename model_form*",
-        },
-    )
-    def complex_transition_model_form(
-        self, *, title: str, by: AbstractUser | None = None, description: str | None = None
-    ) -> None:
-        self.title = title
 
     # step transitions
 

@@ -24,8 +24,8 @@ from django_fsm_log.models import StateLog
 from django_fsm import ConcurrentTransition
 from django_fsm.admin import FSMTransitionMixin
 from tests.testapp.admin import AdminBlogPostAdmin
-from tests.testapp.admin import ProxyAdminBlogPost
-from tests.testapp.admin import ProxyAdminBlogPostAdmin
+from tests.testapp.admin_forms import AdminBlogPostRenameModelForm
+from tests.testapp.admin_forms import FSMLogDescription
 from tests.testapp.models import AdminBlogPost
 from tests.testapp.models import AdminBlogPostState
 
@@ -34,12 +34,66 @@ if typing.TYPE_CHECKING:
     from django.contrib.auth.models import User
     from django.core.handlers.wsgi import WSGIRequest
 
-
 disable_fsm_log = modify_settings(
     DJANGO_FSM_LOG_IGNORED_MODELS={
         "append": "tests.testapp.models.AdminBlogPost",
     }
 )
+
+
+class BaseAdminTestCase(TestCase):
+    model = AdminBlogPost
+    admin_class = AdminBlogPostAdmin
+    user: User | AnonymousUser
+    blog_post: AdminBlogPost
+
+    fsm_log_enabled = True
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_user(
+            username="jacob",
+            password="password",  # noqa: S106
+            is_staff=True,
+        )
+
+        cls.blog_post = cls.model.objects.create(
+            title="Article name", state=AdminBlogPostState.PUBLISHED
+        )
+
+    def setUp(self) -> None:
+        self.model_admin = self.admin_class(self.model, AdminSite())
+
+    def make_request(self, *, data: typing.Any | None = None) -> WSGIRequest:
+        factory = RequestFactory()
+        request = factory.post(path="/", data=data or {})
+        request.user = self.user
+        return request
+
+    def assert_state_log_empty(self) -> None:
+        assert StateLog.objects.count() == 0
+
+    def assert_state_log_for_user(
+        self,
+        *,
+        description: str | None = None,
+        source_state: AdminBlogPostState | None = None,
+        state: AdminBlogPostState | None = None,
+        transition: str | None = None,
+    ) -> None:
+        if self.fsm_log_enabled:
+            statelog = StateLog.objects.get()
+            assert statelog.by == self.user
+            if description is not None:
+                assert statelog.description == description
+            if source_state is not None:
+                assert statelog.source_state == source_state
+            if state is not None:
+                assert statelog.state == state
+            if transition is not None:
+                assert statelog.transition == transition
+        else:
+            self.assert_state_log_empty()
 
 
 class EmptyFieldAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
@@ -54,7 +108,7 @@ class InvalidFormPathAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
     fsm_fields = ["state"]
 
     fsm_forms = {
-        "complex_transition_model_form": "invalid.path",
+        "complex_transition": "invalid.path",
     }
 
 
@@ -63,7 +117,12 @@ class ModelAdminMisconfigurationTestCase(TestCase):
     blog_post: AdminBlogPost
     request: WSGIRequest
 
+    def setUp(self) -> None:
+        with contextlib.suppress(admin.sites.NotRegistered):  # type: ignore[attr-defined]
+            admin.site.unregister(AdminBlogPost)
+
     def tearDown(self) -> None:
+        """Reconnect original admin"""
         with contextlib.suppress(admin.sites.NotRegistered):  # type: ignore[attr-defined]
             admin.site.unregister(AdminBlogPost)
         admin.site.register(AdminBlogPost, AdminBlogPostAdmin)
@@ -84,16 +143,10 @@ class ModelAdminMisconfigurationTestCase(TestCase):
         cls.request.user = cls.user
 
     def test_empty_fsm_field(self):
-        with contextlib.suppress(admin.sites.NotRegistered):  # type: ignore[attr-defined]
-            admin.site.unregister(AdminBlogPost)
-
         with pytest.raises(ImproperlyConfigured):
             admin.site.register(AdminBlogPost, EmptyFieldAdmin)
 
     def test_invalid_fsm_field(self):
-        with contextlib.suppress(admin.sites.NotRegistered):  # type: ignore[attr-defined]
-            admin.site.unregister(AdminBlogPost)
-
         admin.site.register(AdminBlogPost, InvalidFieldAdmin)
 
         with pytest.raises(ImproperlyConfigured, match="'title' is not an FSMField"):
@@ -103,9 +156,6 @@ class ModelAdminMisconfigurationTestCase(TestCase):
             )
 
     def test_invalid_form_path(self):
-        with contextlib.suppress(admin.sites.NotRegistered):  # type: ignore[attr-defined]
-            admin.site.unregister(AdminBlogPost)
-
         admin.site.register(AdminBlogPost, InvalidFormPathAdmin)
 
         with pytest.raises(
@@ -114,7 +164,7 @@ class ModelAdminMisconfigurationTestCase(TestCase):
         ):
             InvalidFormPathAdmin(AdminBlogPost, AdminSite())._get_transition_data(
                 obj=self.blog_post,
-                transition_name="complex_transition_model_form",
+                transition_name="complex_transition",
             )
 
 
@@ -139,6 +189,7 @@ class ModelAdminTestCase(TestCase):
     def setUp(self):
         self.model_admin = AdminBlogPostAdmin(AdminBlogPost, AdminSite())
 
+    # Basics
     def test_protected_fields_are_readonly(self):
         assert self.model_admin.get_readonly_fields(request=self.request) == ("state",)
 
@@ -151,6 +202,23 @@ class ModelAdminTestCase(TestCase):
             == "/path"
         )
 
+    # Execution
+    def test_execute_transition_falls_back_to_plain_call(self) -> None:
+        called: dict[str, str] = {}
+
+        def transition_method(*, comment: str) -> None:
+            called["comment"] = comment
+
+        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
+            self.model_admin._execute_transition(
+                transition_method=transition_method,
+                request=self.request,
+                kwargs={"comment": "Because"},
+            )
+
+        assert called["comment"] == "Because"
+
+    # Context
     def test_get_fsm_extra_context_filters_admin_hidden(
         self,
     ) -> None:
@@ -213,44 +281,19 @@ class ModelAdminTestCase(TestCase):
 
 
 @patch("django.contrib.admin.options.ModelAdmin.message_user")
-class ResponseChangeViewTestCase(TestCase):
-    user: User | AnonymousUser
-    blog_post: AdminBlogPost
-
-    fsm_log_enabled = True
-
-    def setUp(self):
-        self.model_admin = AdminBlogPostAdmin(AdminBlogPost, AdminSite())
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = get_user_model().objects.create_user(
-            username="jacob",
-            password="password",  # noqa: S106
-            is_staff=True,
-        )
-
-        cls.blog_post = AdminBlogPost.objects.create(
-            title="Article name", state=AdminBlogPostState.PUBLISHED
-        )
-
-    def prepare_request(self, data: typing.Any) -> WSGIRequest:
-        request = RequestFactory().post(path="/", data=data)
-        request.user = self.user
-
-        return request
-
+class ResponseChangeViewTestCase(BaseAdminTestCase):
+    # Classic updates
     @mock.patch("django.contrib.admin.ModelAdmin.response_change")
     def test_classic_update_keep_working(
         self, mock_response_change: mock.Mock, mock_message_user: mock.Mock
     ) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
         self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"title": "New Name"},
             ),
             obj=blog_post,
@@ -258,29 +301,30 @@ class ResponseChangeViewTestCase(TestCase):
 
         mock_response_change.assert_called_once()
 
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
+    # Errors
     def test_unknown_transition(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
         with pytest.raises(AttributeError):
             self.model_admin.response_change(
-                request=self.prepare_request(
+                request=self.make_request(
                     data={"_fsm_transition_to": "unknown_transition"},
                 ),
                 obj=blog_post,
             )
 
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
     def test_transition_raised_exception(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"_fsm_transition_to": "invalid_without_forms"},
             ),
             obj=self.blog_post,
@@ -291,16 +335,36 @@ class ResponseChangeViewTestCase(TestCase):
             message="FSM transition 'invalid_without_forms' failed: You shall not pass!.",
             level=messages.ERROR,
         )
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
+    def test_execute_transition_falls_back_to_plain_call(
+        self, mock_message_user: mock.Mock
+    ) -> None:
+        self.assert_state_log_empty()
+
+        self.model_admin.response_change(
+            request=self.make_request(
+                data={"_fsm_transition_to": "non_fsm_log_invalid"},
+            ),
+            obj=self.blog_post,
+        )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'non_fsm_log_invalid' failed: Domain-raised exception.",
+            level=messages.ERROR,
+        )
+        self.assert_state_log_empty()
+
+    # Transitions
     def test_transition_applied(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
         self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"_fsm_transition_to": "moderate"},
             ),
             obj=blog_post,
@@ -315,20 +379,16 @@ class ResponseChangeViewTestCase(TestCase):
         blog_post.refresh_from_db()
         assert blog_post.state == AdminBlogPostState.REVIEWED
 
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-        else:
-            assert StateLog.objects.count() == 0
+        self.assert_state_log_for_user()
 
     def test_transition_not_allowed_exception(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
         self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"_fsm_transition_to": "publish"},
             ),
             obj=blog_post,
@@ -342,10 +402,10 @@ class ResponseChangeViewTestCase(TestCase):
 
         blog_post.refresh_from_db()
         assert blog_post.state == AdminBlogPostState.CREATED
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
     def test_concurrent_transition_exception(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
@@ -355,7 +415,7 @@ class ResponseChangeViewTestCase(TestCase):
             side_effect=ConcurrentTransition("error message"),
         ):
             self.model_admin.response_change(
-                request=self.prepare_request(
+                request=self.make_request(
                     data={"_fsm_transition_to": "moderate"},
                 ),
                 obj=blog_post,
@@ -369,10 +429,10 @@ class ResponseChangeViewTestCase(TestCase):
 
         blog_post.refresh_from_db()
         assert blog_post.state == AdminBlogPostState.CREATED
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
     def test_unknown_transition_raise_error(self, mock_message_user: mock.Mock) -> None:
-        request = self.prepare_request(
+        request = self.make_request(
             data={"_fsm_transition_to": "unknown_transition"},
         )
 
@@ -383,10 +443,10 @@ class ResponseChangeViewTestCase(TestCase):
             )
 
     def test_transition_without_form_execute_transition(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         res = self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"_fsm_transition_to": "hide"},
             ),
             obj=self.blog_post,
@@ -403,17 +463,13 @@ class ResponseChangeViewTestCase(TestCase):
         self.blog_post.refresh_from_db()
         assert self.blog_post.state == AdminBlogPostState.HIDDEN
 
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-        else:
-            assert StateLog.objects.count() == 0
+        self.assert_state_log_for_user()
 
     def test_transition_with_form_redirects_properly(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         res = self.model_admin.response_change(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={"_fsm_transition_to": "complex_transition"},
             ),
             obj=self.blog_post,
@@ -428,7 +484,7 @@ class ResponseChangeViewTestCase(TestCase):
                 "transition_name": "complex_transition",
             },
         )
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         self.blog_post.refresh_from_db()
         assert self.blog_post.state == AdminBlogPostState.PUBLISHED
@@ -437,44 +493,18 @@ class ResponseChangeViewTestCase(TestCase):
 
 
 @disable_fsm_log
-class ResponseChangeViewWithoutFsmLogTestCase(TestCase):
+class ResponseChangeViewWithoutFsmLogTestCase(ResponseChangeViewTestCase):
     fsm_log_enabled = False
 
 
 @mock.patch("tests.testapp.admin.AdminBlogPostAdmin.message_user")
-class TransitionViewTestCase(TestCase):
-    model = AdminBlogPost
-    user: User | AnonymousUser
-    blog_post: AdminBlogPost
-
-    fsm_log_enabled = True
-
-    def setUp(self):
-        self.model_admin = AdminBlogPostAdmin(AdminBlogPost, AdminSite())
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = get_user_model().objects.create_user(
-            username="jacob",
-            password="password",  # noqa: S106
-            is_staff=True,
-        )
-
-        cls.blog_post = AdminBlogPost.objects.create(
-            title="Article name", state=AdminBlogPostState.PUBLISHED
-        )
-
-    def prepare_request(self, data: typing.Any = {}) -> WSGIRequest:
-        request = RequestFactory().post(path="/", data=data)
-        request.user = self.user
-
-        return request
-
+class TransitionViewTestCase(BaseAdminTestCase):
+    # Errors
     def test_transition_raised_exception(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         self.model_admin.fsm_transition_view(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={
                     "description": "because",
                 },
@@ -488,16 +518,16 @@ class TransitionViewTestCase(TestCase):
             message="FSM transition 'invalid' failed: You shall not pass!.",
             level=messages.ERROR,
         )
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
     def test_invalid_object_id(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         invalid_object_id = "123456"
         assert not AdminBlogPost.objects.filter(pk=invalid_object_id).exists()
 
         res = self.model_admin.fsm_transition_view(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={
                     "state": AdminBlogPostState.CREATED,
                     "description": "because",
@@ -516,29 +546,30 @@ class TransitionViewTestCase(TestCase):
             f"{self.model._meta.verbose_name} with ID “{invalid_object_id}” doesn’t exist. Perhaps it was deleted?",  # noqa: RUF001, E501
             messages.WARNING,
         )
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
     def test_transition_without_form_(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         res = self.model_admin.fsm_transition_view(
-            request=self.prepare_request(),
+            request=self.make_request(),
             transition_name="hide",
             object_id=str(self.blog_post.pk),
         )
 
         assert isinstance(res, HttpResponseBadRequest)
         assert res.status_code == HTTPStatus.BAD_REQUEST
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
+    # Form submissions
     def test_transition_form_submission_executes(self, mock_message_user: mock.Mock) -> None:
         assert self.blog_post.state == AdminBlogPostState.PUBLISHED
-        assert StateLog.objects.count() == 0
+        self.assert_state_log_empty()
 
         res = self.model_admin.fsm_transition_view(
-            request=self.prepare_request(
+            request=self.make_request(
                 data={
-                    "new_title": "New Title",
+                    "title": "New Title",
                     "comment": "Because",
                     "description": "Because",
                 },
@@ -559,52 +590,14 @@ class TransitionViewTestCase(TestCase):
         assert self.blog_post.state == AdminBlogPostState.CREATED
         assert self.blog_post.title == "New Title"
 
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-            assert statelog.description == "Because"
-            assert statelog.source_state == AdminBlogPostState.PUBLISHED
-            assert statelog.state == AdminBlogPostState.CREATED
-            assert statelog.transition == "complex_transition"
-        else:
-            assert StateLog.objects.count() == 0
-
-    def test_transition_model_form_submission_executes(self, mock_message_user: mock.Mock) -> None:
-        assert StateLog.objects.count() == 0
-
-        res = self.model_admin.fsm_transition_view(
-            request=self.prepare_request(
-                data={
-                    "title": "New Title",
-                    "description": "Because",
-                },
-            ),
-            object_id=str(self.blog_post.pk),
-            transition_name="complex_transition_model_form",
+        self.assert_state_log_for_user(
+            description="Because",
+            source_state=AdminBlogPostState.PUBLISHED,
+            state=AdminBlogPostState.CREATED,
+            transition="complex_transition",
         )
 
-        assert isinstance(res, HttpResponseRedirect)
-        assert res.status_code == HTTPStatus.FOUND
-        mock_message_user.assert_called_once_with(
-            request=mock.ANY,
-            message="FSM transition 'complex_transition_model_form' succeeded.",
-            level=messages.SUCCESS,
-        )
-
-        self.blog_post.refresh_from_db()
-        assert self.blog_post.state == AdminBlogPostState.CREATED
-        assert self.blog_post.title == "New Title"
-
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-            assert statelog.description == "Because"
-            assert statelog.source_state == AdminBlogPostState.PUBLISHED
-            assert statelog.state == AdminBlogPostState.CREATED
-            assert statelog.transition == "complex_transition_model_form"
-        else:
-            assert StateLog.objects.count() == 0
-
+    # Rendering
     def test_transition_form_rendered(self, mock_message_user: mock.Mock) -> None:
         request = RequestFactory().get(path="/")
         request.user = self.user
@@ -628,12 +621,40 @@ class TransitionViewTestCase(TestCase):
 
 
 class ModelFormTransitionViewTestCase(TransitionViewTestCase):
-    model = ProxyAdminBlogPost
+    """
+    Runs TransitionViewTestCase but with **class-based forms** (instead of import path)
+    """
 
-    def setUp(self):
-        self.model_admin = ProxyAdminBlogPostAdmin(ProxyAdminBlogPost, AdminSite())
+    def setUp(self) -> None:
+        self.fsm_forms_patcher = mock.patch.dict(
+            AdminBlogPostAdmin.fsm_forms,
+            {
+                "complex_transition": AdminBlogPostRenameModelForm,
+                "invalid": FSMLogDescription,
+            },
+            clear=False,
+        )
+        self.fsm_forms_patcher.start()
+        super().setUp()
+
+    def tearDown(self) -> None:
+        self.fsm_forms_patcher.stop()
+        super().tearDown()
 
 
 @disable_fsm_log
-class TransitionViewWithoutFsmLogTestCase(TransitionViewTestCase):
+class NoFsmLogTransitionViewTestCase(TransitionViewTestCase):
+    """
+    Runs TransitionViewTestCase but with **FSM log disabled**
+    """
+
+    fsm_log_enabled = False
+
+
+@disable_fsm_log
+class NoFsmLogModelFormTransitionViewTestCase(ModelFormTransitionViewTestCase):
+    """
+    Runs TransitionViewTestCase but with **class-based forms** and **FSM log disabled**
+    """
+
     fsm_log_enabled = False

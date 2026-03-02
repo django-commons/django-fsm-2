@@ -41,11 +41,6 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 else:
     _ModelAdmin = admin.ModelAdmin
 
-try:
-    FSM_LOG_ENABLED = apps.is_installed("django_fsm_log")
-except AppRegistryNotReady:  # pragma: no cover
-    FSM_LOG_ENABLED = "django_fsm_log" in settings.INSTALLED_APPS
-
 
 @dataclass
 class FSMObjectTransition:
@@ -239,7 +234,7 @@ class FSMTransitionMixin(_ModelAdmin):
                 partial(transition_method, request=request, by=request.user),
                 partial(transition_method, by=request.user),
             ]
-        else:  # pragma: no cover
+        else:
             transition_attempts = []
 
         for attempt in transition_attempts:
