@@ -583,6 +583,18 @@ Behavior details:
 - You can override the transition form template by setting
   `fsm_transition_form_template` on your `ModelAdmin` (or override globally `templates/django_fsm/fsm_admin_transition_form.html`).
 
+### Unfold support
+
+If you use [Django Unfold](https://github.com/unfoldadmin/django-unfold), this package provide a contrib that contains templates tailored to the Unfold admin UI.
+
+```python
+INSTALLED_APPS = (
+    ...,
+    'unfold',
+    'django_fsm.contrib.unfold',
+    ...,
+)
+```
 
 ## Drawing transitions
 
