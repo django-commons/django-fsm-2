@@ -53,3 +53,4 @@ repos:
         additional_dependencies:
           - django-stubs==5.2.9
           - django-guardian
+          - django_fsm_log

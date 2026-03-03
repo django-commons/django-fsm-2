@@ -3,7 +3,10 @@ from __future__ import annotations
 import typing
 
 from django.db import models
+from django_fsm_log.decorators import fsm_log_by
+from django_fsm_log.decorators import fsm_log_description
 
+import django_fsm as fsm
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
@@ -263,4 +266,195 @@ class BlogPost(models.Model):
 
     @transition(field=state, source="*", target=BlogPostState.MODERATED)
     def moderate(self) -> None:
+        pass
+
+
+class AdminBlogPostState(models.TextChoices):
+    CREATED = "created", "Created"
+    REVIEWED = "reviewed", "Reviewed"
+    PUBLISHED = "published", "Published"
+    HIDDEN = "hidden", "Hidden"
+
+
+class AdminBlogPostStep(models.TextChoices):
+    STEP_1 = "step1", "Step one"
+    STEP_2 = "step2", "Step two"
+    STEP_3 = "step3", "Step three"
+
+
+class AdminBlogPost(fsm.FSMModelMixin, models.Model):
+    title = models.CharField(max_length=50)
+
+    state = FSMField(
+        choices=AdminBlogPostState.choices,
+        default=AdminBlogPostState.CREATED,
+        protected=True,
+    )
+
+    step = FSMField(
+        choices=AdminBlogPostStep.choices,
+        default=AdminBlogPostStep.STEP_1,
+        protected=False,
+    )
+
+    # state transitions
+    def __str__(self) -> str:
+        return f"{self.title} ({self.state})"
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=RETURN_VALUE(*AdminBlogPostState),
+    )
+    def force_state(
+        self,
+        state: AdminBlogPostState,
+        by: AbstractUser | None = None,
+        description: str | None = None,
+    ) -> AdminBlogPostState:
+        return state
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.HIDDEN,
+        custom={
+            "admin": False,
+        },
+    )
+    def secret_transition(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source=AdminBlogPostState.CREATED,
+        target=AdminBlogPostState.REVIEWED,
+    )
+    def moderate(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source=[
+            AdminBlogPostState.REVIEWED,
+            AdminBlogPostState.HIDDEN,
+        ],
+        target=AdminBlogPostState.PUBLISHED,
+    )
+    def publish(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source=[
+            AdminBlogPostState.REVIEWED,
+            AdminBlogPostState.PUBLISHED,
+        ],
+        target=AdminBlogPostState.HIDDEN,
+    )
+    def hide(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=None,
+    )
+    def invalid(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        raise Exception("You shall not pass!")
+
+    @transition(
+        field=state,
+        source="*",
+        target=None,
+    )
+    def non_fsm_log_invalid(self) -> None:
+        raise Exception("Domain-raised exception")
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=None,
+    )
+    def invalid_without_forms(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        raise Exception("You shall not pass!")
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=state,
+        source="*",
+        target=AdminBlogPostState.CREATED,
+        custom={
+            "label": "Rename *",
+            "form": "tests.testapp.admin_forms.AdminBlogPostRenameForm",
+        },
+    )
+    def complex_transition(
+        self,
+        *,
+        title: str,
+        comment: str | None = None,
+        by: AbstractUser | None = None,
+        description: str | None = None,
+    ) -> None:
+        self.title = title
+        if comment:
+            ...
+            # Do something with the comment
+
+    # step transitions
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=step,
+        source=[AdminBlogPostStep.STEP_1],
+        target=AdminBlogPostStep.STEP_2,
+        custom={
+            "label": "Go to Step 2",
+        },
+    )
+    def step_two(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=step,
+        source=[AdminBlogPostStep.STEP_2],
+        target=AdminBlogPostStep.STEP_3,
+    )
+    def step_three(self, by: AbstractUser | None = None, description: str | None = None) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(
+        field=step,
+        source=[
+            AdminBlogPostStep.STEP_2,
+            AdminBlogPostStep.STEP_3,
+        ],
+        target=AdminBlogPostStep.STEP_1,
+    )
+    def step_reset(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass

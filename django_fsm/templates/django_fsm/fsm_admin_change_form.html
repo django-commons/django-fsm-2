@@ -1,0 +1,15 @@
+{% extends 'admin/change_form.html' %}
+
+{% block submit_buttons_bottom %}
+
+  {% for fsm_object_transition in fsm_object_transitions %}
+      <div class="submit-row">
+        <label>{{ fsm_object_transition.block_label }}</label>
+        {% for transition in fsm_object_transition.available_transitions %}
+          {% include "django_fsm/fsm_transition_button.html" with transition=transition %}
+        {% endfor %}
+      </div>
+  {% endfor %}
+
+  {{ block.super }}
+{% endblock %}
