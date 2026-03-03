@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass
-from functools import partial
 
 from django.apps import apps
 from django.conf import settings
@@ -43,20 +42,26 @@ else:
 
 
 @dataclass
+class FSMTransitionContext:
+    transition: fsm.Transition
+    label: str
+    help_text: str | None = None
+
+
+@dataclass
 class FSMObjectTransition:
     fsm_field: str
     block_label: str
-    available_transitions: list[fsm.Transition]
+    available_transitions: list[FSMTransitionContext]
 
 
-class FSMTransitionMixin(_ModelAdmin):
+class FSMAdminMixin(_ModelAdmin):
     change_form_template = "django_fsm/fsm_admin_change_form.html"
 
     fsm_fields: list[str] = []
     fsm_transition_success_msg = _("FSM transition '{transition_name}' succeeded.")
     fsm_transition_error_msg = _("FSM transition '{transition_name}' failed: {error}.")
     fsm_transition_not_allowed_msg = _("FSM transition '{transition_name}' is not allowed.")
-    fsm_transition_not_valid_msg = _("FSM transition '{transition_name}' is not a valid.")
     fsm_context_key = "fsm_object_transitions"
     fsm_post_param = "_fsm_transition_to"
     fsm_default_disallow_transition = not getattr(settings, "FSM_ADMIN_FORCE_PERMIT", False)
@@ -133,16 +138,20 @@ class FSMTransitionMixin(_ModelAdmin):
         )
 
     def _get_fsm_extra_context(
-        self, request: HttpRequest, obj: typing.Any
+        self, *, request: HttpRequest, obj: typing.Any
     ) -> typing.Generator[FSMObjectTransition]:
         for field_name in sorted(self.fsm_fields):
             transition_func = getattr(obj, f"get_available_user_{field_name}_transitions", None)
             if callable(transition_func):
                 available_transitions = transition_func(user=request.user)
                 if admin_allowed_transitions := [
-                    t
+                    FSMTransitionContext(
+                        transition=t,
+                        label=self.get_fsm_label(t),
+                        help_text=self.get_help_text(t),
+                    )
                     for t in available_transitions
-                    if t.custom.get("admin", self.fsm_default_disallow_transition)
+                    if self.is_fsm_transition_visible(t)
                 ]:
                     yield FSMObjectTransition(
                         fsm_field=field_name,
@@ -154,14 +163,53 @@ class FSMTransitionMixin(_ModelAdmin):
     def get_fsm_block_label(fsm_field_name: str) -> str:
         return f"Transition ({fsm_field_name})"
 
+    def is_fsm_transition_visible(self, transition: fsm.Transition) -> bool:
+        return bool(transition.custom.get("admin", self.fsm_default_disallow_transition))
+
+    def get_fsm_label(self, transition: fsm.Transition) -> str:
+        return transition.custom.get("label") or transition.name
+
+    def get_help_text(self, transition: fsm.Transition) -> str | None:
+        return transition.custom.get("help_text")
+
+    def _get_fsm_transition_func(
+        self, *, obj: typing.Any, transition_name: str
+    ) -> typing.Callable[..., typing.Any]:
+        try:
+            transition_func: typing.Callable[..., typing.Any] = getattr(obj, transition_name)
+        except AttributeError:
+            raise AttributeError(
+                f"{obj.__class__.__name__} has no transition method '{transition_name}'."
+            )
+
+        if not callable(transition_func):  # pragma: no cover
+            raise TypeError(f"Attribute '{transition_name}' is not callable.")
+
+        # Security: Only allow FSM transition methods
+        if not hasattr(transition_func, "_django_fsm"):  # pragma: no cover
+            raise ValueError(f"Method '{transition_name}' is not an FSM transition.")
+
+        return transition_func
+
+    def _get_fsm_transition_by_name(
+        self, *, obj: typing.Any, transition_name: str
+    ) -> fsm.Transition:
+        transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
+        transitions = transition_func._django_fsm.transitions  # type: ignore[attr-defined]
+        if isinstance(transitions, dict):
+            transitions = list(transitions.values())
+
+        return transitions[0]  # type: ignore[no-any-return]
+
     @override
     def response_change(self, request: HttpRequest, obj: typing.Any) -> HttpResponse:
         transition_name = request.POST.get(self.fsm_post_param)
         if not transition_name:
             return super().response_change(request=request, obj=obj)
 
-        transition_method, _, form_class = self._get_transition_data(obj, transition_name)
-        if form_class:
+        transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
+
+        if self.get_fsm_transition_form(transition):
             return redirect(
                 reverse(
                     f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_transition",
@@ -172,38 +220,11 @@ class FSMTransitionMixin(_ModelAdmin):
                 )
             )
 
-        try:
-            self._execute_transition(transition_method, request=request, kwargs={})
-        except fsm.TransitionNotAllowed:
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_not_allowed_msg.format(transition_name=transition_name),
-                level=messages.ERROR,
-            )
-        except fsm.ConcurrentTransition as err:
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_error_msg.format(
-                    transition_name=transition_name, error=str(err)
-                ),
-                level=messages.ERROR,
-            )
-        except Exception as e:
-            logger.exception("Unexpected error during FSM transition %s", transition_name)
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_error_msg.format(
-                    transition_name=transition_name, error=str(e)
-                ),
-                level=messages.ERROR,
-            )
-        else:
-            obj.save()
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_success_msg.format(transition_name=transition_name),
-                level=messages.SUCCESS,
-            )
+        if self._apply_fsm_transition(
+            obj=obj,
+            transition_name=transition_name,
+            request=request,
+        ):
             logger.info("FSM transition %s completed successfully", transition_name)
 
         return HttpResponseRedirect(
@@ -223,28 +244,72 @@ class FSMTransitionMixin(_ModelAdmin):
         except AppRegistryNotReady:  # pragma: no cover
             return "django_fsm_log" in settings.INSTALLED_APPS
 
-    def _execute_transition(
+    def _execute_fsm_transition(
         self,
-        transition_method: typing.Callable[..., typing.Any],
+        *,
+        transition_func: typing.Callable[..., typing.Any],
         request: HttpRequest,
-        kwargs: typing.Mapping[str, typing.Any],
+        kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
-        transition_attempts: list[typing.Callable[..., typing.Any]] = []
+        kwargs = kwargs or {}
         if self._is_fsm_log_enabled():
-            transition_attempts += [
-                partial(transition_method, request=request, by=request.user),
-                partial(transition_method, by=request.user),
-            ]
-
-        for attempt in transition_attempts:
             try:
-                attempt(**kwargs)
-                break
+                transition_func(by=request.user, **kwargs)
             except TypeError:
-                continue
+                transition_func(**kwargs)
         else:
-            # If all attempts failed, try the base transition to get the real error
-            transition_method(**kwargs)
+            transition_func(**kwargs)
+
+    def _apply_fsm_transition(
+        self,
+        *,
+        obj: typing.Any,
+        transition_name: str,
+        request: HttpRequest,
+        kwargs: typing.Mapping[str, typing.Any] | None = None,
+    ) -> bool:
+        try:
+            self._execute_fsm_transition(
+                transition_func=self._get_fsm_transition_func(
+                    obj=obj, transition_name=transition_name
+                ),
+                request=request,
+                kwargs=kwargs,
+            )
+            obj.save()
+        except fsm.TransitionNotAllowed:
+            self.message_user(
+                request=request,
+                message=self.fsm_transition_not_allowed_msg.format(transition_name=transition_name),
+                level=messages.ERROR,
+            )
+            return False
+        except fsm.ConcurrentTransition as err:
+            self.message_user(
+                request=request,
+                message=self.fsm_transition_error_msg.format(
+                    transition_name=transition_name, error=str(err)
+                ),
+                level=messages.ERROR,
+            )
+            return False
+        except Exception as err:
+            logger.exception("Unexpected error during FSM transition %s", transition_name)
+            self.message_user(
+                request=request,
+                message=self.fsm_transition_error_msg.format(
+                    transition_name=transition_name, error=str(err)
+                ),
+                level=messages.ERROR,
+            )
+            return False
+        else:
+            self.message_user(
+                request=request,
+                message=self.fsm_transition_success_msg.format(transition_name=transition_name),
+                level=messages.SUCCESS,
+            )
+            return True
 
     def get_fsm_redirect_url(self, request: HttpRequest, obj: typing.Any) -> str:
         return request.path
@@ -254,6 +319,7 @@ class FSMTransitionMixin(_ModelAdmin):
     ) -> type[Form | ModelForm[typing.Any]] | None:
         """Get transition form class with error handling."""
         form = self.fsm_forms.get(transition.name, transition.custom.get("form"))
+
         if isinstance(form, str):
             try:
                 form = import_string(form)
@@ -262,34 +328,6 @@ class FSMTransitionMixin(_ModelAdmin):
         if isinstance(form, type) and issubclass(form, (ModelForm, Form)):
             return form
         return None
-
-    def _get_transition_data(
-        self, obj: typing.Any, transition_name: str
-    ) -> tuple[
-        typing.Callable[..., typing.Any],
-        fsm.Transition,
-        type[Form | ModelForm[typing.Any]] | None,
-    ]:
-        if not hasattr(obj, transition_name):
-            raise AttributeError(
-                f"{obj.__class__.__name__} has no transition method '{transition_name}'."
-            )
-
-        transition_method: typing.Callable[..., typing.Any] = getattr(obj, transition_name)
-        if not callable(transition_method):  # pragma: no cover
-            raise TypeError(f"Attribute '{transition_name}' is not callable.")
-
-        # Security: Only allow FSM transition methods
-        if not hasattr(transition_method, "_django_fsm"):  # pragma: no cover
-            raise ValueError(f"Method '{transition_name}' is not an FSM transition.")
-
-        transitions = transition_method._django_fsm.transitions
-        if isinstance(transitions, dict):
-            transitions = list(transitions.values())
-
-        transition = transitions[0]
-
-        return transition_method, transitions[0], self.get_fsm_transition_form(transition)
 
     def fsm_transition_view(
         self, request: HttpRequest, *args: typing.Any, **kwargs: typing.Any
@@ -302,7 +340,9 @@ class FSMTransitionMixin(_ModelAdmin):
 
         transition_name = kwargs["transition_name"]
 
-        transition_method, transition, form_class = self._get_transition_data(obj, transition_name)
+        transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
+
+        form_class = self.get_fsm_transition_form(transition)
         if not form_class:
             logger.warning("No form configured for transition %s", transition_name)
             return HttpResponseBadRequest(f"No form configuration found for {transition_name}")
@@ -314,29 +354,13 @@ class FSMTransitionMixin(_ModelAdmin):
         else:
             transition_form = form_class(data=data)
 
-        if request.method == "POST" and transition_form.is_valid():
-            try:
-                self._execute_transition(
-                    transition_method,
-                    request=request,
-                    kwargs=transition_form.cleaned_data,
-                )
-                obj.save()
-            except Exception as e:
-                logger.exception("Form transition %s failed", transition_name)
-                self.message_user(
-                    request=request,
-                    message=self.fsm_transition_error_msg.format(
-                        transition_name=transition_name, error=str(e)
-                    ),
-                    level=messages.ERROR,
-                )
-            else:
-                self.message_user(
-                    request=request,
-                    message=self.fsm_transition_success_msg.format(transition_name=transition_name),
-                    level=messages.SUCCESS,
-                )
+        if request.method == "POST" and transition_form.is_valid():  # noqa: SIM102
+            if self._apply_fsm_transition(
+                obj=obj,
+                transition_name=transition_name,
+                request=request,
+                kwargs=transition_form.cleaned_data,
+            ):
                 return redirect(
                     f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
                     object_id=obj.pk,

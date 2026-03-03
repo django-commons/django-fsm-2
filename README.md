@@ -28,9 +28,9 @@ Nice introduction is available here: https://gist.github.com/Nagyman/9502133
 
 ```python
 from django.db import models
-from django_fsm import FSMField, transition
+from django_fsm import FSMField, FSMModelMixin, transition
 
-class BlogPost(models.Model):
+class BlogPost(FSMModelMixin, models.Model):
     state = FSMField(default='new')
 
     @transition(field=state, source='new', target='published')
@@ -92,9 +92,9 @@ uv pip install django-fsm-2
 ### Adding an FSM field
 
 ```python
-from django_fsm import FSMField
+from django_fsm import FSMField, FSMModelMixin
 
-class BlogPost(models.Model):
+class BlogPost(FSMModelMixin, models.Model):
     state = FSMField(default='new')
 ```
 
@@ -140,7 +140,7 @@ def can_publish(instance):
     # No publishing after 17 hours
     return datetime.datetime.now().hour <= 17
 
-class XXX()
+class XXX(FSMModelMixin, models.Model):
     @transition(
         field=state,
         source='new',
@@ -154,7 +154,7 @@ class XXX()
 You can also use model methods:
 
 ```python
-class XXX()
+class XXX(FSMModelMixin, models.Model):
     def can_destroy(self):
         return self.is_under_investigation()
 
@@ -173,18 +173,9 @@ class XXX()
 Use `protected=True` to prevent direct assignment. Only transitions may
 change the state.
 
-```python
-class BlogPost(models.Model):
-    state = FSMField(default='new', protected=True)
-
-model = BlogPost()
-model.state = 'invalid'  # Raises AttributeError
-model.refresh_from_db()  # Raises AttributeError
-```
-
 Because `refresh_from_db` assigns to the field, protected fields raise there
-as well. Use `FSMModelMixin` to allow refresh without enabling arbitrary
-writes elsewhere.
+as well unless you use `FSMModelMixin`. Use `FSMModelMixin` by default to
+allow refresh without enabling arbitrary writes elsewhere.
 
 ```python
 from django_fsm import FSMModelMixin
@@ -338,7 +329,7 @@ Use `FSMKeyField` to store state values in a table and maintain FK
 integrity.
 
 ```python
-class DbState(models.Model):
+class DbState(FSMModelMixin, models.Model):
     id = models.CharField(primary_key=True)
     label = models.CharField()
 
@@ -346,7 +337,7 @@ class DbState(models.Model):
         return self.label
 
 
-class BlogPost(models.Model):
+class BlogPost(FSMModelMixin, models.Model):
     state = FSMKeyField(DbState, default='new')
 
     @transition(field=state, source='new', target='published')
@@ -385,7 +376,7 @@ class BlogPostStateEnum(object):
     PUBLISHED = 20
     HIDDEN = 30
 
-class BlogPostWithIntegerField(models.Model):
+class BlogPostWithIntegerField(FSMModelMixin, models.Model):
     state = FSMIntegerField(default=BlogPostStateEnum.NEW)
 
     @transition(
@@ -418,9 +409,9 @@ state changed in the database, `django_fsm.ConcurrentTransition` is raised
 on `save()`.
 
 ```python
-from django_fsm import FSMField, ConcurrentTransitionMixin
+from django_fsm import FSMField, ConcurrentTransitionMixin, FSMModelMixin
 
-class BlogPost(ConcurrentTransitionMixin, models.Model):
+class BlogPost(ConcurrentTransitionMixin, FSMModelMixin, models.Model):
     state = FSMField(default='new')
 ```
 
@@ -441,21 +432,22 @@ Update import path:
 
 ``` python
 - from django_fsm_admin.mixins import FSMTransitionMixin
-+ from django_fsm.admin import FSMTransitionMixin
++ from django_fsm.admin import FSMAdminMixin
 ```
 
-1. In your admin.py file, use FSMTransitionMixin to add behaviour to your ModelAdmin. FSMTransitionMixin should be before ModelAdmin, the order is important.
+1. In your admin.py file, use FSMAdminMixin to add behaviour to your ModelAdmin. FSMAdminMixin should be before ModelAdmin, the order is important.
 
 ``` python
-from django_fsm.admin import FSMTransitionMixin
+from django_fsm.admin import FSMAdminMixin
 
 @admin.register(AdminBlogPost)
-class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+    # Declare the fsm fields you want to manage
     fsm_fields = ['my_fsm_field']
     ...
 ```
 
-2. You can customize the button by adding `label` and `short_description` to the `custom` attribute of the transition decorator
+2. You can customize the buttons by adding `label` and `help_text` to the `custom` attribute of the transition decorator
 
 ``` python
 @transition(
@@ -464,11 +456,29 @@ class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
     target='finalstate',
     custom={
         "label": "My awesome transition",  # this
-        "short_description": "Rename blog post",  # and this
+        "help_text": "Rename blog post",  # and this
     },
 )
 def do_something(self, **kwargs):
        ...
+```
+
+or by overriding some methods in FSMAdminMixin
+
+``` python
+@admin.register(AdminBlogPost)
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+    ...
+
+    def get_fsm_label(self, transition):  # this method
+        if transition.name == "do_something":
+            return "My awesome transition"
+        return super().get_fsm_label(transition)
+
+    def get_help_text(self, transition):  # and this method
+        if transition.name == "do_something":
+            return "Rename blog post"
+        return super().get_help_text(transition)
 ```
 
 3. For forms in the admin transition flow, see the Custom Forms section below.
@@ -477,13 +487,28 @@ def do_something(self, **kwargs):
 
 ``` python
     @transition(
-       field='state',
-       source=['startstate'],
-       target='finalstate',
-       custom={"admin": False},  # this
+        field='state',
+        source=['startstate'],
+        target='finalstate',
+        custom={
+            "admin": False,  # this
+        },
     )
     def do_something(self, **kwargs):
        # will not add a button "Do Something" to your admin model interface
+```
+or from the admin:
+
+``` python
+@admin.register(AdminBlogPost)
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
+    ...
+
+    def is_fsm_transition_visible(self, transition: fsm.Transition) -> bool:
+        if transition.name == "do_something":
+            return False
+        return super().is_fsm_transition_visible(transition)
+
 ```
 
 NB: By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `fsm_default_disallow_transition = False` to your admin), the above restriction becomes the default.
@@ -491,7 +516,7 @@ Then one must explicitly allow that a transition method shows up in the admin in
 
 ``` python
 @admin.register(AdminBlogPost)
-class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     fsm_default_disallow_transition = False
     ...
 ```
@@ -505,14 +530,14 @@ or define an admin-level mapping via `fsm_forms`. Both accept a `forms.Form`/
 
 ```python
 from django import forms
-from django_fsm import transition
+from django_fsm import FSMModelMixin, transition
 
 class RenameForm(forms.Form):
     new_title = forms.CharField(max_length=255)
     # it's also possible to declare fsm log description
     description = forms.CharField(max_length=255)
 
-class BlogPost(models.Model):
+class BlogPost(FSMModelMixin, models.Model):
     title = models.CharField(max_length=255)
     state = FSMField(default="created")
 
@@ -522,7 +547,7 @@ class BlogPost(models.Model):
         target="created",
         custom={
             "label": "Rename",
-            "short_description": "Rename blog post",
+            "help_text": "Rename blog post",
             "form": "path.to.RenameForm",
         },
     )
@@ -534,13 +559,15 @@ You can also define forms directly on your `ModelAdmin` without touching the
 transition definition:
 
 ```python
-from django_fsm.admin import FSMTransitionMixin
+from django_fsm.admin import FSMAdminMixin
+from .admin_forms import RenameForm
 
 @admin.register(AdminBlogPost)
-class MyAdmin(FSMTransitionMixin, admin.ModelAdmin):
+class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     fsm_fields = ["state"]
     fsm_forms = {
-        "rename": "path.to.RenameForm",
+        "rename": "path.to.RenameForm",  # use import path
+        "rename": RenameForm,  # or FormClass
     }
 ```
 

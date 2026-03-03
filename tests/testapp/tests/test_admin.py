@@ -21,8 +21,8 @@ from django.test.utils import modify_settings
 from django.urls import reverse
 from django_fsm_log.models import StateLog
 
-from django_fsm import ConcurrentTransition
-from django_fsm.admin import FSMTransitionMixin
+import django_fsm as fsm
+from django_fsm.admin import FSMAdminMixin
 from tests.testapp.admin import AdminBlogPostAdmin
 from tests.testapp.admin_forms import AdminBlogPostRenameModelForm
 from tests.testapp.admin_forms import FSMLogDescriptionForm
@@ -96,15 +96,15 @@ class BaseAdminTestCase(TestCase):
             self.assert_state_log_empty()
 
 
-class EmptyFieldAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
+class EmptyFieldAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
     fsm_fields = []
 
 
-class InvalidFieldAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
+class InvalidFieldAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
     fsm_fields = ["title"]
 
 
-class InvalidFormPathAdmin(FSMTransitionMixin, admin.ModelAdmin[AdminBlogPost]):
+class InvalidFormPathAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
     fsm_fields = ["state"]
 
     fsm_forms = {
@@ -158,14 +158,15 @@ class ModelAdminMisconfigurationTestCase(TestCase):
     def test_invalid_form_path(self):
         admin.site.register(AdminBlogPost, InvalidFormPathAdmin)
 
+        blog_admin = InvalidFormPathAdmin(AdminBlogPost, AdminSite())
+        transition = blog_admin._get_fsm_transition_by_name(
+            obj=self.blog_post, transition_name="complex_transition"
+        )
         with pytest.raises(
             ImproperlyConfigured,
             match=r"Failed to import form invalid\.path",
         ):
-            InvalidFormPathAdmin(AdminBlogPost, AdminSite())._get_transition_data(
-                obj=self.blog_post,
-                transition_name="complex_transition",
-            )
+            blog_admin.get_fsm_transition_form(transition)
 
 
 class ModelAdminTestCase(TestCase):
@@ -203,15 +204,15 @@ class ModelAdminTestCase(TestCase):
         )
 
     # Execution
-    def test_execute_transition_falls_back_to_plain_call(self) -> None:
+    def test_execute_fsm_transition_falls_back_to_plain_call(self) -> None:
         called: dict[str, str] = {}
 
         def transition_method(*, comment: str) -> None:
             called["comment"] = comment
 
         with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
-            self.model_admin._execute_transition(
-                transition_method=transition_method,
+            self.model_admin._execute_fsm_transition(
+                transition_func=transition_method,
                 request=self.request,
                 kwargs={"comment": "Because"},
             )
@@ -234,7 +235,10 @@ class ModelAdminTestCase(TestCase):
         assert len(transitions) == 2  # noqa: PLR2004
 
         transitions_by_field = {
-            item.fsm_field: {transition.name for transition in item.available_transitions}
+            item.fsm_field: {
+                transition_context.transition.name
+                for transition_context in item.available_transitions
+            }
             for item in transitions
         }
 
@@ -247,7 +251,7 @@ class ModelAdminTestCase(TestCase):
         assert "secret_transition" not in transitions_by_field["state"]
 
     @mock.patch("django.contrib.admin.ModelAdmin.change_view")
-    @mock.patch("django_fsm.admin.FSMTransitionMixin._get_fsm_extra_context")
+    @mock.patch("django_fsm.admin.FSMAdminMixin._get_fsm_extra_context")
     def test_change_view_context(
         self,
         mock_get_fsm_extra_context: mock.Mock,
@@ -337,7 +341,7 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
         )
         self.assert_state_log_empty()
 
-    def test_execute_transition_falls_back_to_plain_call(
+    def test_execute_fsm_transition_falls_back_to_plain_call(
         self, mock_message_user: mock.Mock
     ) -> None:
         self.assert_state_log_empty()
@@ -354,6 +358,62 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
             message="FSM transition 'non_fsm_log_invalid' failed: Domain-raised exception.",
             level=messages.ERROR,
         )
+        self.assert_state_log_empty()
+
+    def test_response_change_transition_not_allowed(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        blog_post = AdminBlogPost.objects.create(title="Article name")
+        assert blog_post.state == AdminBlogPostState.CREATED
+
+        with mock.patch.object(
+            self.model_admin,
+            "_execute_fsm_transition",
+            side_effect=fsm.TransitionNotAllowed,
+        ):
+            self.model_admin.response_change(
+                request=self.make_request(
+                    data={"_fsm_transition_to": "moderate"},
+                ),
+                obj=blog_post,
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'moderate' is not allowed.",
+            level=messages.ERROR,
+        )
+
+        blog_post.refresh_from_db()
+        assert blog_post.state == AdminBlogPostState.CREATED
+        self.assert_state_log_empty()
+
+    def test_response_change_concurrent_transition(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        blog_post = AdminBlogPost.objects.create(title="Article name")
+        assert blog_post.state == AdminBlogPostState.CREATED
+
+        with mock.patch.object(
+            self.model_admin,
+            "_execute_fsm_transition",
+            side_effect=fsm.ConcurrentTransition("error message"),
+        ):
+            self.model_admin.response_change(
+                request=self.make_request(
+                    data={"_fsm_transition_to": "moderate"},
+                ),
+                obj=blog_post,
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'moderate' failed: error message.",
+            level=messages.ERROR,
+        )
+
+        blog_post.refresh_from_db()
+        assert blog_post.state == AdminBlogPostState.CREATED
         self.assert_state_log_empty()
 
     # Transitions
@@ -412,7 +472,7 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
 
         with mock.patch(
             "tests.testapp.models.AdminBlogPost.moderate",
-            side_effect=ConcurrentTransition("error message"),
+            side_effect=fsm.ConcurrentTransition("error message"),
         ):
             self.model_admin.response_change(
                 request=self.make_request(
@@ -442,7 +502,9 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
                 obj=self.blog_post,
             )
 
-    def test_transition_without_form_execute_transition(self, mock_message_user: mock.Mock) -> None:
+    def test_transition_without_form_execute_fsm_transition(
+        self, mock_message_user: mock.Mock
+    ) -> None:
         self.assert_state_log_empty()
 
         res = self.model_admin.response_change(
@@ -518,6 +580,64 @@ class TransitionViewTestCase(BaseAdminTestCase):
             message="FSM transition 'invalid' failed: You shall not pass!.",
             level=messages.ERROR,
         )
+        self.assert_state_log_empty()
+
+    def test_transition_form_not_allowed(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with mock.patch.object(
+            self.model_admin, "_execute_fsm_transition", side_effect=fsm.TransitionNotAllowed
+        ):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(
+                    data={
+                        "title": "New Title",
+                        "comment": "Because",
+                        "description": "Because",
+                    },
+                ),
+                object_id=str(self.blog_post.pk),
+                transition_name="complex_transition",
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'complex_transition' is not allowed.",
+            level=messages.ERROR,
+        )
+
+        self.blog_post.refresh_from_db()
+        assert self.blog_post.state == AdminBlogPostState.PUBLISHED
+        self.assert_state_log_empty()
+
+    def test_transition_form_concurrent_exception(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with mock.patch.object(
+            self.model_admin,
+            "_execute_fsm_transition",
+            side_effect=fsm.ConcurrentTransition("error message"),
+        ):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(
+                    data={
+                        "title": "New Title",
+                        "comment": "Because",
+                        "description": "Because",
+                    },
+                ),
+                object_id=str(self.blog_post.pk),
+                transition_name="complex_transition",
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'complex_transition' failed: error message.",
+            level=messages.ERROR,
+        )
+
+        self.blog_post.refresh_from_db()
+        assert self.blog_post.state == AdminBlogPostState.PUBLISHED
         self.assert_state_log_empty()
 
     def test_invalid_object_id(self, mock_message_user: mock.Mock) -> None:
