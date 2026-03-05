@@ -58,5 +58,11 @@ class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
     def step_reset_action(self, request: HttpRequest, queryset: QuerySet[AdminBlogPost]) -> None:
         for obj in queryset:
             if fsm.can_proceed(obj.step_reset):
-                obj.step_reset(by=request.user, description="Reset from admin")
-                obj.save()
+                self._apply_fsm_transition(
+                    obj=obj,
+                    transition_name="step_reset",
+                    request=request,
+                    kwargs={
+                        "description": "Reset from admin",
+                    },
+                )

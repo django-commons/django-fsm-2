@@ -210,7 +210,7 @@ class ModelAdminTestCase(TestCase):
         def transition_method(*, comment: str) -> None:
             called["comment"] = comment
 
-        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
+        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=False):
             self.model_admin._execute_fsm_transition(
                 transition_func=transition_method,
                 request=self.request,
@@ -236,8 +236,7 @@ class ModelAdminTestCase(TestCase):
 
         transitions_by_field = {
             item.fsm_field: {
-                transition_context.transition.name
-                for transition_context in item.available_transitions
+                transition_context.name for transition_context in item.available_transitions
             }
             for item in transitions
         }
@@ -249,6 +248,9 @@ class ModelAdminTestCase(TestCase):
             user=self.request.user
         )
         assert "secret_transition" not in transitions_by_field["state"]
+
+        assert "conditions_unmet" not in transitions_by_field["state"]
+        assert "permission_denied" not in transitions_by_field["state"]
 
     @mock.patch("django.contrib.admin.ModelAdmin.change_view")
     @mock.patch("django_fsm.admin.FSMAdminMixin._get_fsm_extra_context")
@@ -320,6 +322,32 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
                     data={"_fsm_transition_to": "unknown_transition"},
                 ),
                 obj=blog_post,
+            )
+
+        self.assert_state_log_empty()
+
+    def test_non_transition_function(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with pytest.raises(ValueError, match=r"not an FSM transition"):
+            self.model_admin.response_change(
+                request=self.make_request(
+                    data={"_fsm_transition_to": "normal_function"},
+                ),
+                obj=self.blog_post,
+            )
+
+        self.assert_state_log_empty()
+
+    def test_non_callable_function(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with pytest.raises(TypeError, match=r"Attribute 'name_property' is not callable."):
+            self.model_admin.response_change(
+                request=self.make_request(
+                    data={"_fsm_transition_to": "name_property"},
+                ),
+                obj=self.blog_post,
             )
 
         self.assert_state_log_empty()
@@ -562,6 +590,30 @@ class ResponseChangeViewWithoutFsmLogTestCase(ResponseChangeViewTestCase):
 @mock.patch("tests.testapp.admin.AdminBlogPostAdmin.message_user")
 class TransitionViewTestCase(BaseAdminTestCase):
     # Errors
+    def test_non_transition_function(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with pytest.raises(ValueError, match=r"not an FSM transition"):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(),
+                object_id=str(self.blog_post.pk),
+                transition_name="normal_function",
+            )
+
+        self.assert_state_log_empty()
+
+    def test_non_callable_function(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with pytest.raises(TypeError, match=r"Attribute 'name_property' is not callable."):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(),
+                object_id=str(self.blog_post.pk),
+                transition_name="name_property",
+            )
+
+        self.assert_state_log_empty()
+
     def test_transition_raised_exception(self, mock_message_user: mock.Mock) -> None:
         self.assert_state_log_empty()
 
@@ -633,6 +685,66 @@ class TransitionViewTestCase(BaseAdminTestCase):
         mock_message_user.assert_called_once_with(
             request=mock.ANY,
             message="FSM transition 'complex_transition' failed: error message.",
+            level=messages.ERROR,
+        )
+
+        self.blog_post.refresh_from_db()
+        assert self.blog_post.state == AdminBlogPostState.PUBLISHED
+        self.assert_state_log_empty()
+
+    def test_permission_denied(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with mock.patch.object(
+            self.model_admin,
+            "fsm_forms",
+            {
+                "permission_denied": FSMLogDescriptionForm,
+            },
+        ):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(
+                    data={
+                        "description": "Because",
+                    },
+                ),
+                object_id=str(self.blog_post.pk),
+                transition_name="permission_denied",
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'permission_denied' is not allowed.",
+            level=messages.ERROR,
+        )
+
+        self.blog_post.refresh_from_db()
+        assert self.blog_post.state == AdminBlogPostState.PUBLISHED
+        self.assert_state_log_empty()
+
+    def test_conditions_denied(self, mock_message_user: mock.Mock) -> None:
+        self.assert_state_log_empty()
+
+        with mock.patch.object(
+            self.model_admin,
+            "fsm_forms",
+            {
+                "conditions_unmet": FSMLogDescriptionForm,
+            },
+        ):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(
+                    data={
+                        "description": "Because",
+                    },
+                ),
+                object_id=str(self.blog_post.pk),
+                transition_name="conditions_unmet",
+            )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'conditions_unmet' is not allowed.",
             level=messages.ERROR,
         )
 

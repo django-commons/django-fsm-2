@@ -13,11 +13,13 @@
 {% endblock %}
 
 {% block content %}
-<h1>{% firstof transition.help_text transition.label %}</h1>
+<h1>{{ transition.label }}</h1>
+
+<p>{{ transition.help_text }}</p>
 
 <form method="post">
     {% csrf_token %}
-    {{ transition_form.as_p }}
+    {{ transition_form.as_div }}
     <input type="submit" value="{% translate 'Apply' %}">
 </form>
 

@@ -28,7 +28,11 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Sequence
     from typing import Self
 
-    from django.contrib.auth.models import PermissionsMixin as UserWithPermissions
+    from django.contrib.auth.models import AbstractUser
+    from django.contrib.auth.models import AnonymousUser
+    from django.contrib.auth.models import PermissionsMixin
+
+    UserWithPermissions: typing.TypeAlias = AbstractUser | AnonymousUser | PermissionsMixin
 
     _Field: typing.TypeAlias = models.Field[typing.Any, typing.Any]
     CharField: typing.TypeAlias = models.CharField[str, str]

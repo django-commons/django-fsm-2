@@ -252,7 +252,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "django", specifier = ">=4.2.28" },
+    { name = "django", specifier = ">=4.2.29" },
     { name = "django-stubs-ext" },
     { name = "graphviz", marker = "extra == 'graphviz'" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
