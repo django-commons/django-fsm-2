@@ -28,7 +28,11 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Sequence
     from typing import Self
 
-    from django.contrib.auth.models import PermissionsMixin as UserWithPermissions
+    from django.contrib.auth.models import AbstractUser
+    from django.contrib.auth.models import AnonymousUser
+    from django.contrib.auth.models import PermissionsMixin
+
+    UserWithPermissions: typing.TypeAlias = AbstractUser | AnonymousUser | PermissionsMixin
 
     _Field: typing.TypeAlias = models.Field[typing.Any, typing.Any]
     CharField: typing.TypeAlias = models.CharField[str, str]
@@ -354,8 +358,8 @@ class FSMFieldMixin(_Field):
     def change_state(
         self, instance: _FSMModel, method: typing.Any, *args: typing.Any, **kwargs: typing.Any
     ) -> typing.Any:
-        meta = method._django_fsm
-        method_name = method.__name__
+        meta: FSMMeta = method._django_fsm
+        method_name: str = method.__name__
         current_state = self.get_state(instance)
 
         if not meta.has_transition(current_state):
@@ -512,7 +516,7 @@ class FSMModelMixin(_FSMModel):
     """
 
     def _get_protected_fsm_fields(self) -> set[str]:
-        def is_fsm_and_protected(f: object) -> typing.Any:
+        def is_fsm_and_protected(f: object) -> bool:
             return isinstance(f, FSMFieldMixin) and f.protected
 
         protected_fields = filter(is_fsm_and_protected, self._meta.concrete_fields)
@@ -531,7 +535,7 @@ class FSMModelMixin(_FSMModel):
             setattr(self._meta.get_field(f), "protected", True)
 
 
-class ConcurrentTransitionMixin(_FSMModel):
+class ConcurrentTransitionMixin(FSMModelMixin):
     """
     Protects a Model from undesirable effects caused by concurrently executed transitions,
     e.g. running the same transition multiple times at the same time, or running different
@@ -542,13 +546,13 @@ class ConcurrentTransitionMixin(_FSMModel):
     This scheme is not that strict as true *optimistic locking* mechanism, it is however
     more lightweight - leveraging the specifics of FSM models.
 
-    Instance of a model based on this Mixin will be prevented from saving into DB if typing.Any
+    Instance of a model based on this Mixin will be prevented from saving into DB if any
     of its state fields (instances of FSMFieldMixin) has been changed since the object
     was fetched from the database. *ConcurrentTransition* exception will be raised in such
     cases.
 
     For guaranteed protection against such race conditions, make sure:
-    * Your transitions do not have typing.Any side effects except for changes in the database,
+    * Your transitions do not have any side effects except for changes in the database,
     * You always run the save() method on the object within django.db.transaction.atomic()
     block.
 

@@ -406,6 +406,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
         custom={
             "label": "Rename *",
             "form": "tests.testapp.admin_forms.AdminBlogPostRenameForm",
+            "help_text": "Do it wisely!",
         },
     )
     def complex_transition(
@@ -420,6 +421,22 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
         if comment:
             ...
             # Do something with the comment
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="*", target=None, conditions=[lambda _obj: False])
+    def conditions_unmet(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        pass
+
+    @fsm_log_by
+    @fsm_log_description
+    @transition(field=state, source="*", target=None, permission=lambda _obj, _user: False)
+    def permission_denied(
+        self, by: AbstractUser | None = None, description: str | None = None
+    ) -> None:
+        pass
 
     # step transitions
 
@@ -458,3 +475,10 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     )
     def step_reset(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
+
+    def normal_function(self):
+        raise NotImplementedError
+
+    @property
+    def name_property(self):
+        return "name"

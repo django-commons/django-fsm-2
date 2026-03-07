@@ -8,16 +8,18 @@
 &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
 &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
 &rsaquo; <a href="{% url opts|admin_urlname:'change' object_id=original.pk %}">{{ original|truncatewords:"18" }}</a>
-&rsaquo; {% firstof transition.custom.label transition.name %}
+&rsaquo; {{ transition.label }}
 </div>
 {% endblock %}
 
 {% block content %}
-<h1>{% firstof transition.custom.short_description transition.custom.label transition.name %}</h1>
+<h1>{{ transition.label }}</h1>
+
+<p>{{ transition.help_text }}</p>
 
 <form method="post">
     {% csrf_token %}
-    {{ transition_form.as_p }}
+    {{ transition_form.as_div }}
     <input type="submit" value="{% translate 'Apply' %}">
 </form>
 
