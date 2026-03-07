@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+django-fsm-2 4.2.0 2026-03-07
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Add typing
 - Improve transition equality (#97)
 - Drop support for python 3.8 & 3.9 (#86)
