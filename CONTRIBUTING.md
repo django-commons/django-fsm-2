@@ -57,7 +57,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install in development mode with dev dependencies
 pip install -e ".[graphviz]"
-pip install pytest pytest-django pytest-cov django-guardian pre-commit
+pip install pytest pytest-django pytest-cov django-guardian prek
 
 # Run tests
 pytest
@@ -134,16 +134,16 @@ uv run ruff format .
 
 ## Pre-commit Hooks
 
-We use pre-commit to ensure code quality before commits.
+We use prek to ensure code quality before commits.
 
 ### Setup
 
 ```bash
-# Install pre-commit hooks
-uv run pre-commit install
+# Install prek hooks
+uv run prek install
 
 # Run manually on all files
-uv run pre-commit run --all-files
+uv run prek run --all-files
 ```
 
 ## Type Checking
