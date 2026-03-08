@@ -51,7 +51,7 @@ dev = [
     "django-guardian",
     "graphviz",
     "mypy",
-    "pre-commit",
+    "prek",
     "pytest",
     "pytest-cov",
     "pytest-django",
