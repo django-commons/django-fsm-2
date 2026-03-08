@@ -1,0 +1,18 @@
+site_name: Django FSM-2
+repo_url: https://github.com/django-commons/django-fsm-2
+repo_name: django-commons/django-fsm-2
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Fields: fields.md
+  - Transitions: transitions.md
+  - Helpers: helpers.md
+  - Signals: signals.md
+  - Concurrency: concurrency.md
+  - Admin Integration: admin.md
+  - Graphing: graphing.md
+  - Extensions: extensions.md
+  - Best Practices: best-practices.md
+  - Contributing: contributing.md
