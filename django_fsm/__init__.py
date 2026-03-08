@@ -21,11 +21,6 @@ from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
 if typing.TYPE_CHECKING:  # pragma: no cover
-    from collections.abc import Callable
-    from collections.abc import Collection
-    from collections.abc import Generator
-    from collections.abc import Iterable
-    from collections.abc import Sequence
     from typing import Self
 
     from django.contrib.auth.models import AbstractUser
@@ -39,10 +34,11 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     IntegerField: typing.TypeAlias = models.IntegerField[int, int]
     ForeignKey: typing.TypeAlias = models.ForeignKey[typing.Any, typing.Any]
 
-    _FSMModel = models.Model
+    _FSMModel: typing.TypeAlias = models.Model
     _StateValue: typing.TypeAlias = str | int | models.Choices
-    _Permission: typing.TypeAlias = str | Callable[[_FSMModel, typing.Any], bool]
-    _Condition: typing.TypeAlias = Callable[[models.Model], bool]
+    _Permission: typing.TypeAlias = str | typing.Callable[[_FSMModel, UserWithPermissions], bool]
+    _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
+    _TransitionFunc: typing.TypeAlias = typing.Callable[..., _StateValue | typing.Any | None]
 
 else:
     _FSMModel = object
@@ -99,7 +95,7 @@ class ConcurrentTransition(Exception):  # noqa: N818
 class Transition:
     def __init__(
         self,
-        method: Callable[..., _StateValue | None],
+        method: _TransitionFunc,
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
@@ -147,7 +143,7 @@ class Transition:
 
 def get_available_FIELD_transitions(  # noqa: N802
     instance: _FSMModel, field: FSMFieldMixin
-) -> Generator[Transition]:
+) -> typing.Generator[Transition]:
     """
     List of transitions available in current model state
     with all conditions met
@@ -161,7 +157,9 @@ def get_available_FIELD_transitions(  # noqa: N802
             yield meta.get_transition(curr_state)
 
 
-def get_all_FIELD_transitions(instance: _FSMModel, field: FSMFieldMixin) -> Generator[Transition]:  # noqa: N802
+def get_all_FIELD_transitions(  # noqa: N802
+    instance: _FSMModel, field: FSMFieldMixin
+) -> typing.Generator[Transition]:
     """
     List of all transitions available in current model state
     """
@@ -170,7 +168,7 @@ def get_all_FIELD_transitions(instance: _FSMModel, field: FSMFieldMixin) -> Gene
 
 def get_available_user_FIELD_transitions(  # noqa: N802
     instance: _FSMModel, user: UserWithPermissions, field: FSMFieldMixin
-) -> Generator[Transition]:
+) -> typing.Generator[Transition]:
     """
     List of transitions available in current model state
     with all conditions met and user have rights on it
@@ -199,12 +197,12 @@ class FSMMeta:
 
     def add_transition(
         self,
-        method: Callable[..., _StateValue],
+        method: _TransitionFunc,
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None = None,
         conditions: list[_Condition] | None = None,
-        permission: str | Callable[[_FSMModel, UserWithPermissions], bool] | None = None,
+        permission: _Permission | None = None,
         custom: dict[str, typing.Any] | None = None,
     ) -> None:
         if source in self.transitions:
@@ -320,7 +318,7 @@ class FSMFieldMixin(_Field):
         super().__init__(*args, **kwargs)
 
     @override
-    def deconstruct(self) -> tuple[str, str, Sequence[typing.Any], dict[str, typing.Any]]:
+    def deconstruct(self) -> tuple[str, str, typing.Sequence[typing.Any], dict[str, typing.Any]]:
         name, path, args, kwargs = super().deconstruct()
         if self.protected:
             kwargs["protected"] = self.protected
@@ -414,7 +412,7 @@ class FSMFieldMixin(_Field):
 
         return result
 
-    def get_all_transitions(self, instance_cls: type[_FSMModel]) -> Generator[Transition]:
+    def get_all_transitions(self, instance_cls: type[_FSMModel]) -> typing.Generator[Transition]:
         """
         Returns [(source, target, name, method)] for all field transitions
         """
@@ -458,7 +456,7 @@ class FSMFieldMixin(_Field):
         if not issubclass(sender, self.base_cls):
             return
 
-        def is_field_transition_method(attr: Callable[[typing.Any], typing.Any]) -> bool:
+        def is_field_transition_method(attr: _TransitionFunc) -> bool:
             return (
                 (inspect.ismethod(attr) or inspect.isfunction(attr))
                 and hasattr(attr, "_django_fsm")
@@ -567,7 +565,7 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         self._update_initial_state()
 
     @property
-    def state_fields(self) -> Iterable[FSMFieldMixin]:
+    def state_fields(self) -> typing.Iterable[FSMFieldMixin]:
         return filter(lambda field: isinstance(field, FSMFieldMixin), self._meta.fields)  # type: ignore[arg-type]
 
     @override
@@ -576,8 +574,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         base_qs: QuerySet[Self],
         using: str | None,
         pk_val: typing.Any,
-        values: Collection[tuple[_Field, type[models.Model] | None, typing.Any]],
-        update_fields: Iterable[str] | None,
+        values: typing.Collection[tuple[_Field, type[models.Model] | None, typing.Any]],
+        update_fields: typing.Iterable[str] | None,
         forced_update: bool,
         returning_fields: bool | None = None,
     ) -> bool:
@@ -644,13 +642,13 @@ class ConcurrentTransitionMixin(FSMModelMixin):
 
 def transition(
     field: FSMFieldMixin | str,
-    source: _StateValue | Sequence[_StateValue] = "*",
+    source: _StateValue | typing.Sequence[_StateValue] = "*",
     target: _StateValue | State | None = None,
     on_error: _StateValue | None = None,
     conditions: list[_Condition] | None = None,
     permission: _Permission | None = None,
     custom: dict[str, typing.Any] | None = None,
-) -> Callable[[typing.Any], typing.Any]:
+) -> typing.Callable[[typing.Any], typing.Any]:
     """
     Method decorator to mark allowed transitions.
 
@@ -728,14 +726,14 @@ def has_transition_perm(bound_method: typing.Any, user: UserWithPermissions) -> 
 
 
 class State:
-    allowed_states: Sequence[_StateValue]
+    allowed_states: typing.Sequence[_StateValue]
 
     def get_state(
         self,
         model: _FSMModel,
         transition: Transition,
         result: typing.Any,
-        args: Sequence[typing.Any] | None = None,
+        args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
     ) -> typing.Any:
         raise NotImplementedError
@@ -750,7 +748,7 @@ class RETURN_VALUE(State):  # noqa: N801
         model: _FSMModel,
         transition: Transition,
         result: typing.Any,
-        args: Sequence[typing.Any] | None = None,
+        args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
     ) -> typing.Any:
         if self.allowed_states is not None and result not in self.allowed_states:
@@ -763,8 +761,8 @@ class RETURN_VALUE(State):  # noqa: N801
 class GET_STATE(State):  # noqa: N801
     def __init__(
         self,
-        func: Callable[..., _StateValue],
-        states: Sequence[_StateValue] | None = None,
+        func: typing.Callable[..., _StateValue],
+        states: typing.Sequence[_StateValue] | None = None,
     ) -> None:
         self.func = func
         self.allowed_states = states or []
@@ -774,7 +772,7 @@ class GET_STATE(State):  # noqa: N801
         model: _FSMModel,
         transition: Transition,
         result: _StateValue,
-        args: Sequence[typing.Any] | None = None,
+        args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
     ) -> typing.Any:
         if args is None:

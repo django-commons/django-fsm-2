@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 else:
     _ModelAdmin = admin.ModelAdmin
 
-_FormType = type[Form | ModelForm[typing.Any]]
+_FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
 
 
 @dataclass
@@ -230,9 +230,9 @@ class FSMAdminMixin(_ModelAdmin):
 
     def _get_fsm_transition_func(
         self, *, obj: fsm._FSMModel, transition_name: str
-    ) -> typing.Callable[..., typing.Any]:
+    ) -> fsm._TransitionFunc:
         try:
-            transition_func: typing.Callable[..., typing.Any] = getattr(obj, transition_name)
+            transition_func: fsm._TransitionFunc = getattr(obj, transition_name)
         except AttributeError:
             raise AttributeError(
                 f"{obj.__class__.__name__} has no transition method '{transition_name}'."
@@ -268,7 +268,7 @@ class FSMAdminMixin(_ModelAdmin):
     def _execute_fsm_transition(
         self,
         *,
-        transition_func: typing.Callable[..., typing.Any],
+        transition_func: fsm._TransitionFunc,
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
