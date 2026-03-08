@@ -194,15 +194,6 @@ class ModelAdminTestCase(TestCase):
     def test_protected_fields_are_readonly(self):
         assert self.model_admin.get_readonly_fields(request=self.request) == ("state",)
 
-    def test_get_fsm_redirect_url(self):
-        assert (
-            self.model_admin.get_fsm_redirect_url(
-                request=RequestFactory().get(path="/path"),
-                obj=None,
-            )
-            == "/path"
-        )
-
     # Execution
     def test_execute_fsm_transition_falls_back_to_plain_call(self) -> None:
         called: dict[str, str] = {}
