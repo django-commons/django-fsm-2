@@ -157,8 +157,5 @@ no_implicit_reexport = true
 warn_return_any = true
 
 [[tool.mypy.overrides]]
-module = [
-    "tests.*",
-    "django_fsm.tests.*"
-]
+module = ["tests.*"]
 disallow_untyped_defs = false
