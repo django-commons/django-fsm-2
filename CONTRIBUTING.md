@@ -177,6 +177,18 @@ uv run mypy django_fsm
 - Start with a verb (Add, Fix, Update, Remove, etc.)
 - Reference issues when applicable: "Fix #123: Handle edge case in transition"
 
+## Release Process
+
+Releases are published by tagging a commit on `main`. The GitHub workflow at `.github/workflows/release.yml` runs on tags, and the version number is taken from `pyproject.toml`.
+
+1. **Create a release branch** from the latest `main`.
+2. **Bump the version** in `pyproject.toml`.
+3. **Update `CHANGELOG.rst`** with the release date and notable changes.
+4. **Open a pull request** against `main` and merge it after review (direct commits to `main` are blocked).
+5. **Create a tag on `main`** for the version you just merged (for example, `1.2.3`). This can be done from the GitHub UI or CLI by someone with release permissions.
+6. **Verify the GitHub Actions run** for the tag completes successfully.
+7. **Confirm publishing** the release to Pypi.
+
 ## Getting Help
 
 - **Issues**: Open a [GitHub issue](https://github.com/django-commons/django-fsm-2/issues) for bugs or feature requests
