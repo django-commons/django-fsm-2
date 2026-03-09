@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Add logging solution
+
+
 django-fsm-2 4.2.0 2026-03-07
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

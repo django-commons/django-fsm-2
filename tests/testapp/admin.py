@@ -3,14 +3,19 @@ from __future__ import annotations
 import typing
 
 from django.contrib import admin
-from django_fsm_log.admin import StateLogInline
+from django.contrib.admin import ModelAdmin
 
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
+from django_fsm.admin import FSMTransitionInlineMixin
+from django_fsm.admin import StateLogInline
 
 from .admin_forms import ForceStateForm
 from .admin_forms import FSMLogDescriptionForm
 from .models import AdminBlogPost
+from .models import GenericTrackedPost
+from .models import TrackedPost
+from .models import TrackedPostStateLog
 
 if typing.TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -66,3 +71,21 @@ class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
                         "description": "Reset from admin",
                     },
                 )
+
+
+class GenericTrackedPostAdmin(ModelAdmin[GenericTrackedPost]):
+    class Meta:
+        model = GenericTrackedPost
+
+    inlines = [StateLogInline]
+
+
+class TrackedPostStateLogInline(FSMTransitionInlineMixin):
+    model = TrackedPostStateLog
+
+
+class TrackedPostAdmin(ModelAdmin[TrackedPost]):
+    class Meta:
+        model = TrackedPost
+
+    inlines = [TrackedPostStateLogInline]
