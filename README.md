@@ -618,8 +618,6 @@ You can also capture `author` and `description` for each transition.
 
 ```python
 import django_fsm
-from django_fsm.log import fsm_log_by
-from django_fsm.log import fsm_log_description
 from django.db import models
 
 
@@ -627,8 +625,6 @@ from django.db import models
 class BlogPost(models.Model):
     state = django_fsm.FSMField(default="new")
 
-    @fsm_log_by
-    @fsm_log_description
     @django_fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass

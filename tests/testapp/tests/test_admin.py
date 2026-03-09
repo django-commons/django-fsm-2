@@ -38,15 +38,16 @@ if typing.TYPE_CHECKING:
 class BaseAdminTestCase(TestCase):
     model = AdminBlogPost
     admin_class = AdminBlogPostAdmin
-    user: User | AnonymousUser
+    user: User
     blog_post: AdminBlogPost
 
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.user = get_user_model().objects.create_user(
             username="jacob",
             password="password",  # noqa: S106
             is_staff=True,
+            is_superuser=True,
         )
 
         cls.blog_post = cls.model.objects.create(
@@ -823,7 +824,7 @@ class ModelFormTransitionViewTestCase(TransitionViewTestCase):
                 "complex_transition": AdminBlogPostRenameModelForm,
                 "invalid": FSMLogDescriptionForm,
             },
-            clear=False,
+            clear=True,
         )
         self.fsm_forms_patcher.start()
         super().setUp()
@@ -831,3 +832,25 @@ class ModelFormTransitionViewTestCase(TransitionViewTestCase):
     def tearDown(self) -> None:
         self.fsm_forms_patcher.stop()
         super().tearDown()
+
+
+class InlineTestCase(BaseAdminTestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.blog_post.force_state(AdminBlogPostState.HIDDEN)
+        cls.blog_post.save()
+
+    def setUp(self) -> None:
+        self.client.force_login(user=self.user)
+
+    def test_page(self) -> None:
+        assert StateLog.objects.count() == 1
+        self.client.get(
+            reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
+                kwargs={
+                    "object_id": self.blog_post.pk,
+                },
+            )
+        )

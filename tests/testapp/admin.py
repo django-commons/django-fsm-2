@@ -3,12 +3,11 @@ from __future__ import annotations
 import typing
 
 from django.contrib import admin
-from django.contrib.admin import ModelAdmin
 
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
 from django_fsm.admin import FSMTransitionInlineMixin
-from django_fsm.admin import StateLogInline
+from django_fsm_log.admin import StateLogInline
 
 from .admin_forms import ForceStateForm
 from .admin_forms import FSMLogDescriptionForm
@@ -74,7 +73,7 @@ class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
                 )
 
 
-class GenericTrackedPostAdmin(ModelAdmin[GenericTrackedPost]):
+class GenericTrackedPostAdmin(admin.ModelAdmin[GenericTrackedPost]):
     class Meta:
         model = GenericTrackedPost
 
@@ -85,7 +84,8 @@ class TrackedPostStateLogInline(FSMTransitionInlineMixin):
     model = TrackedPostStateLog
 
 
-class TrackedPostAdmin(ModelAdmin[TrackedPost]):
+@admin.register(TrackedPost)
+class TrackedPostAdmin(admin.ModelAdmin[TrackedPost]):
     class Meta:
         model = TrackedPost
 

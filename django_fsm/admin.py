@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass
-from warnings import warn
 
 try:
     from typing import override
@@ -17,7 +16,6 @@ from django.contrib import admin
 from django.contrib import messages
 from django.contrib.admin import TabularInline
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
-from django.contrib.contenttypes.admin import GenericTabularInline
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.forms import Form
@@ -32,19 +30,21 @@ from django.utils.translation import gettext_lazy as _
 
 import django_fsm as fsm
 
-from .models import StateLog
-from .models import TransitionLogBase
-
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:  # pragma: no cover
+    from django.http import HttpRequest
+
+    from .models import TransitionLogBase
+
     _ModelAdmin: typing.TypeAlias = admin.ModelAdmin[fsm._FSMModel]
     _FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
-
-    from django.http import HttpRequest
+    _FSMTransitionInlineBase: typing.TypeAlias = TabularInline[TransitionLogBase, models.Model]
 else:
     _ModelAdmin = admin.ModelAdmin
     _FormType = type[Form | ModelForm]
+    TransitionLogBase = models.Model
+    _FSMTransitionInlineBase = TabularInline
 
 
 @dataclass
@@ -405,7 +405,7 @@ class FSMAdminMixin(_ModelAdmin):
         )
 
 
-class FSMTransitionInlineMixin(TabularInline[TransitionLogBase, models.Model]):
+class FSMTransitionInlineMixin(_FSMTransitionInlineBase):
     can_delete = False
 
     def has_add_permission(self, request: HttpRequest, obj: models.Model | None = None) -> bool:
@@ -430,15 +430,3 @@ class FSMTransitionInlineMixin(TabularInline[TransitionLogBase, models.Model]):
 
     def get_queryset(self, request: HttpRequest) -> models.QuerySet[TransitionLogBase]:
         return super().get_queryset(request).order_by(models.F("timestamp").desc())
-
-
-class StateLogInline(FSMTransitionInlineMixin, GenericTabularInline):
-    model = StateLog
-
-    def __init__(self, parent_model: typing.Any, admin_site: typing.Any) -> None:
-        warn(
-            "StateLogInline has been deprecated by FSMTransitionInlineMixin.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(parent_model, admin_site)
