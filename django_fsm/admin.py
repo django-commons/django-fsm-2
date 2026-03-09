@@ -33,11 +33,11 @@ except ImportError:  # pragma: no cover
     from typing_extensions import override
 
 if typing.TYPE_CHECKING:  # pragma: no cover
-    _ModelAdmin = admin.ModelAdmin[fsm._FSMModel]
+    _ModelAdmin: typing.TypeAlias = admin.ModelAdmin[fsm._FSMModel]
+    _FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
 else:
     _ModelAdmin = admin.ModelAdmin
-
-_FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
+    _FormType = type[Form | ModelForm]
 
 
 @dataclass
