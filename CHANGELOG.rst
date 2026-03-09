@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Fix ``django_fsm.admin`` import failures when Django generic types are not
+  runtime-subscriptable
+
 django-fsm-2 4.2.0 2026-03-07
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

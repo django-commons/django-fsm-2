@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import os
+import subprocess
+import sys
 import typing
 from http import HTTPStatus
+from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
 
@@ -167,6 +171,35 @@ class ModelAdminMisconfigurationTestCase(TestCase):
             match=r"Failed to import form invalid\.path",
         ):
             blog_admin.get_fsm_transition_form(transition)
+
+
+def test_admin_module_imports_without_django_stubs_monkeypatch() -> None:
+    project_root = Path(__file__).resolve().parents[3]
+    env = os.environ.copy()
+    env.pop("DJANGO_SETTINGS_MODULE", None)
+    python_path = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        f"{project_root}{os.pathsep}{python_path}" if python_path else str(project_root)
+    )
+
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            (
+                "from django.conf import settings; "
+                "settings.configure(SECRET_KEY='test', USE_I18N=False); "
+                "import django_fsm.admin"
+            ),
+        ],
+        capture_output=True,
+        check=False,
+        cwd=project_root,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 class ModelAdminTestCase(TestCase):
