@@ -8,7 +8,7 @@ from django.contrib.admin import ModelAdmin
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
 from django_fsm.admin import FSMTransitionInlineMixin
-from django_fsm.admin import StateLogInline
+from django_fsm_log.admin import StateLogInline
 
 from .admin_forms import ForceStateForm
 from .admin_forms import FSMLogDescriptionForm

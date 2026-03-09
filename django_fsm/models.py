@@ -46,6 +46,7 @@ class StateLog(TransitionLogBase):  # noqa: DJ008
     objects = StateLogQuerySet.as_manager()
 
     class Meta:
+        db_table = "django_fsm_log_statelog"
         indexes = [
             models.Index(fields=["source_state", "state"]),
             models.Index(fields=["content_type", "object_id"]),
