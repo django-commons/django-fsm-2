@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import typing
-
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_fsm_log.decorators import fsm_log_by
 from django_fsm_log.decorators import fsm_log_description
@@ -12,9 +11,6 @@ from django_fsm import RETURN_VALUE
 from django_fsm import FSMField
 from django_fsm import FSMKeyField
 from django_fsm import transition
-
-if typing.TYPE_CHECKING:
-    from django.contrib.auth.models import AbstractUser
 
 
 class Application(models.Model):
@@ -210,8 +206,10 @@ class BlogPost(models.Model):
             ("can_remove_post", "Can remove post"),
         ]
 
-    def can_restore(self: models.Model, user: AbstractUser) -> bool:
-        return bool(user.is_superuser or user.is_staff)
+    def can_restore(self: models.Model, user: fsm.UserWithPermissions) -> bool:
+        if isinstance(user, AbstractUser):
+            return bool(user.is_superuser or user.is_staff)
+        return False
 
     @transition(
         field=state,

@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 else:
     _ModelAdmin = admin.ModelAdmin
 
-_FormType = type[Form | ModelForm[typing.Any]]
+_FormType: typing.TypeAlias = type[Form | ModelForm[fsm._FSMModel]]
 
 
 @dataclass
@@ -85,7 +85,7 @@ class FSMAdminMixin(_ModelAdmin):
 
     @override
     def get_readonly_fields(
-        self, request: http.HttpRequest, obj: typing.Any = None
+        self, request: http.HttpRequest, obj: fsm._FSMModel | None = None
     ) -> tuple[str, ...]:
         """Ensures 'protected' fields are 'readonly'"""
 
@@ -141,7 +141,7 @@ class FSMAdminMixin(_ModelAdmin):
         )
 
     @override
-    def response_change(self, request: http.HttpRequest, obj: typing.Any) -> http.HttpResponse:
+    def response_change(self, request: http.HttpRequest, obj: fsm._FSMModel) -> http.HttpResponse:
         transition_name = request.POST.get(self.fsm_post_param)
         if not transition_name:
             return super().response_change(request=request, obj=obj)
@@ -172,7 +172,7 @@ class FSMAdminMixin(_ModelAdmin):
                     "preserved_filters": self.get_preserved_filters(request),
                     "opts": self.model._meta,
                 },
-                url=self.get_fsm_redirect_url(request=request, obj=obj),
+                url=request.path,
             )
         )
 
@@ -191,9 +191,6 @@ class FSMAdminMixin(_ModelAdmin):
     def get_help_text(self, transition: fsm.Transition) -> str | None:
         return transition.custom.get("help_text")
 
-    def get_fsm_redirect_url(self, request: http.HttpRequest, obj: typing.Any) -> str:
-        return request.path
-
     def get_fsm_transition_form(self, transition: fsm.Transition) -> _FormType | None:
         """Get transition form class with error handling."""
         form = self.fsm_forms.get(transition.name, transition.custom.get("form"))
@@ -210,7 +207,7 @@ class FSMAdminMixin(_ModelAdmin):
     # Transition helpers
 
     def _get_fsm_extra_context(
-        self, *, request: http.HttpRequest, obj: typing.Any
+        self, *, request: http.HttpRequest, obj: fsm._FSMModel | None
     ) -> typing.Generator[FSMObjectTransition]:
         for field_name in sorted(self.fsm_fields):
             transitions_func = getattr(obj, f"get_available_user_{field_name}_transitions", None)
@@ -232,10 +229,10 @@ class FSMAdminMixin(_ModelAdmin):
                     )
 
     def _get_fsm_transition_func(
-        self, *, obj: typing.Any, transition_name: str
-    ) -> typing.Callable[..., typing.Any]:
+        self, *, obj: fsm._FSMModel, transition_name: str
+    ) -> fsm._TransitionFunc:
         try:
-            transition_func: typing.Callable[..., typing.Any] = getattr(obj, transition_name)
+            transition_func: fsm._TransitionFunc = getattr(obj, transition_name)
         except AttributeError:
             raise AttributeError(
                 f"{obj.__class__.__name__} has no transition method '{transition_name}'."
@@ -251,7 +248,7 @@ class FSMAdminMixin(_ModelAdmin):
         return transition_func
 
     def _get_fsm_transition_by_name(
-        self, *, obj: typing.Any, transition_name: str
+        self, *, obj: fsm._FSMModel, transition_name: str
     ) -> fsm.Transition:
         transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
         transitions = transition_func._django_fsm.transitions  # type: ignore[attr-defined]
@@ -271,7 +268,7 @@ class FSMAdminMixin(_ModelAdmin):
     def _execute_fsm_transition(
         self,
         *,
-        transition_func: typing.Callable[..., typing.Any],
+        transition_func: fsm._TransitionFunc,
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
@@ -287,7 +284,7 @@ class FSMAdminMixin(_ModelAdmin):
     def _apply_fsm_transition(
         self,
         *,
-        obj: typing.Any,
+        obj: fsm._FSMModel,
         transition_name: str,
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
@@ -344,15 +341,13 @@ class FSMAdminMixin(_ModelAdmin):
     # Form handling
 
     def fsm_transition_view(
-        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, object_id: str, transition_name: str, **kwargs: typing.Any
     ) -> http.HttpResponse:
         """Handle FSM transition form view with enhanced validation."""
-        object_id = kwargs["object_id"]
+
         obj = self.get_object(request, object_id)
         if obj is None:
             return self._get_obj_does_not_exist_redirect(request, self.opts, object_id)  # type: ignore[no-any-return, attr-defined]
-
-        transition_name = kwargs["transition_name"]
 
         transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
 
