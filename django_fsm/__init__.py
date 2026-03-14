@@ -107,7 +107,7 @@ class Transition:
         self.source = source
         self.target = target
         self.on_error = on_error
-        self.conditions = conditions
+        self.conditions = conditions or []
         self.permission = permission
         self.custom = custom or {}
 
