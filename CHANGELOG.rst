@@ -5,6 +5,11 @@ Unreleased
 ~~~~~~~~~~
 
 
+django-fsm-2 4.2.2 2026-03-14
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Instantiate ``Transition.conditions`` with an empty ``Iterable`` instead of ``None``
+
 django-fsm-2 4.2.1 2026-03-09
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
