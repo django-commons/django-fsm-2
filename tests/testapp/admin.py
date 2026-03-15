@@ -31,6 +31,7 @@ class AdminBlogPostAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
     fsm_fields = [
         "state",
         "step",
+        "key_state",
     ]
 
     fsm_forms = {

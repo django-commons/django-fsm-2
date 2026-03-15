@@ -71,9 +71,9 @@ class FSMAdminMixin(_ModelAdmin):
 
     @override
     def __init__(self, model: type[fsm._FSMModel], admin_site: admin.AdminSite) -> None:
-        if not self.fsm_fields:  # pragma: no cover
+        if not self.fsm_fields:
             # django-fsm-admin retro compatibility
-            if hasattr(self, "fsm_field"):
+            if hasattr(self, "fsm_field"):  # pragma: no cover
                 logger.warning(
                     "'fsm_field' declaration is deprecated, please update to 'fsm_fields'"
                 )
@@ -92,13 +92,13 @@ class FSMAdminMixin(_ModelAdmin):
         read_only_fields = list(super().get_readonly_fields(request, obj))
 
         for fsm_field_name in self.fsm_fields:
-            if fsm_field_name in read_only_fields:  # pragma: no cover
-                continue
-
             field = self.model._meta.get_field(fsm_field_name)
 
-            if not isinstance(field, fsm.FSMField):  # pragma: no cover
+            if not isinstance(field, fsm.FSMFieldMixin):
                 raise ImproperlyConfigured(f"'{fsm_field_name}' is not an FSMField")
+
+            if fsm_field_name in read_only_fields:  # pragma: no cover
+                continue
 
             if getattr(field, "protected", False):
                 read_only_fields.append(fsm_field_name)

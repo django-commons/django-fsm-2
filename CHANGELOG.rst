@@ -4,6 +4,11 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+django-fsm-2 4.2.3 2026-03-15
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Make admin compatible with FSMIntegerField and FSMKeyField
+
 
 django-fsm-2 4.2.2 2026-03-14
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
