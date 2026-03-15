@@ -8,8 +8,6 @@ from django_fsm_log.decorators import fsm_log_description
 import django_fsm as fsm
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
-from django_fsm import FSMField
-from django_fsm import FSMKeyField
 from django_fsm import transition
 
 
@@ -19,7 +17,7 @@ class Application(models.Model):
     Test workflow
     """
 
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
     @transition(field=state, source="new", target="published", on_error="failed")
     def standard(self) -> None:
@@ -106,7 +104,7 @@ class FKApplication(models.Model):
     Test workflow for FSMKeyField
     """
 
-    state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     @transition(field=state, source="new", target="published")
     def standard(self) -> None:
@@ -175,7 +173,7 @@ class FKApplication(models.Model):
 
 
 class MultiStateApplication(Application):
-    another_state = FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    another_state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     @transition(field=another_state, source="new", target="published")
     def another_state_standard(self) -> None:
@@ -198,7 +196,7 @@ class BlogPost(models.Model):
     Test workflow
     """
 
-    state = FSMField(choices=BlogPostState.choices, default=BlogPostState.NEW, protected=True)
+    state = fsm.FSMField(choices=BlogPostState.choices, default=BlogPostState.NEW, protected=True)
 
     class Meta:
         permissions = [
@@ -274,26 +272,28 @@ class AdminBlogPostState(models.TextChoices):
     HIDDEN = "hidden", "Hidden"
 
 
-class AdminBlogPostStep(models.TextChoices):
-    STEP_1 = "step1", "Step one"
-    STEP_2 = "step2", "Step two"
-    STEP_3 = "step3", "Step three"
+class AdminBlogPostStep(models.IntegerChoices):
+    STEP_1 = 1, "Step one"
+    STEP_2 = 2, "Step two"
+    STEP_3 = 3, "Step three"
 
 
 class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=50)
 
-    state = FSMField(
+    state = fsm.FSMField(
         choices=AdminBlogPostState.choices,
         default=AdminBlogPostState.CREATED,
         protected=True,
     )
 
-    step = FSMField(
+    step = fsm.FSMIntegerField(
         choices=AdminBlogPostStep.choices,
         default=AdminBlogPostStep.STEP_1,
         protected=False,
     )
+
+    key_state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
 
     # state transitions
     def __str__(self) -> str:
