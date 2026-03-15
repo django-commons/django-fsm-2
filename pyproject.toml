@@ -79,7 +79,6 @@ DJANGO_SETTINGS_MODULE = "tests.settings"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
 fix = true
 
 [tool.ruff.lint]
@@ -113,6 +112,7 @@ fixable = [
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*" = [
     "DJ008",  # Model does not define `__str__` method
+    "TID252",  # Prefer absolute imports over relative imports from parent modules
 ]
 
 [tool.ruff.lint.isort]

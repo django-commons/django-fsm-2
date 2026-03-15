@@ -240,6 +240,7 @@ Use `custom` to attach arbitrary data to a transition.
 
 ```python
 import django_fsm as fsm
+
 @fsm.transition(
     field=state,
     source='*',
@@ -257,6 +258,7 @@ state.
 
 ```python
 import django_fsm as fsm
+
 @fsm.transition(
     field=state,
     source='new',
@@ -276,6 +278,7 @@ accepts a permission string or a callable that receives `(instance, user)`.
 
 ```python
 import django_fsm as fsm
+
 @fsm.transition(
     field=state,
     source='*',
@@ -458,6 +461,7 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 
 ``` python
 import django_fsm as fsm
+
 @fsm.transition(
     field='state',
     source=['startstate'],
@@ -496,7 +500,6 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 4. Hiding a transition is possible by adding ``custom={"admin": False}`` to the transition decorator:
 
 ``` python
-import django_fsm as fsm
     @fsm.transition(
         field='state',
         source=['startstate'],

@@ -113,11 +113,11 @@ class BlogPostStatus(models.Model):
 class BlogPostWithFKState(models.Model):
     status = FSMKeyField(BlogPostStatus, default=lambda: BlogPostStatus.objects.get(name="new"))
 
-    @transition(field=status, source='new', target='published')
+    @fsm.transition(field=status, source='new', target='published')
     def publish(self):
         pass
 
-    @transition(field=status, source='published', target='hidden')
+    @fsm.transition(field=status, source='published', target='hidden')
     def hide(self):
         pass
 
