@@ -7,15 +7,22 @@ from django.test import TestCase
 import django_fsm as fsm
 from django_fsm.signals import post_transition
 
+from ..choices import ApplicationState
+
 
 class ExceptionalBlogPost(models.Model):
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
-    @fsm.transition(field=state, source="new", target="published", on_error="crashed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.CRASHED,
+    )
     def publish(self):
         raise Exception("Upss")
 
-    @fsm.transition(field=state, source="new", target="deleted")
+    @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.REMOVED)
     def delete(self):
         raise Exception("Upss")
 
@@ -36,13 +43,13 @@ class FSMFieldExceptionTest(TestCase):
         assert fsm.can_proceed(self.model.publish)
         with pytest.raises(Exception, match="Upss"):
             self.model.publish()
-        assert self.model.state == "crashed"
-        assert self.post_transition_data["target"] == "crashed"
+        assert self.model.state == ApplicationState.CRASHED
+        assert self.post_transition_data["target"] == ApplicationState.CRASHED
         assert "exception" in self.post_transition_data
 
     def test_state_not_changed_after_fail(self):
         assert fsm.can_proceed(self.model.delete)
         with pytest.raises(Exception, match="Upss"):
             self.model.delete()
-        assert self.model.state == "new"
+        assert self.model.state == ApplicationState.NEW
         assert self.post_transition_data == {}

@@ -376,18 +376,19 @@ names, even if the field is accessed without the `_id` postfix.
 
 ```python
 import django_fsm as fsm
-class BlogPostStateEnum(object):
-    NEW = 10
-    PUBLISHED = 20
-    HIDDEN = 30
+
+class BlogPostStateChoices(models.IntegerChoices):
+    NEW = 10, "New"
+    PUBLISHED = 20, "Published"
+    HIDDEN = 30, "Hidden"
 
 class BlogPostWithIntegerField(fsm.FSMModelMixin, models.Model):
-    state = fsm.FSMIntegerField(default=BlogPostStateEnum.NEW)
+    state = fsm.FSMIntegerField(default=BlogPostStateChoices.NEW)
 
     @fsm.transition(
         field=state,
-        source=BlogPostStateEnum.NEW,
-        target=BlogPostStateEnum.PUBLISHED,
+        source=BlogPostStateChoices.NEW,
+        target=BlogPostStateChoices.PUBLISHED,
     )
     def publish(self, **kwargs):
         pass

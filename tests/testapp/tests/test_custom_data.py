@@ -6,33 +6,49 @@ from django.test import TestCase
 import django_fsm as fsm
 
 
+class ApplicationState(models.TextChoices):
+    NEW = "new", "New"
+    PUBLISHED = "published", "Published"
+    DESTROYED = "destroyed", "Destroyed"
+    REVIEW = "review", "Review"
+
+
 class BlogPostWithCustomData(models.Model):
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(
         field=state,
-        source="new",
-        target="published",
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
         conditions=[],
-        custom={"label": "Publish", "type": "*"},
+        custom={
+            "label": "Publish",
+            "type": "*",
+        },
     )
     def publish(self):
         pass
 
     @fsm.transition(
         field=state,
-        source="published",
-        target="destroyed",
-        custom={"label": "Destroy", "type": "manual"},
+        source=ApplicationState.PUBLISHED,
+        target=ApplicationState.DESTROYED,
+        custom={
+            "label": "Destroy",
+            "type": "manual",
+        },
     )
     def destroy(self):
         pass
 
     @fsm.transition(
         field=state,
-        source="published",
-        target="review",
-        custom={"label": "Periodic review", "type": "automated"},
+        source=ApplicationState.PUBLISHED,
+        target=ApplicationState.REVIEW,
+        custom={
+            "label": "Periodic review",
+            "type": "automated",
+        },
     )
     def review(self):
         pass
@@ -43,10 +59,10 @@ class CustomTransitionDataTest(TestCase):
         self.model = BlogPostWithCustomData()
 
     def test_initial_state(self):
-        assert self.model.state == "new"
+        assert self.model.state == ApplicationState.NEW
         transitions = list(self.model.get_available_state_transitions())  # type: ignore[attr-defined]
         assert len(transitions) == 1
-        assert transitions[0].target == "published"
+        assert transitions[0].target == ApplicationState.PUBLISHED
         assert transitions[0].custom == {"label": "Publish", "type": "*"}
 
     def test_all_transitions_have_custom_data(self):

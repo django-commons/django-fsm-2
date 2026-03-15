@@ -7,14 +7,29 @@ import django_fsm as fsm
 from django_fsm.signals import post_transition
 
 
+class StateChoice(models.TextChoices):
+    SUBMITTED_BY_USER = "SUBMITTED_BY_USER", "Submitted by user"
+    REVIEW_USER = "REVIEW_USER", "Review user"
+    SUBMITTED_BY_ADMIN = "SUBMITTED_BY_ADMIN", "Submitted by admin"
+    REVIEW_ADMIN = "REVIEW_ADMIN", "Review admin"
+    SUBMITTED_BY_ANONYMOUS = "SUBMITTED_BY_ANONYMOUS", "Submitted by anonymous"
+    REVIEW_ANONYMOUS = "REVIEW_ANONYMOUS", "Review anonymous"
+
+
 class MultiDecoratedModel(models.Model):
     counter = models.IntegerField(default=0)
     signal_counter = models.IntegerField(default=0)
-    state = fsm.FSMField(default="SUBMITTED_BY_USER")
+    state = fsm.FSMField(choices=StateChoice.choices, default=StateChoice.SUBMITTED_BY_USER)
 
-    @fsm.transition(field=state, source="SUBMITTED_BY_USER", target="REVIEW_USER")
-    @fsm.transition(field=state, source="SUBMITTED_BY_ADMIN", target="REVIEW_ADMIN")
-    @fsm.transition(field=state, source="SUBMITTED_BY_ANONYMOUS", target="REVIEW_ANONYMOUS")
+    @fsm.transition(
+        field=state, source=StateChoice.SUBMITTED_BY_USER, target=StateChoice.REVIEW_USER
+    )
+    @fsm.transition(
+        field=state, source=StateChoice.SUBMITTED_BY_ADMIN, target=StateChoice.REVIEW_ADMIN
+    )
+    @fsm.transition(
+        field=state, source=StateChoice.SUBMITTED_BY_ANONYMOUS, target=StateChoice.REVIEW_ANONYMOUS
+    )
     def review(self):
         self.counter += 1
 

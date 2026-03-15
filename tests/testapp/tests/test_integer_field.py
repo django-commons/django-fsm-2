@@ -6,23 +6,17 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class BlogPostStateEnum:
-    NEW = 10
-    PUBLISHED = 20
-    HIDDEN = 30
+from ..choices import BlogPostState
 
 
 class BlogPostWithIntegerField(models.Model):
-    state = fsm.FSMIntegerField(default=BlogPostStateEnum.NEW)
+    state = fsm.FSMIntegerField(choices=BlogPostState.choices, default=BlogPostState.NEW)
 
-    @fsm.transition(field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED)
+    @fsm.transition(field=state, source=BlogPostState.NEW, target=BlogPostState.PUBLISHED)
     def publish(self):
         pass
 
-    @fsm.transition(
-        field=state, source=BlogPostStateEnum.PUBLISHED, target=BlogPostStateEnum.HIDDEN
-    )
+    @fsm.transition(field=state, source=BlogPostState.PUBLISHED, target=BlogPostState.HIDDEN)
     def hide(self):
         pass
 
@@ -33,10 +27,10 @@ class BlogPostWithIntegerFieldTest(TestCase):
 
     def test_known_transition_should_succeed(self):
         self.model.publish()
-        assert self.model.state == BlogPostStateEnum.PUBLISHED
+        assert self.model.state == BlogPostState.PUBLISHED
 
         self.model.hide()
-        assert self.model.state == BlogPostStateEnum.HIDDEN
+        assert self.model.state == BlogPostState.HIDDEN
 
     def test_unknown_transition_fails(self):
         with pytest.raises(fsm.TransitionNotAllowed):

@@ -8,39 +8,39 @@ import django_fsm as fsm
 from tests.testapp.models import DbState
 
 FK_AVAILABLE_STATES = (
-    ("New", "_NEW_"),
-    ("Published", "_PUBLISHED_"),
-    ("Hidden", "_HIDDEN_"),
-    ("Removed", "_REMOVED_"),
-    ("Stolen", "_STOLEN_"),
-    ("Moderated", "_MODERATED_"),
+    ("NEW", "New"),
+    ("PUBLISHED", "Published"),
+    ("HIDDEN", "Hidden"),
+    ("REMOVED", "Removed"),
+    ("STOLEN", "Stolen"),
+    ("MODERATED", "Moderated"),
 )
 
 
 class FKBlogPost(models.Model):
-    state = fsm.FSMKeyField(DbState, default="new", protected=True, on_delete=models.CASCADE)
+    state = fsm.FSMKeyField(DbState, default="NEW", protected=True, on_delete=models.CASCADE)
 
-    @fsm.transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="NEW", target="PUBLISHED")
     def publish(self):
         pass
 
-    @fsm.transition(field=state, source="published")
+    @fsm.transition(field=state, source="PUBLISHED")
     def notify_all(self):
         pass
 
-    @fsm.transition(field=state, source="published", target="hidden")
+    @fsm.transition(field=state, source="PUBLISHED", target="HIDDEN")
     def hide(self):
         pass
 
-    @fsm.transition(field=state, source="new", target="removed")
+    @fsm.transition(field=state, source="NEW", target="REMOVED")
     def remove(self):
         raise Exception("Upss")
 
-    @fsm.transition(field=state, source=["published", "hidden"], target="stolen")
+    @fsm.transition(field=state, source=["PUBLISHED", "HIDDEN"], target="STOLEN")
     def steal(self):
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_STATE, target="moderated")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target="MODERATED")
     def moderate(self):
         pass
 
@@ -53,16 +53,16 @@ class FSMKeyFieldTest(TestCase):
         self.model = FKBlogPost()
 
     def test_initial_state_instantiated(self):
-        assert self.model.state == "new"
+        assert self.model.state == "NEW"
 
     def test_known_transition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
         self.model.publish()
-        assert self.model.state == "published"
+        assert self.model.state == "PUBLISHED"
 
         assert fsm.can_proceed(self.model.hide)
         self.model.hide()
-        assert self.model.state == "hidden"
+        assert self.model.state == "HIDDEN"
 
     def test_unknown_transition_fails(self):
         assert not fsm.can_proceed(self.model.hide)
@@ -73,72 +73,77 @@ class FSMKeyFieldTest(TestCase):
         assert fsm.can_proceed(self.model.remove)
         with pytest.raises(Exception, match="Upss"):
             self.model.remove()
-        assert self.model.state == "new"
+        assert self.model.state == "NEW"
 
     def test_allowed_null_transition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         self.model.notify_all()
-        assert self.model.state == "published"
+        assert self.model.state == "PUBLISHED"
 
     def test_unknown_null_transition_should_fail(self):
         with pytest.raises(fsm.TransitionNotAllowed):
             self.model.notify_all()
-        assert self.model.state == "new"
+        assert self.model.state == "NEW"
 
     def test_multiple_source_support_path_1_works(self):
         self.model.publish()
         self.model.steal()
-        assert self.model.state == "stolen"
+        assert self.model.state == "STOLEN"
 
     def test_multiple_source_support_path_2_works(self):
         self.model.publish()
         self.model.hide()
         self.model.steal()
-        assert self.model.state == "stolen"
+        assert self.model.state == "STOLEN"
 
     def test_star_shortcut_succeed(self):
         assert fsm.can_proceed(self.model.moderate)
         self.model.moderate()
-        assert self.model.state == "moderated"
+        assert self.model.state == "MODERATED"
 
 
 """
 # TODO: FIX it
 class BlogPostStatus(models.Model):
     name = models.CharField(unique=True, max_length=10)
-    objects = models.Manager()
 
 
 class BlogPostWithFKState(models.Model):
-    status = FSMKeyField(BlogPostStatus, default=lambda: BlogPostStatus.objects.get(name="new"))
+    status = fsm.FSMKeyField(
+        BlogPostStatus,
+        default=lambda: BlogPostStatus.objects.get(name="new"),
+        on_delete=models.CASCADE,
+    )
 
-    @fsm.transition(field=status, source='new', target='published')
+    @fsm.transition(field=status, source="new", target="published")
     def publish(self):
         pass
 
-    @fsm.transition(field=status, source='published', target='hidden')
+    @fsm.transition(field=status, source="published", target="hidden")
     def hide(self):
         pass
 
 
 class BlogPostWithFKStateTest(TestCase):
     def setUp(self):
-        BlogPostStatus.objects.bulk_create([
-            BlogPostStatus(name="new")
-            BlogPostStatus(name="published")
-            BlogPostStatus(name="hidden")
-        ])
+        BlogPostStatus.objects.bulk_create(
+            [
+                BlogPostStatus(name="new"),
+                BlogPostStatus(name="published"),
+                BlogPostStatus(name="hidden"),
+            ]
+        )
         self.model = BlogPostWithFKState()
 
     def test_known_transition_should_succeed(self):
         self.model.publish()
-        self.assertEqual(self.model.state, 'published')
+        assert self.model.status == "published"
 
         self.model.hide()
-        self.assertEqual(self.model.state, 'hidden')
+        assert self.model.status == "hidden"
 
     def test_unknown_transition_fails(self):
-        with pytest.raises(TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.hide()
 """

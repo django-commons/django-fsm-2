@@ -8,25 +8,34 @@ from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
 
+class ApplicationState(models.TextChoices):
+    NEW = "NEW", "New"
+    FOR_MODERATORS = "FOR_MODERATORS", "for moderators"
+    PUBLISHED = "PUBLISHED", "Published"
+    REJECTED = "REJECTED", "Rejected"
+
+
 class MultiResultTest(models.Model):
-    state = fsm.FSMField(default="new")
-
-    @fsm.transition(
-        field=state, source="new", target=fsm.RETURN_VALUE("for_moderators", "published")
-    )
-    def publish(self, *, is_public=False):
-        return "published" if is_public else "for_moderators"
-
-    @fsm.transition(field=state, source="new", target=fsm.RETURN_VALUE())
-    def publish_without_states(self, *, is_public=False):
-        return "published" if is_public else "for_moderators"
+    state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(
         field=state,
-        source="for_moderators",
+        source=ApplicationState.NEW,
+        target=fsm.RETURN_VALUE(ApplicationState.FOR_MODERATORS, ApplicationState.PUBLISHED),
+    )
+    def publish(self, *, is_public=False):
+        return ApplicationState.PUBLISHED if is_public else ApplicationState.FOR_MODERATORS
+
+    @fsm.transition(field=state, source=ApplicationState.NEW, target=fsm.RETURN_VALUE())
+    def publish_without_states(self, *, is_public=False):
+        return ApplicationState.PUBLISHED if is_public else ApplicationState.FOR_MODERATORS
+
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.FOR_MODERATORS,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def moderate(self, allowed):
@@ -34,9 +43,9 @@ class MultiResultTest(models.Model):
 
     @fsm.transition(
         field=state,
-        source="for_moderators",
+        source=ApplicationState.FOR_MODERATORS,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
         ),
     )
     def moderate_without_states(self, allowed):
@@ -47,12 +56,12 @@ class Test(TestCase):
     def test_return_state_succeed(self):
         instance = MultiResultTest()
         instance.publish(is_public=True)
-        assert instance.state == "published"
+        assert instance.state == ApplicationState.PUBLISHED
 
     def test_get_state_succeed(self):
-        instance = MultiResultTest(state="for_moderators")
+        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
         instance.moderate(allowed=False)
-        assert instance.state == "rejected"
+        assert instance.state == ApplicationState.REJECTED
 
 
 class TestSignals(TestCase):
@@ -75,13 +84,13 @@ class TestSignals(TestCase):
         self.post_transition_called = True
 
     def test_signals_called_with_get_state(self):
-        instance = MultiResultTest(state="for_moderators")
+        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
         instance.moderate(allowed=False)
         assert self.pre_transition_called
         assert self.post_transition_called
 
     def test_signals_called_with_get_state_without_states(self):
-        instance = MultiResultTest(state="for_moderators")
+        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
         instance.moderate_without_states(allowed=False)
         assert self.pre_transition_called
         assert self.post_transition_called
