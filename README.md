@@ -193,8 +193,8 @@ model.refresh_from_db()  # Works
 `source` accepts a list of states, a single state, or a `django_fsm.State`
 implementation.
 
-- `source='*'` allows switching to `target` from any state.
-- `source='+'` allows switching to `target` from any state except `target`.
+- `source="*"` allows switching to `target` from any state (accessible as ANY_STATE constant).
+- `source="+"` allows switching to `target` from any state except `target`(accessible as ANY_OTHER_STATE constant).
 
 `target` can be a specific state or a `django_fsm.State` implementation.
 

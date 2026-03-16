@@ -4,6 +4,7 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
+import django_fsm as fsm
 from django_fsm import FSMKeyField
 from django_fsm import TransitionNotAllowed
 from django_fsm import can_proceed
@@ -43,7 +44,7 @@ class FKBlogPost(models.Model):
     def steal(self):
         pass
 
-    @transition(field=state, source="*", target="moderated")
+    @transition(field=state, source=fsm.ANY_STATE, target="moderated")
     def moderate(self):
         pass
 

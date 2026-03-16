@@ -70,6 +70,10 @@ __all__ = [
 ]
 
 
+ANY_STATE = "*"
+ANY_OTHER_STATE = "+"
+
+
 class TransitionNotAllowed(Exception):  # noqa: N818
     """Raised when a transition is not allowed"""
 
@@ -190,9 +194,9 @@ class FSMMeta:
     def get_transition(self, source: _StateValue) -> Transition | None:
         transition = self.transitions.get(source, None)
         if transition is None:
-            transition = self.transitions.get("*", None)
+            transition = self.transitions.get(ANY_STATE, None)
         if transition is None:
-            transition = self.transitions.get("+", None)
+            transition = self.transitions.get(ANY_OTHER_STATE, None)
         return transition
 
     def add_transition(
@@ -225,10 +229,13 @@ class FSMMeta:
         if state in self.transitions:
             return True
 
-        if "*" in self.transitions:
+        if ANY_STATE in self.transitions:
             return True
 
-        if "+" in self.transitions and self.transitions["+"].target != state:
+        if (
+            ANY_OTHER_STATE in self.transitions
+            and self.transitions[ANY_OTHER_STATE].target != state
+        ):
             return True
 
         return False
@@ -642,7 +649,7 @@ class ConcurrentTransitionMixin(FSMModelMixin):
 
 def transition(
     field: FSMFieldMixin | str,
-    source: _StateValue | typing.Sequence[_StateValue] = "*",
+    source: _StateValue | typing.Sequence[_StateValue] = ANY_STATE,
     target: _StateValue | State | None = None,
     on_error: _StateValue | None = None,
     conditions: list[_Condition] | None = None,

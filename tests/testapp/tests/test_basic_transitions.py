@@ -4,6 +4,7 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
+import django_fsm as fsm
 from django_fsm import FSMField
 from django_fsm import Transition
 from django_fsm import TransitionNotAllowed
@@ -36,15 +37,15 @@ class SimpleBlogPost(models.Model):
     def steal(self):
         pass
 
-    @transition(source="*", target="moderated", field=state)
+    @transition(source=fsm.ANY_STATE, target="moderated", field=state)
     def moderate(self):
         pass
 
-    @transition(source="+", target="blocked", field=state)
+    @transition(source=fsm.ANY_OTHER_STATE, target="blocked", field=state)
     def block(self):
         pass
 
-    @transition(source="*", target="", field=state)
+    @transition(source=fsm.ANY_STATE, target="", field=state)
     def empty(self):
         pass
 
@@ -227,7 +228,7 @@ class TestFieldTransitionsInspect(TestCase):
 
         assert Transition(
             method=AdvancedBlogPost.empty,
-            source="*",
+            source=fsm.ANY_STATE,
             target="",
             on_error=None,
             conditions=[],
@@ -235,7 +236,7 @@ class TestFieldTransitionsInspect(TestCase):
             custom={},
         ) == Transition(
             method=SimpleBlogPost.empty,
-            source="*",
+            source=fsm.ANY_STATE,
             target="",
             on_error=None,
             conditions=[],
