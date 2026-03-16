@@ -751,7 +751,7 @@ class RETURN_VALUE(State):  # noqa: N801
         args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
     ) -> typing.Any:
-        if self.allowed_states is not None and result not in self.allowed_states:
+        if self.allowed_states and result not in self.allowed_states:
             raise InvalidResultState(
                 f"{result} is not in list of allowed states\n{self.allowed_states}"
             )
@@ -780,7 +780,7 @@ class GET_STATE(State):  # noqa: N801
         if kwargs is None:
             kwargs = {}
         result_state = self.func(model, *args, **kwargs)
-        if self.allowed_states != [] and result_state not in self.allowed_states:
+        if self.allowed_states and result_state not in self.allowed_states:
             raise InvalidResultState(
                 f"{result_state} is not in list of allowed states\n{self.allowed_states}"
             )

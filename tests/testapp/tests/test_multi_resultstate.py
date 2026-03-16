@@ -18,6 +18,10 @@ class MultiResultTest(models.Model):
     def publish(self, *, is_public=False):
         return "published" if is_public else "for_moderators"
 
+    @transition(field=state, source="new", target=RETURN_VALUE())
+    def publish_without_states(self, *, is_public=False):
+        return "published" if is_public else "for_moderators"
+
     @transition(
         field=state,
         source="for_moderators",
@@ -77,14 +81,20 @@ class TestSignals(TestCase):
         assert self.pre_transition_called
         assert self.post_transition_called
 
+    def test_signals_called_with_get_state_without_states(self):
+        instance = MultiResultTest(state="for_moderators")
+        instance.moderate_without_states(allowed=False)
+        assert self.pre_transition_called
+        assert self.post_transition_called
+
     def test_signals_called_with_return_value(self):
         instance = MultiResultTest()
         instance.publish(is_public=True)
         assert self.pre_transition_called
         assert self.post_transition_called
 
-    def test_signals_called_with_get_state_without_states(self):
-        instance = MultiResultTest(state="for_moderators")
-        instance.moderate_without_states(allowed=False)
+    def test_signals_called_with_return_value_without_states(self):
+        instance = MultiResultTest()
+        instance.publish_without_states(is_public=True)
         assert self.pre_transition_called
         assert self.post_transition_called
