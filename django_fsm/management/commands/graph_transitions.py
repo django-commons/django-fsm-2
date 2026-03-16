@@ -8,9 +8,7 @@ from django.apps import apps
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
 
-from django_fsm import GET_STATE
-from django_fsm import RETURN_VALUE
-from django_fsm import FSMFieldMixin
+import django_fsm as fsm
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     from argparse import ArgumentParser
@@ -23,22 +21,22 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 
 def all_fsm_fields_data(
     model: type[models.Model],
-) -> list[tuple[FSMFieldMixin, type[models.Model]]]:
+) -> list[tuple[fsm.FSMFieldMixin, type[models.Model]]]:
     return [
-        (field, model) for field in model._meta.get_fields() if isinstance(field, FSMFieldMixin)
+        (field, model) for field in model._meta.get_fields() if isinstance(field, fsm.FSMFieldMixin)
     ]
 
 
 def one_fsm_fields_data(
     model: type[models.Model], field_name: str
-) -> tuple[FSMFieldMixin, type[models.Model]]:
+) -> tuple[fsm.FSMFieldMixin, type[models.Model]]:
     field = model._meta.get_field(field_name)
-    if not isinstance(field, FSMFieldMixin):
+    if not isinstance(field, fsm.FSMFieldMixin):
         raise LookupError(f"{field_name} is not an FSMField")  # noqa: TRY004
     return (field, model)
 
 
-def node_name(field: FSMFieldMixin, state: _StateValue) -> str:
+def node_name(field: fsm.FSMFieldMixin, state: _StateValue) -> str:
     opts = field.model._meta
     assert opts.verbose_name
     return "{}.{}.{}.{}".format(
@@ -46,14 +44,14 @@ def node_name(field: FSMFieldMixin, state: _StateValue) -> str:
     )
 
 
-def node_label(field: FSMFieldMixin, state: _StateValue | None) -> str:
+def node_label(field: fsm.FSMFieldMixin, state: _StateValue | None) -> str:
     if hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
 
 
 def generate_dot(  # noqa: C901, PLR0912
-    fields_data: Sequence[tuple[FSMFieldMixin, type[models.Model]]],
+    fields_data: Sequence[tuple[fsm.FSMFieldMixin, type[models.Model]]],
     ignore_transitions: Sequence[str] | None = None,
 ) -> graphviz.Digraph:
     ignore_transitions = ignore_transitions or []
@@ -73,12 +71,12 @@ def generate_dot(  # noqa: C901, PLR0912
 
             _targets = list(
                 (state for state in transition.target.allowed_states)
-                if isinstance(transition.target, GET_STATE | RETURN_VALUE)
+                if isinstance(transition.target, fsm.GET_STATE | fsm.RETURN_VALUE)
                 else (transition.target,)
             )
             source_name_pair = (
                 ((state, node_name(field, state)) for state in transition.source.allowed_states)
-                if isinstance(transition.source, GET_STATE | RETURN_VALUE)
+                if isinstance(transition.source, fsm.GET_STATE | fsm.RETURN_VALUE)
                 else ((transition.source, node_name(field, transition.source)),)
             )
 
@@ -89,9 +87,9 @@ def generate_dot(  # noqa: C901, PLR0912
                     edges.add((source_name, on_error_name, (("style", "dotted"),)))
 
                 for target in _targets:
-                    if transition.source == "*":
+                    if transition.source == fsm.ANY_STATE:
                         any_targets.add((target, transition.name))
-                    elif transition.source == "+":
+                    elif transition.source == fsm.ANY_OTHER_STATE:
                         any_except_targets.add((target, transition.name))
                     else:
                         target_name = node_name(field, target)
@@ -178,7 +176,7 @@ class Command(BaseCommand):
         parser.add_argument("args", nargs="*", help=("[appname[.model[.field]]]"))
 
     def handle(self, *args: str, **options: typing.Any) -> None:
-        fields_data: list[tuple[FSMFieldMixin, type[models.Model]]] = []
+        fields_data: list[tuple[fsm.FSMFieldMixin, type[models.Model]]] = []
         if args:
             for arg in args:
                 match arg.split("."):

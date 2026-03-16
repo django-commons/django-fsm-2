@@ -3,22 +3,21 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class WorkflowMixin:
-    @transition(field="state", source="*", target="draft")
+    @fsm.transition(field="state", source=fsm.ANY_STATE, target="draft")
     def draft(self):
         pass
 
-    @transition(field="state", source="draft", target="published")
+    @fsm.transition(field="state", source="draft", target="published")
     def publish(self):
         pass
 
 
 class MixinSupportTestModel(WorkflowMixin, models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
 
 class Test(TestCase):

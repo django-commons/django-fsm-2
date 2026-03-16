@@ -3,19 +3,17 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import can_proceed
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class ExceptTargetTransition(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass
 
-    @transition(field=state, source="+", target="removed")
+    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target="removed")
     def remove(self):
         pass
 
@@ -26,8 +24,8 @@ class TestExceptTargetTransition(TestCase):
 
     def test_usecase(self):
         assert self.model.state == "new"
-        assert can_proceed(self.model.remove)
+        assert fsm.can_proceed(self.model.remove)
         self.model.remove()
 
         assert self.model.state == "removed"
-        assert not can_proceed(self.model.remove)
+        assert not fsm.can_proceed(self.model.remove)
