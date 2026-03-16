@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Fix GET_STATE and RETURN_VALUE without allowed_states defined
 - Introduce ``ANY_STATE`` and ``ANY_OTHER_STATE`` constants
 
 django-fsm-2 4.2.3 2026-03-15
