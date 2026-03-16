@@ -29,6 +29,16 @@ class MultiResultTest(models.Model):
     def moderate(self, allowed):
         pass
 
+    @transition(
+        field=state,
+        source="for_moderators",
+        target=GET_STATE(
+            lambda _, allowed: "published" if allowed else "rejected",
+        ),
+    )
+    def moderate_without_states(self, allowed):
+        pass
+
 
 class Test(TestCase):
     def test_return_state_succeed(self):
@@ -70,5 +80,11 @@ class TestSignals(TestCase):
     def test_signals_called_with_return_value(self):
         instance = MultiResultTest()
         instance.publish(is_public=True)
+        assert self.pre_transition_called
+        assert self.post_transition_called
+
+    def test_signals_called_with_get_state_without_states(self):
+        instance = MultiResultTest(state="for_moderators")
+        instance.moderate_without_states(allowed=False)
         assert self.pre_transition_called
         assert self.post_transition_called
