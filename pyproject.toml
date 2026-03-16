@@ -37,7 +37,7 @@ dependencies = [
 [project.urls]
 Homepage = "http://github.com/django-commons/django-fsm-2"
 Repository = "http://github.com/django-commons/django-fsm-2"
-Documentation = "http://github.com/django-commons/django-fsm-2"
+Documentation = "https://django-commons.github.io/django-fsm-2/"
 
 [project.optional-dependencies]
 graphviz = [
@@ -50,6 +50,7 @@ dev = [
     "django_fsm_log",
     "django-guardian",
     "graphviz",
+    "mkdocs",
     "mypy",
     "prek",
     "pytest",
