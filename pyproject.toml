@@ -57,6 +57,7 @@ dev = [
     "pytest-django",
     "pytest-randomly",
     "tox",
+    "django-unfold",
 ]
 
 [tool.uv]

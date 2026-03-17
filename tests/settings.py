@@ -47,6 +47,8 @@ PROJECT_APPS = (
 )
 
 INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    "django_fsm.contrib.unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
