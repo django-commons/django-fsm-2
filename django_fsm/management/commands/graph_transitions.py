@@ -16,8 +16,6 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 
     from django.db import models
 
-    from django_fsm import _StateValue
-
 
 def all_fsm_fields_data(
     model: type[models.Model],
@@ -36,7 +34,7 @@ def one_fsm_fields_data(
     return (field, model)
 
 
-def node_name(field: fsm.FSMFieldMixin, state: _StateValue) -> str:
+def node_name(field: fsm.FSMFieldMixin, state: fsm._StateValue) -> str:
     opts = field.model._meta
     assert opts.verbose_name
     return "{}.{}.{}.{}".format(
@@ -44,7 +42,7 @@ def node_name(field: fsm.FSMFieldMixin, state: _StateValue) -> str:
     )
 
 
-def node_label(field: fsm.FSMFieldMixin, state: _StateValue | None) -> str:
+def node_label(field: fsm.FSMFieldMixin, state: fsm._StateValue | None) -> str:
     if hasattr(field, "choices") and field.choices:
         state = dict(field.choices).get(state)
     return force_str(state)
@@ -61,8 +59,8 @@ def generate_dot(  # noqa: C901, PLR0912
         sources: set[tuple[(str, str)]] = set()
         targets: set[tuple[str, str]] = set()
         edges: set[tuple[str, str, tuple[tuple[str, str]]]] = set()
-        any_targets: set[tuple[_StateValue, str]] = set()
-        any_except_targets: set[tuple[_StateValue, str]] = set()
+        any_targets: set[tuple[fsm._StateValue, str]] = set()
+        any_except_targets: set[tuple[fsm._StateValue, str]] = set()
 
         # dump nodes and edges
         for transition in field.get_all_transitions(model):

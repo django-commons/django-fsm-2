@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from django.db import models
 
-from django_fsm import Transition
+import django_fsm as fsm
 
 
 def test_transition_eq_matches_name_and_transition() -> None:
     def publish() -> None:
         pass
 
-    transition = Transition(
+    transition = fsm.Transition(
         method=publish,
         source="new",
         target="published",
@@ -23,7 +23,7 @@ def test_transition_eq_matches_name_and_transition() -> None:
         pass
 
     other.__name__ = "publish"
-    other_transition = Transition(
+    other_transition = fsm.Transition(
         method=other,
         source="new",
         target="published",
@@ -48,7 +48,7 @@ def test_transition_same_name_different_models_not_equal() -> None:
         def publish(self) -> None:
             pass
 
-    first_transition = Transition(
+    first_transition = fsm.Transition(
         method=First.publish,
         source="new",
         target="published",
@@ -57,7 +57,7 @@ def test_transition_same_name_different_models_not_equal() -> None:
         permission=None,
         custom={},
     )
-    second_transition = Transition(
+    second_transition = fsm.Transition(
         method=Second.publish,
         source="new",
         target="published",

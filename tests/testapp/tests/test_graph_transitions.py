@@ -12,8 +12,8 @@ from django.core.exceptions import FieldDoesNotExist
 from django.core.management import call_command
 from django.test import TestCase
 
-from django_fsm.management.commands.graph_transitions import node_label
-from django_fsm.management.commands.graph_transitions import node_name
+import django_fsm as fsm
+import django_fsm.management.commands.graph_transitions
 from tests.testapp.models import Application
 from tests.testapp.models import BlogPost
 from tests.testapp.models import BlogPostState
@@ -30,17 +30,35 @@ class GraphTransitionsCommandTest(TestCase):
     EXTENSIONS_TO_TEST = ["png", "jpg", "jpeg"]
 
     def test_node_name(self):
-        assert node_name(Task.state.field, TaskState.DONE) == "testapp.task.state.done"
-        assert node_name(BlogPost.state.field, BlogPostState.NEW) == "testapp.blog_post.state.0"
+        assert (
+            fsm.management.commands.graph_transitions.node_name(Task.state.field, TaskState.DONE)
+            == "testapp.task.state.done"
+        )
+        assert (
+            fsm.management.commands.graph_transitions.node_name(
+                BlogPost.state.field, BlogPostState.NEW
+            )
+            == "testapp.blog_post.state.0"
+        )
 
     def test_node_label(self):
-        assert node_label(Application.state.field, "new") == "new"
         assert (
-            node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value)
+            fsm.management.commands.graph_transitions.node_label(Application.state.field, "new")
+            == "new"
+        )
+        assert (
+            fsm.management.commands.graph_transitions.node_label(
+                BlogPost.state.field, BlogPostState.PUBLISHED.value
+            )
             == BlogPostState.PUBLISHED.label
         )
         # choices is not declared, fallbacking to the value instead
-        assert node_label(Task.state.field, TaskState.DONE.value) == TaskState.DONE.value
+        assert (
+            fsm.management.commands.graph_transitions.node_label(
+                Task.state.field, TaskState.DONE.value
+            )
+            == TaskState.DONE.value
+        )
 
     def _call_command(self, *args: typing.Any, **kwargs: typing.Any) -> str:
         out = StringIO()

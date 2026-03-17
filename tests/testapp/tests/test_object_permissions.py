@@ -6,13 +6,11 @@ from django.test import TestCase
 from django.test.utils import override_settings
 from guardian.shortcuts import assign_perm
 
-from django_fsm import FSMField
-from django_fsm import has_transition_perm
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class ObjectPermissionTestModel(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
     objects: models.Manager[ObjectPermissionTestModel] = models.Manager()
 
@@ -21,7 +19,7 @@ class ObjectPermissionTestModel(models.Model):
             ("can_publish_objectpermissiontestmodel", "Can publish ObjectPermissionTestModel"),
         ]
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="new",
         target="published",
@@ -48,8 +46,8 @@ class ObjectPermissionFSMFieldTest(TestCase):
         assign_perm("can_publish_objectpermissiontestmodel", self.privileged, self.model)
 
     def test_object_only_access_success(self):
-        assert has_transition_perm(self.model.publish, self.privileged)
+        assert fsm.has_transition_perm(self.model.publish, self.privileged)
         self.model.publish()
 
     def test_object_only_other_access_prohibited(self):
-        assert not has_transition_perm(self.model.publish, self.unprivileged)
+        assert not fsm.has_transition_perm(self.model.publish, self.unprivileged)

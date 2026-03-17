@@ -4,34 +4,31 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import ConcurrentTransition
-from django_fsm import ConcurrentTransitionMixin
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
-class LockedBlogPost(ConcurrentTransitionMixin, models.Model):
-    state = FSMField(default="new")
+class LockedBlogPost(fsm.ConcurrentTransitionMixin, models.Model):
+    state = fsm.FSMField(default="new")
     text = models.CharField(max_length=50)
 
     objects: models.Manager[LockedBlogPost] = models.Manager()
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass
 
-    @transition(field=state, source="published", target="removed")
+    @fsm.transition(field=state, source="published", target="removed")
     def remove(self):
         pass
 
 
 class ExtendedBlogPost(LockedBlogPost):
-    review_state = FSMField(default="waiting", protected=True)
+    review_state = fsm.FSMField(default="waiting", protected=True)
     notes = models.CharField(max_length=50)
 
     objects: models.Manager[ExtendedBlogPost] = models.Manager()
 
-    @transition(field=review_state, source="waiting", target="rejected")
+    @fsm.transition(field=review_state, source="waiting", target="rejected")
     def reject(self):
         pass
 
@@ -74,7 +71,7 @@ class TestLockMixin(TestCase):
 
         post2.text = "aaa"
         post2.publish()
-        with pytest.raises(ConcurrentTransition):
+        with pytest.raises(fsm.ConcurrentTransition):
             post2.save()
 
     def test_inheritance_crud_succeed(self):
