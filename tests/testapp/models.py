@@ -6,9 +6,8 @@ from django_fsm_log.decorators import fsm_log_by
 from django_fsm_log.decorators import fsm_log_description
 
 import django_fsm as fsm
-from django_fsm import GET_STATE
-from django_fsm import RETURN_VALUE
-from django_fsm import transition
+
+from .choices import ApplicationState
 
 
 class Application(models.Model):
@@ -17,72 +16,92 @@ class Application(models.Model):
     Test workflow
     """
 
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(default=ApplicationState.NEW)
 
-    @transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def standard(self) -> None:
         pass
 
-    @transition(field=state, source="published")
+    @fsm.transition(field=state, source=ApplicationState.PUBLISHED)
     def no_target(self) -> None:
         pass
 
-    @transition(field=state, source=fsm.ANY_STATE, target="blocked")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=ApplicationState.BLOCKED)
     def any_source(self) -> None:
         pass
 
-    @transition(field=state, source=fsm.ANY_OTHER_STATE, target="hidden")
+    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.HIDDEN)
     def any_source_except_target(self) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
-        source="new",
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        source=ApplicationState.NEW,
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state(self, *, allowed: bool) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source(self, *, allowed: bool) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_OTHER_STATE,
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
-    @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
-    @transition(field=state, source=fsm.ANY_STATE, target=RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=fsm.ANY_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value_any_source(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
-    @transition(
-        field=state, source=fsm.ANY_OTHER_STATE, target=RETURN_VALUE("moderated", "blocked")
+    @fsm.transition(
+        field=state,
+        source=fsm.ANY_OTHER_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source_except_target(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
-    @transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def on_error(self) -> None:
         pass
 
@@ -106,80 +125,97 @@ class FKApplication(models.Model):
     Test workflow for FSMKeyField
     """
 
-    state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    state = fsm.FSMKeyField(DbState, default=ApplicationState.NEW, on_delete=models.CASCADE)
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
     def standard(self) -> None:
         pass
 
-    @transition(field=state, source="published")
+    @fsm.transition(field=state, source=ApplicationState.PUBLISHED)
     def no_target(self) -> None:
         pass
 
-    @transition(field=state, source=fsm.ANY_STATE, target="blocked")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=ApplicationState.BLOCKED)
     def any_source(self) -> None:
         pass
 
-    @transition(field=state, source=fsm.ANY_OTHER_STATE, target="hidden")
+    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.HIDDEN)
     def any_source_except_target(self) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
-        source="new",
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        source=ApplicationState.NEW,
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state(self, *, allowed: bool) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source(self, *, allowed: bool) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_OTHER_STATE,
-        target=GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+        target=fsm.GET_STATE(
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
-    @transition(field=state, source="new", target=RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value(self) -> str:
         return "published"
 
-    @transition(field=state, source=fsm.ANY_STATE, target=RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=fsm.ANY_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value_any_source(self) -> str:
         return "published"
 
-    @transition(
-        field=state, source=fsm.ANY_OTHER_STATE, target=RETURN_VALUE("moderated", "blocked")
+    @fsm.transition(
+        field=state,
+        source=fsm.ANY_OTHER_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source_except_target(self) -> str:
         return "published"
 
-    @transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def on_error(self) -> None:
         pass
 
 
 class MultiStateApplication(Application):
-    another_state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    another_state = fsm.FSMKeyField(DbState, default=ApplicationState.NEW, on_delete=models.CASCADE)
 
-    @transition(field=another_state, source="new", target="published")
+    @fsm.transition(
+        field=another_state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED
+    )
     def another_state_standard(self) -> None:
         pass
 
@@ -213,7 +249,7 @@ class BlogPost(models.Model):
             return bool(user.is_superuser or user.is_staff)
         return False
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=BlogPostState.NEW,
         target=BlogPostState.PUBLISHED,
@@ -223,11 +259,11 @@ class BlogPost(models.Model):
     def publish(self) -> None:
         pass
 
-    @transition(field=state, source=BlogPostState.PUBLISHED)
+    @fsm.transition(field=state, source=BlogPostState.PUBLISHED)
     def notify_all(self) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=BlogPostState.PUBLISHED,
         target=BlogPostState.HIDDEN,
@@ -236,7 +272,7 @@ class BlogPost(models.Model):
     def hide(self) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=BlogPostState.NEW,
         target=BlogPostState.REMOVED,
@@ -246,7 +282,7 @@ class BlogPost(models.Model):
     def remove(self) -> None:
         raise Exception(f"No rights to delete {self}")
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=BlogPostState.NEW,
         target=BlogPostState.RESTORED,
@@ -256,7 +292,7 @@ class BlogPost(models.Model):
     def restore(self) -> None:
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=[BlogPostState.PUBLISHED, BlogPostState.HIDDEN],
         target=BlogPostState.STOLEN,
@@ -264,7 +300,7 @@ class BlogPost(models.Model):
     def steal(self) -> None:
         pass
 
-    @transition(field=state, source=fsm.ANY_STATE, target=BlogPostState.MODERATED)
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=BlogPostState.MODERATED)
     def moderate(self) -> None:
         pass
 
@@ -305,10 +341,10 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
-        target=RETURN_VALUE(*AdminBlogPostState),
+        target=fsm.RETURN_VALUE(*AdminBlogPostState),
     )
     def force_state(
         self,
@@ -320,7 +356,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
         target=AdminBlogPostState.HIDDEN,
@@ -335,7 +371,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=AdminBlogPostState.CREATED,
         target=AdminBlogPostState.REVIEWED,
@@ -345,7 +381,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=[
             AdminBlogPostState.REVIEWED,
@@ -358,7 +394,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=[
             AdminBlogPostState.REVIEWED,
@@ -371,7 +407,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
         target=None,
@@ -379,7 +415,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def invalid(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         raise Exception("You shall not pass!")
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
         target=None,
@@ -389,7 +425,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
         target=None,
@@ -401,7 +437,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state,
         source=fsm.ANY_STATE,
         target=AdminBlogPostState.CREATED,
@@ -426,7 +462,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(field=state, source=fsm.ANY_STATE, target=None, conditions=[lambda _obj: False])
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=None, conditions=[lambda _obj: False])
     def conditions_unmet(
         self, by: AbstractUser | None = None, description: str | None = None
     ) -> None:
@@ -434,7 +470,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=state, source=fsm.ANY_STATE, target=None, permission=lambda _obj, _user: False
     )
     def permission_denied(
@@ -446,7 +482,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=step,
         source=[AdminBlogPostStep.STEP_1],
         target=AdminBlogPostStep.STEP_2,
@@ -459,7 +495,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=step,
         source=[AdminBlogPostStep.STEP_2],
         target=AdminBlogPostStep.STEP_3,
@@ -469,7 +505,7 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     @fsm_log_by
     @fsm_log_description
-    @transition(
+    @fsm.transition(
         field=step,
         source=[
             AdminBlogPostStep.STEP_2,

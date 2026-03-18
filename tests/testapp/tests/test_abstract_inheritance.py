@@ -3,18 +3,22 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import can_proceed
-from django_fsm import transition
+import django_fsm as fsm
+
+
+class StateChoice(models.TextChoices):
+    NEW = "NEW", "new"
+    PUBLISHED = "PUBLISHED", "published"
+    STICKED = "STICKED", "sticked"
 
 
 class BaseAbstractModel(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(choices=StateChoice.choices, default=StateChoice.NEW)
 
     class Meta:
         abstract = True
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source=StateChoice.NEW, target=StateChoice.PUBLISHED)
     def publish(self):
         pass
 
@@ -26,13 +30,13 @@ class AnotherFromAbstractModel(BaseAbstractModel):
     Don't try to remove it.
     """
 
-    @transition(field="state", source="published", target="sticked")
+    @fsm.transition(field="state", source=StateChoice.PUBLISHED, target=StateChoice.STICKED)
     def stick(self):
         pass
 
 
 class InheritedFromAbstractModel(BaseAbstractModel):
-    @transition(field="state", source="published", target="sticked")
+    @fsm.transition(field="state", source=StateChoice.PUBLISHED, target=StateChoice.STICKED)
     def stick(self):
         pass
 
@@ -42,22 +46,23 @@ class TestinheritedModel(TestCase):
         self.model = InheritedFromAbstractModel()
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
-        assert self.model.state == "published"
+        assert self.model.state == StateChoice.PUBLISHED
 
-        assert can_proceed(self.model.stick)
+        assert fsm.can_proceed(self.model.stick)
         self.model.stick()
-        assert self.model.state == "sticked"
+        assert self.model.state == StateChoice.STICKED
 
     def test_field_available_transitions_works(self):
         self.model.publish()
-        assert self.model.state == "published"
+        assert self.model.state == StateChoice.PUBLISHED
         transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
-        assert [data.target for data in transitions] == ["sticked"]
+        assert [data.target for data in transitions] == [StateChoice.STICKED]
 
     def test_field_all_transitions_works(self):
         transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
-        assert {("new", "published"), ("published", "sticked")} == {
-            (data.source, data.target) for data in transitions
-        }
+        assert {
+            (StateChoice.NEW, StateChoice.PUBLISHED),
+            (StateChoice.PUBLISHED, StateChoice.STICKED),
+        } == {(data.source, data.target) for data in transitions}

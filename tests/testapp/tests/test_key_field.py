@@ -5,10 +5,6 @@ from django.db import models
 from django.test import TestCase
 
 import django_fsm as fsm
-from django_fsm import FSMKeyField
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
 from tests.testapp.models import DbState
 
 FK_AVAILABLE_STATES = (
@@ -22,29 +18,29 @@ FK_AVAILABLE_STATES = (
 
 
 class FKBlogPost(models.Model):
-    state = FSMKeyField(DbState, default="new", protected=True, on_delete=models.CASCADE)
+    state = fsm.FSMKeyField(DbState, default="new", protected=True, on_delete=models.CASCADE)
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass
 
-    @transition(field=state, source="published")
+    @fsm.transition(field=state, source="published")
     def notify_all(self):
         pass
 
-    @transition(field=state, source="published", target="hidden")
+    @fsm.transition(field=state, source="published", target="hidden")
     def hide(self):
         pass
 
-    @transition(field=state, source="new", target="removed")
+    @fsm.transition(field=state, source="new", target="removed")
     def remove(self):
         raise Exception("Upss")
 
-    @transition(field=state, source=["published", "hidden"], target="stolen")
+    @fsm.transition(field=state, source=["published", "hidden"], target="stolen")
     def steal(self):
         pass
 
-    @transition(field=state, source=fsm.ANY_STATE, target="moderated")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target="moderated")
     def moderate(self):
         pass
 
@@ -60,33 +56,33 @@ class FSMKeyFieldTest(TestCase):
         assert self.model.state == "new"
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         assert self.model.state == "published"
 
-        assert can_proceed(self.model.hide)
+        assert fsm.can_proceed(self.model.hide)
         self.model.hide()
         assert self.model.state == "hidden"
 
     def test_unknown_transition_fails(self):
-        assert not can_proceed(self.model.hide)
-        with pytest.raises(TransitionNotAllowed):
+        assert not fsm.can_proceed(self.model.hide)
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.hide()
 
     def test_state_non_changed_after_fail(self):
-        assert can_proceed(self.model.remove)
+        assert fsm.can_proceed(self.model.remove)
         with pytest.raises(Exception, match="Upss"):
             self.model.remove()
         assert self.model.state == "new"
 
     def test_allowed_null_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         self.model.notify_all()
         assert self.model.state == "published"
 
     def test_unknown_null_transition_should_fail(self):
-        with pytest.raises(TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.notify_all()
         assert self.model.state == "new"
 
@@ -102,7 +98,7 @@ class FSMKeyFieldTest(TestCase):
         assert self.model.state == "stolen"
 
     def test_star_shortcut_succeed(self):
-        assert can_proceed(self.model.moderate)
+        assert fsm.can_proceed(self.model.moderate)
         self.model.moderate()
         assert self.model.state == "moderated"
 
@@ -117,11 +113,11 @@ class BlogPostStatus(models.Model):
 class BlogPostWithFKState(models.Model):
     status = FSMKeyField(BlogPostStatus, default=lambda: BlogPostStatus.objects.get(name="new"))
 
-    @transition(field=status, source='new', target='published')
+    @fsm.transition(field=status, source='new', target='published')
     def publish(self):
         pass
 
-    @transition(field=status, source='published', target='hidden')
+    @fsm.transition(field=status, source='published', target='hidden')
     def hide(self):
         pass
 

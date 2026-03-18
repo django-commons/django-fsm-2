@@ -4,9 +4,7 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMIntegerField
-from django_fsm import TransitionNotAllowed
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class BlogPostStateEnum:
@@ -16,13 +14,15 @@ class BlogPostStateEnum:
 
 
 class BlogPostWithIntegerField(models.Model):
-    state = FSMIntegerField(default=BlogPostStateEnum.NEW)
+    state = fsm.FSMIntegerField(default=BlogPostStateEnum.NEW)
 
-    @transition(field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED)
+    @fsm.transition(field=state, source=BlogPostStateEnum.NEW, target=BlogPostStateEnum.PUBLISHED)
     def publish(self):
         pass
 
-    @transition(field=state, source=BlogPostStateEnum.PUBLISHED, target=BlogPostStateEnum.HIDDEN)
+    @fsm.transition(
+        field=state, source=BlogPostStateEnum.PUBLISHED, target=BlogPostStateEnum.HIDDEN
+    )
     def hide(self):
         pass
 
@@ -39,5 +39,5 @@ class BlogPostWithIntegerFieldTest(TestCase):
         assert self.model.state == BlogPostStateEnum.HIDDEN
 
     def test_unknown_transition_fails(self):
-        with pytest.raises(TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.hide()

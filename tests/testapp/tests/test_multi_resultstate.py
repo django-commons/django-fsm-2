@@ -3,29 +3,28 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import GET_STATE
-from django_fsm import RETURN_VALUE
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
 
 class MultiResultTest(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
-    @transition(field=state, source="new", target=RETURN_VALUE("for_moderators", "published"))
+    @fsm.transition(
+        field=state, source="new", target=fsm.RETURN_VALUE("for_moderators", "published")
+    )
     def publish(self, *, is_public=False):
         return "published" if is_public else "for_moderators"
 
-    @transition(field=state, source="new", target=RETURN_VALUE())
+    @fsm.transition(field=state, source="new", target=fsm.RETURN_VALUE())
     def publish_without_states(self, *, is_public=False):
         return "published" if is_public else "for_moderators"
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="for_moderators",
-        target=GET_STATE(
+        target=fsm.GET_STATE(
             lambda _, allowed: "published" if allowed else "rejected",
             states=["published", "rejected"],
         ),
@@ -33,10 +32,10 @@ class MultiResultTest(models.Model):
     def moderate(self, allowed):
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="for_moderators",
-        target=GET_STATE(
+        target=fsm.GET_STATE(
             lambda _, allowed: "published" if allowed else "rejected",
         ),
     )

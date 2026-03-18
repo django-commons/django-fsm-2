@@ -31,7 +31,7 @@ class BaseAdminTestCase(TestCase):
                 (
                     "from django.conf import settings; "
                     "settings.configure(SECRET_KEY='test', USE_I18N=False); "
-                    "import django_fsm.admin"
+                    "from django_fsm.admin import FSMAdminMixin"
                 ),
             ],
             capture_output=True,
