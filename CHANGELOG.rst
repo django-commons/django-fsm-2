@@ -4,8 +4,15 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Add logging solution
+
+
+django-fsm-2 4.2.4 2026-03-17
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Fix GET_STATE and RETURN_VALUE without allowed_states defined
 - Introduce ``ANY_STATE`` and ``ANY_OTHER_STATE`` constants
+
 
 django-fsm-2 4.2.3 2026-03-15
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

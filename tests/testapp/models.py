@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django_fsm_log.decorators import fsm_log_by
-from django_fsm_log.decorators import fsm_log_description
 
 import django_fsm as fsm
 from django_fsm import GET_STATE
 from django_fsm import RETURN_VALUE
 from django_fsm import transition
+from django_fsm.log import track as fsm_track
+from django_fsm.models import TransitionLogBase
 
 
 class Application(models.Model):
@@ -269,6 +269,32 @@ class BlogPost(models.Model):
         pass
 
 
+class TrackedPostStateLog(TransitionLogBase):
+    post = models.ForeignKey(
+        "TrackedPost",
+        on_delete=models.CASCADE,
+        related_name="transition_logs",
+    )
+
+
+@fsm_track(log_model=TrackedPostStateLog, relation_field="post")
+class TrackedPost(models.Model):
+    state = fsm.FSMField(default="new")
+
+    @transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
+        pass
+
+
+@fsm_track()
+class GenericTrackedPost(models.Model):
+    state = fsm.FSMField(default="new")
+
+    @transition(field=state, source="new", target="published")
+    def publish(self, by=None, description=None, **kwargs):
+        pass
+
+
 class AdminBlogPostState(models.TextChoices):
     CREATED = "created", "Created"
     REVIEWED = "reviewed", "Reviewed"
@@ -282,6 +308,7 @@ class AdminBlogPostStep(models.IntegerChoices):
     STEP_3 = 3, "Step three"
 
 
+@fsm_track()
 class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=50)
 
@@ -303,8 +330,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def __str__(self) -> str:
         return f"{self.title} ({self.state})"
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=fsm.ANY_STATE,
@@ -318,8 +343,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     ) -> AdminBlogPostState:
         return state
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=fsm.ANY_STATE,
@@ -333,8 +356,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     ) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=AdminBlogPostState.CREATED,
@@ -343,8 +364,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def moderate(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -356,8 +375,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def publish(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=[
@@ -369,8 +386,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def hide(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=fsm.ANY_STATE,
@@ -387,8 +402,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def non_fsm_log_invalid(self) -> None:
         raise Exception("Domain-raised exception")
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=fsm.ANY_STATE,
@@ -399,8 +412,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     ) -> None:
         raise Exception("You shall not pass!")
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state,
         source=fsm.ANY_STATE,
@@ -424,16 +435,12 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
             ...
             # Do something with the comment
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(field=state, source=fsm.ANY_STATE, target=None, conditions=[lambda _obj: False])
     def conditions_unmet(
         self, by: AbstractUser | None = None, description: str | None = None
     ) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=state, source=fsm.ANY_STATE, target=None, permission=lambda _obj, _user: False
     )
@@ -444,8 +451,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
 
     # step transitions
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_1],
@@ -457,8 +462,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def step_two(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=step,
         source=[AdminBlogPostStep.STEP_2],
@@ -467,8 +470,6 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     def step_three(self, by: AbstractUser | None = None, description: str | None = None) -> None:
         pass
 
-    @fsm_log_by
-    @fsm_log_description
     @transition(
         field=step,
         source=[
