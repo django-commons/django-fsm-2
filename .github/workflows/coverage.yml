@@ -20,12 +20,6 @@ jobs:
           sudo apt-get install -y graphviz
 
       - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: '3.14'
-          enable-cache: true
-
-      # - name: Install requirements
-      #   run: uv sync --dev --frozen
 
       - name: Run tests
         run: uv run coverage run -m pytest --cov=django_fsm --cov-report=xml

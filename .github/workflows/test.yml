@@ -20,7 +20,7 @@ jobs:
     - uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
-        enable-cache: false
+        enable-cache: true
 
     - name: Install graphviz
       run: |
@@ -28,4 +28,4 @@ jobs:
         sudo apt-get install -y graphviz
 
     - name: Test with python ${{ matrix.python-version }}
-      run: uv run tox
+      run: uv run -p ${{ matrix.python-version }} tox

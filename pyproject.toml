@@ -57,7 +57,6 @@ dev = [
     "pytest-django",
     "pytest-randomly",
     "tox",
-    "tox-gh-actions",
     "django-unfold",
 ]
 
