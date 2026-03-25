@@ -4,22 +4,20 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import FSMModelMixin
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class RefreshableProtectedAccessModel(models.Model):
-    status = FSMField(default="new", protected=True)
+    status = fsm.FSMField(default="new", protected=True)
 
     objects: models.Manager[RefreshableProtectedAccessModel] = models.Manager()
 
-    @transition(field=status, source="new", target="published")
+    @fsm.transition(field=status, source="new", target="published")
     def publish(self):
         pass
 
 
-class RefreshableModel(FSMModelMixin, RefreshableProtectedAccessModel):
+class RefreshableModel(fsm.FSMModelMixin, RefreshableProtectedAccessModel):
     pass
 
 

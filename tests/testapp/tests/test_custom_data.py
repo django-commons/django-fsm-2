@@ -3,14 +3,13 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class BlogPostWithCustomData(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="new",
         target="published",
@@ -20,7 +19,7 @@ class BlogPostWithCustomData(models.Model):
     def publish(self):
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="published",
         target="destroyed",
@@ -29,7 +28,7 @@ class BlogPostWithCustomData(models.Model):
     def destroy(self):
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="published",
         target="review",

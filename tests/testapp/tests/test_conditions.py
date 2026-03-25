@@ -4,10 +4,7 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
+import django_fsm as fsm
 
 
 def condition_func(instance: models.Model) -> bool:
@@ -15,7 +12,7 @@ def condition_func(instance: models.Model) -> bool:
 
 
 class BlogPostWithConditions(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
     def model_condition(self: models.Model) -> bool:
         return True
@@ -23,13 +20,13 @@ class BlogPostWithConditions(models.Model):
     def unmet_condition(self: models.Model) -> bool:
         return False
 
-    @transition(
+    @fsm.transition(
         field=state, source="new", target="published", conditions=[condition_func, model_condition]
     )
     def publish(self):
         pass
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="published",
         target="destroyed",
@@ -47,15 +44,15 @@ class ConditionalTest(TestCase):
         assert self.model.state == "new"
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         assert self.model.state == "published"
 
     def test_unmet_condition(self):
         self.model.publish()
         assert self.model.state == "published"
-        assert not can_proceed(self.model.destroy)
-        with pytest.raises(TransitionNotAllowed):
+        assert not fsm.can_proceed(self.model.destroy)
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.destroy()
 
-        assert can_proceed(self.model.destroy, check_conditions=False)
+        assert fsm.can_proceed(self.model.destroy, check_conditions=False)

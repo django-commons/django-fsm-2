@@ -17,8 +17,8 @@ from django.db.models import QuerySet
 from django.db.models.query_utils import DeferredAttribute
 from django.db.models.signals import class_prepared
 
-from django_fsm.signals import post_transition
-from django_fsm.signals import pre_transition
+from .signals import post_transition
+from .signals import pre_transition
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     from typing import Self

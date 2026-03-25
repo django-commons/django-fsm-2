@@ -3,18 +3,16 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import can_proceed
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class BaseAbstractModel(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
     class Meta:
         abstract = True
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass
 
@@ -26,13 +24,13 @@ class AnotherFromAbstractModel(BaseAbstractModel):
     Don't try to remove it.
     """
 
-    @transition(field="state", source="published", target="sticked")
+    @fsm.transition(field="state", source="published", target="sticked")
     def stick(self):
         pass
 
 
 class InheritedFromAbstractModel(BaseAbstractModel):
-    @transition(field="state", source="published", target="sticked")
+    @fsm.transition(field="state", source="published", target="sticked")
     def stick(self):
         pass
 
@@ -42,11 +40,11 @@ class TestinheritedModel(TestCase):
         self.model = InheritedFromAbstractModel()
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         assert self.model.state == "published"
 
-        assert can_proceed(self.model.stick)
+        assert fsm.can_proceed(self.model.stick)
         self.model.stick()
         assert self.model.state == "sticked"
 
