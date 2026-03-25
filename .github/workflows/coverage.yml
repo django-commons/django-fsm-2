@@ -14,23 +14,12 @@ jobs:
       - name: Check out
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.x"
-
       - name: Install graphviz
         run: |
           sudo apt-get update
           sudo apt-get install -y graphviz
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-
-      - name: Install requirements
-        run: uv sync
+      - uses: astral-sh/setup-uv@v7
 
       - name: Run tests
         run: uv run coverage run -m pytest --cov=django_fsm --cov-report=xml
