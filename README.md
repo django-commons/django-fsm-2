@@ -94,7 +94,7 @@ uv pip install django-fsm-2
 ```python
 import django_fsm as fsm
 
-class BlogPost(FSMModelMixin, models.Model):
+class BlogPost(fsm.FSMModelMixin, models.Model):
     state = fsm.FSMField(default='new')
 ```
 
@@ -136,11 +136,13 @@ instance and must return truthy/falsey. The functions should not have
 side effects.
 
 ```python
+import django_fsm as fsm
+
 def can_publish(instance):
     # No publishing after 17 hours
     return datetime.datetime.now().hour <= 17
 
-class XXX(FSMModelMixin, models.Model):
+class XXX(fsm.FSMModelMixin, models.Model):
     @fsm.transition(
         field=state,
         source='new',
@@ -154,7 +156,8 @@ class XXX(FSMModelMixin, models.Model):
 You can also use model methods:
 
 ```python
-class XXX(FSMModelMixin, models.Model):
+import django_fsm as fsm
+class XXX(fsm.FSMModelMixin, models.Model):
     def can_destroy(self):
         return self.is_under_investigation()
 
@@ -180,7 +183,7 @@ allow refresh without enabling arbitrary writes elsewhere.
 ```python
 import django_fsm as fsm
 
-class BlogPost(FSMModelMixin, models.Model):
+class BlogPost(fsm.FSMModelMixin, models.Model):
     state = fsm.FSMField(default='new', protected=True)
 
 model = BlogPost()
@@ -329,7 +332,8 @@ Use `FSMKeyField` to store state values in a table and maintain FK
 integrity.
 
 ```python
-class DbState(FSMModelMixin, models.Model):
+import django_fsm as fsm
+class DbState(fsm.FSMModelMixin, models.Model):
     id = models.CharField(primary_key=True)
     label = models.CharField()
 
@@ -337,8 +341,8 @@ class DbState(FSMModelMixin, models.Model):
         return self.label
 
 
-class BlogPost(FSMModelMixin, models.Model):
-    state = FSMKeyField(DbState, default='new')
+class BlogPost(fsm.FSMModelMixin, models.Model):
+    state = fsm.FSMKeyField(DbState, default='new')
 
     @fsm.transition(field=state, source='new', target='published')
     def publish(self, **kwargs):
@@ -371,13 +375,14 @@ names, even if the field is accessed without the `_id` postfix.
 ### FSMIntegerField (enum-style states)
 
 ```python
+import django_fsm as fsm
 class BlogPostStateEnum(object):
     NEW = 10
     PUBLISHED = 20
     HIDDEN = 30
 
-class BlogPostWithIntegerField(FSMModelMixin, models.Model):
-    state = FSMIntegerField(default=BlogPostStateEnum.NEW)
+class BlogPostWithIntegerField(fsm.FSMModelMixin, models.Model):
+    state = fsm.FSMIntegerField(default=BlogPostStateEnum.NEW)
 
     @fsm.transition(
         field=state,
@@ -466,6 +471,8 @@ def do_something(self, **kwargs):
 or by overriding some methods in FSMAdminMixin
 
 ``` python
+from django_fsm.admin import FSMAdminMixin
+
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     ...
@@ -500,6 +507,8 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 or from the admin:
 
 ``` python
+from django_fsm.admin import FSMAdminMixin
+
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     ...
@@ -515,6 +524,8 @@ NB: By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or
 Then one must explicitly allow that a transition method shows up in the admin interface using `custom={"admin": True}`
 
 ``` python
+from django_fsm.admin import FSMAdminMixin
+
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     fsm_default_disallow_transition = False
@@ -532,7 +543,6 @@ or define an admin-level mapping via `fsm_forms`. Both accept a `forms.Form`/
 from django import forms
 import django_fsm as fsm
 
-
 class RenameForm(forms.Form):
     new_title = forms.CharField(max_length=255)
     # it's also possible to declare fsm log description
@@ -540,7 +550,7 @@ class RenameForm(forms.Form):
 
 class BlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=255)
-    state = FSMField(default="created")
+    state = fsm.FSMField(default="created")
 
     @fsm.transition(
         field=state,
@@ -561,6 +571,7 @@ transition definition:
 
 ```python
 from django_fsm.admin import FSMAdminMixin
+
 from .admin_forms import RenameForm
 
 @admin.register(AdminBlogPost)
