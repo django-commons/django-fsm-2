@@ -3,22 +3,21 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class BlogPostWithStringField(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
-    @transition(field="state", source="new", target="published", conditions=[])
+    @fsm.transition(field="state", source="new", target="published", conditions=[])
     def publish(self):
         pass
 
-    @transition(field="state", source="published", target="destroyed")
+    @fsm.transition(field="state", source="published", target="destroyed")
     def destroy(self):
         pass
 
-    @transition(field="state", source="published", target="review")
+    @fsm.transition(field="state", source="published", target="review")
     def review(self):
         pass
 

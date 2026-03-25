@@ -3,8 +3,7 @@ from __future__ import annotations
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class Insect(models.Model):
@@ -17,11 +16,11 @@ class Insect(models.Model):
         (STATE.BUTTERFLY, "Butterfly", "Butterfly"),
     )
 
-    state = FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
+    state = fsm.FSMField(default=STATE.CATERPILLAR, state_choices=STATE_CHOICES)
 
     objects: models.Manager[Insect] = models.Manager()
 
-    @transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
+    @fsm.transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
     def cocoon(self):
         pass
 

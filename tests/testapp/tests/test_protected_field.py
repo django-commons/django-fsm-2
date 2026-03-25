@@ -4,23 +4,22 @@ import pytest
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class ProtectedAccessModel(models.Model):
-    status = FSMField(default="new", protected=True)
+    status = fsm.FSMField(default="new", protected=True)
 
     objects: models.Manager[ProtectedAccessModel] = models.Manager()
 
-    @transition(field=status, source="new", target="published")
+    @fsm.transition(field=status, source="new", target="published")
     def publish(self):
         pass
 
 
 class MultiProtectedAccessModel(models.Model):
-    status1 = FSMField(default="new", protected=True)
-    status2 = FSMField(default="new", protected=True)
+    status1 = fsm.FSMField(default="new", protected=True)
+    status2 = fsm.FSMField(default="new", protected=True)
 
     objects: models.Manager[MultiProtectedAccessModel] = models.Manager()
 

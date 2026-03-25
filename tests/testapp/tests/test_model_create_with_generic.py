@@ -5,8 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.test import TestCase
 
-from django_fsm import FSMField
-from django_fsm import transition
+import django_fsm as fsm
 
 
 class Ticket(models.Model):
@@ -22,11 +21,11 @@ class Task(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     causality = GenericForeignKey("content_type", "object_id")
-    state = FSMField(default=TaskState.NEW)
+    state = fsm.FSMField(default=TaskState.NEW)
 
     objects: models.Manager[Task] = models.Manager()
 
-    @transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
+    @fsm.transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
     def do(self):
         pass
 

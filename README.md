@@ -28,21 +28,21 @@ Nice introduction is available here: https://gist.github.com/Nagyman/9502133
 
 ```python
 from django.db import models
-from django_fsm import FSMField, FSMModelMixin, transition
+import django_fsm as fsm
 
-class BlogPost(FSMModelMixin, models.Model):
-    state = FSMField(default='new')
+class BlogPost(fsm.FSMModelMixin, models.Model):
+    state = fsm.FSMField(default='new')
 
-    @transition(field=state, source='new', target='published')
+    @fsm.transition(field=state, source='new', target='published')
     def publish(self, **kwargs):
         pass
 ```
 
 ```python
-from django_fsm import can_proceed
+import django_fsm as fsm
 
 post = BlogPost.objects.get(pk=1)
-if can_proceed(post.publish):
+if fsm.can_proceed(post.publish):
     post.publish()
     post.save()
 ```
@@ -85,25 +85,25 @@ uv pip install django-fsm-2
 ### Core ideas
 
 - Store a state in an `FSMField` (or `FSMIntegerField`/`FSMKeyField`).
-- Declare transitions once with the `@transition` decorator.
+- Declare transitions once with the `@fsm.transition` decorator.
 - Transition methods can contain business logic and side effects.
 - The in-memory state changes on success; `save()` persists it.
 
 ### Adding an FSM field
 
 ```python
-from django_fsm import FSMField, FSMModelMixin
+import django_fsm as fsm
 
 class BlogPost(FSMModelMixin, models.Model):
-    state = FSMField(default='new')
+    state = fsm.FSMField(default='new')
 ```
 
 ### Declaring a transition
 
 ```python
-from django_fsm import transition
+import django_fsm as fsm
 
-@transition(field=state, source='new', target='published')
+@fsm.transition(field=state, source='new', target='published')
 def publish(self, **kwargs):
     """
     This function may contain side effects,
@@ -117,11 +117,11 @@ If calling `publish()` succeeds without raising an exception, the state
 changes in memory. **You must call `save()` to persist it**.
 
 ```python
-from django_fsm import can_proceed
+import django_fsm as fsm
 
 def publish_view(request, post_id, **kwargs):
     post = get_object_or_404(BlogPost, pk=post_id)
-    if not can_proceed(post.publish):
+    if not fsm.can_proceed(post.publish):
         raise PermissionDenied
 
     post.publish()
@@ -141,7 +141,7 @@ def can_publish(instance):
     return datetime.datetime.now().hour <= 17
 
 class XXX(FSMModelMixin, models.Model):
-    @transition(
+    @fsm.transition(
         field=state,
         source='new',
         target='published',
@@ -158,7 +158,7 @@ class XXX(FSMModelMixin, models.Model):
     def can_destroy(self):
         return self.is_under_investigation()
 
-    @transition(
+    @fsm.transition(
         field=state,
         source='*',
         target='destroyed',
@@ -178,10 +178,10 @@ as well unless you use `FSMModelMixin`. Use `FSMModelMixin` by default to
 allow refresh without enabling arbitrary writes elsewhere.
 
 ```python
-from django_fsm import FSMModelMixin
+import django_fsm as fsm
 
 class BlogPost(FSMModelMixin, models.Model):
-    state = FSMField(default='new', protected=True)
+    state = fsm.FSMField(default='new', protected=True)
 
 model = BlogPost()
 model.state = 'invalid'  # Raises AttributeError
@@ -199,20 +199,20 @@ implementation.
 `target` can be a specific state or a `django_fsm.State` implementation.
 
 ```python
-from django_fsm import FSMField, transition, RETURN_VALUE, GET_STATE
+import django_fsm as fsm
 
-@transition(
+@fsm.transition(
     field=state,
     source='*',
-    target=RETURN_VALUE('for_moderators', 'published'),
+    target=fsm.RETURN_VALUE('for_moderators', 'published'),
 )
 def publish(self, is_public=False, **kwargs):
     return 'for_moderators' if is_public else 'published'
 
-@transition(
+@fsm.transition(
     field=state,
     source='for_moderators',
-    target=GET_STATE(
+    target=fsm.GET_STATE(
         lambda self, allowed: 'published' if allowed else 'rejected',
         states=['published', 'rejected'],
     ),
@@ -220,10 +220,10 @@ def publish(self, is_public=False, **kwargs):
 def moderate(self, allowed, **kwargs):
     pass
 
-@transition(
+@fsm.transition(
     field=state,
     source='for_moderators',
-    target=GET_STATE(
+    target=fsm.GET_STATE(
         lambda self, **kwargs: 'published' if kwargs.get('allowed', True) else 'rejected',
         states=['published', 'rejected'],
     ),
@@ -237,7 +237,7 @@ def moderate(self, allowed=True, **kwargs):
 Use `custom` to attach arbitrary data to a transition.
 
 ```python
-@transition(
+@fsm.transition(
     field=state,
     source='*',
     target='onhold',
@@ -253,7 +253,7 @@ If a transition method raises an exception, you can specify an `on_error`
 state.
 
 ```python
-@transition(
+@fsm.transition(
     field=state,
     source='new',
     target='published',
@@ -271,7 +271,7 @@ Attach permissions to transitions with the `permission` argument. It
 accepts a permission string or a callable that receives `(instance, user)`.
 
 ```python
-@transition(
+@fsm.transition(
     field=state,
     source='*',
     target='published',
@@ -280,7 +280,7 @@ accepts a permission string or a callable that receives `(instance, user)`.
 def publish(self, **kwargs):
     pass
 
-@transition(
+@fsm.transition(
     field=state,
     source='*',
     target='removed',
@@ -293,11 +293,11 @@ def remove(self, **kwargs):
 Check permission with `has_transition_perm`:
 
 ```python
-from django_fsm import has_transition_perm
+import django_fsm as fsm
 
 def publish_view(request, post_id):
     post = get_object_or_404(BlogPost, pk=post_id)
-    if not has_transition_perm(post.publish, request.user):
+    if not fsm.has_transition_perm(post.publish, request.user):
         raise PermissionDenied
 
     post.publish()
@@ -340,7 +340,7 @@ class DbState(FSMModelMixin, models.Model):
 class BlogPost(FSMModelMixin, models.Model):
     state = FSMKeyField(DbState, default='new')
 
-    @transition(field=state, source='new', target='published')
+    @fsm.transition(field=state, source='new', target='published')
     def publish(self, **kwargs):
         pass
 ```
@@ -379,7 +379,7 @@ class BlogPostStateEnum(object):
 class BlogPostWithIntegerField(FSMModelMixin, models.Model):
     state = FSMIntegerField(default=BlogPostStateEnum.NEW)
 
-    @transition(
+    @fsm.transition(
         field=state,
         source=BlogPostStateEnum.NEW,
         target=BlogPostStateEnum.PUBLISHED,
@@ -409,10 +409,10 @@ state changed in the database, `django_fsm.ConcurrentTransition` is raised
 on `save()`.
 
 ```python
-from django_fsm import FSMField, ConcurrentTransitionMixin, FSMModelMixin
+import django_fsm as fsm
 
-class BlogPost(ConcurrentTransitionMixin, FSMModelMixin, models.Model):
-    state = FSMField(default='new')
+class BlogPost(fsm.ConcurrentTransitionMixin, models.Model):
+    state = fsm.FSMField(default='new')
 ```
 
 For guaranteed protection against race conditions caused by concurrently
@@ -450,7 +450,7 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 2. You can customize the buttons by adding `label` and `help_text` to the `custom` attribute of the transition decorator
 
 ``` python
-@transition(
+@fsm.transition(
     field='state',
     source=['startstate'],
     target='finalstate',
@@ -486,7 +486,7 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 4. Hiding a transition is possible by adding ``custom={"admin": False}`` to the transition decorator:
 
 ``` python
-    @transition(
+    @fsm.transition(
         field='state',
         source=['startstate'],
         target='finalstate',
@@ -530,18 +530,19 @@ or define an admin-level mapping via `fsm_forms`. Both accept a `forms.Form`/
 
 ```python
 from django import forms
-from django_fsm import FSMModelMixin, transition
+import django_fsm as fsm
+
 
 class RenameForm(forms.Form):
     new_title = forms.CharField(max_length=255)
     # it's also possible to declare fsm log description
     description = forms.CharField(max_length=255)
 
-class BlogPost(FSMModelMixin, models.Model):
+class BlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=255)
     state = FSMField(default="created")
 
-    @transition(
+    @fsm.transition(
         field=state,
         source="*",
         target="created",

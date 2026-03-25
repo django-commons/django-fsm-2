@@ -5,53 +5,48 @@ from django.db import models
 from django.test import TestCase
 
 import django_fsm as fsm
-from django_fsm import FSMField
-from django_fsm import Transition
-from django_fsm import TransitionNotAllowed
-from django_fsm import can_proceed
-from django_fsm import transition
 from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
 
 class SimpleBlogPost(models.Model):
-    state = FSMField(default="new")
+    state = fsm.FSMField(default="new")
 
-    @transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self):
         pass
 
-    @transition(source="published", field=state)
+    @fsm.transition(source="published", field=state)
     def notify_all(self):
         pass
 
-    @transition(source="published", target="hidden", field=state)
+    @fsm.transition(source="published", target="hidden", field=state)
     def hide(self):
         pass
 
-    @transition(source="new", target="removed", field=state)
+    @fsm.transition(source="new", target="removed", field=state)
     def remove(self):
         raise Exception("Upss")
 
-    @transition(source=["published", "hidden"], target="stolen", field=state)
+    @fsm.transition(source=["published", "hidden"], target="stolen", field=state)
     def steal(self):
         pass
 
-    @transition(source=fsm.ANY_STATE, target="moderated", field=state)
+    @fsm.transition(source=fsm.ANY_STATE, target="moderated", field=state)
     def moderate(self):
         pass
 
-    @transition(source=fsm.ANY_OTHER_STATE, target="blocked", field=state)
+    @fsm.transition(source=fsm.ANY_OTHER_STATE, target="blocked", field=state)
     def block(self):
         pass
 
-    @transition(source=fsm.ANY_STATE, target="", field=state)
+    @fsm.transition(source=fsm.ANY_STATE, target="", field=state)
     def empty(self):
         pass
 
 
 class AdvancedBlogPost(SimpleBlogPost):
-    @transition(field="state", source="new", target="published")
+    @fsm.transition(field="state", source="new", target="published")
     def publish(self):
         pass
 
@@ -64,21 +59,21 @@ class FSMFieldTest(TestCase):
         assert self.model.state == "new"
 
     def test_known_transition_should_succeed(self):
-        assert can_proceed(self.model.publish)
+        assert fsm.can_proceed(self.model.publish)
         self.model.publish()
         assert self.model.state == "published"
 
-        assert can_proceed(self.model.hide)
+        assert fsm.can_proceed(self.model.hide)
         self.model.hide()
         assert self.model.state == "hidden"
 
     def test_unknown_transition_fails(self):
-        assert not can_proceed(self.model.hide)
-        with pytest.raises(TransitionNotAllowed):
+        assert not fsm.can_proceed(self.model.hide)
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.hide()
 
     def test_state_non_changed_after_fail(self):
-        assert can_proceed(self.model.remove)
+        assert fsm.can_proceed(self.model.remove)
         with pytest.raises(Exception, match="Upss"):
             self.model.remove()
         assert self.model.state == "new"
@@ -89,7 +84,7 @@ class FSMFieldTest(TestCase):
         assert self.model.state == "published"
 
     def test_unknown_null_transition_should_fail(self):
-        with pytest.raises(TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.notify_all()
         assert self.model.state == "new"
 
@@ -105,7 +100,7 @@ class FSMFieldTest(TestCase):
         assert self.model.state == "stolen"
 
     def test_star_shortcut_succeed(self):
-        assert can_proceed(self.model.moderate)
+        assert fsm.can_proceed(self.model.moderate)
         self.model.moderate()
         assert self.model.state == "moderated"
 
@@ -113,7 +108,7 @@ class FSMFieldTest(TestCase):
         """Tests that the '+' shortcut succeeds for a source
         other than the target.
         """
-        assert can_proceed(self.model.block)
+        assert fsm.can_proceed(self.model.block)
         self.model.block()
         assert self.model.state == "blocked"
 
@@ -122,8 +117,8 @@ class FSMFieldTest(TestCase):
         equals the target.
         """
         self.model.block()
-        assert not can_proceed(self.model.block)
-        with pytest.raises(TransitionNotAllowed):
+        assert not fsm.can_proceed(self.model.block)
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.block()
 
     def test_empty_string_target(self):
@@ -157,7 +152,7 @@ class StateSignalsTests(TestCase):
         assert self.post_transition_called
 
     def test_signals_not_called_on_invalid_transition(self):
-        with pytest.raises(TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionNotAllowed):
             self.model.hide()
         assert not self.pre_transition_called
         assert not self.post_transition_called
@@ -181,7 +176,7 @@ class TestFieldTransitionsInspect(TestCase):
         self.model = SimpleBlogPost()
 
     def test_transition_are_hashable(self) -> None:
-        transition = Transition(
+        transition = fsm.Transition(
             method=self.model.publish,
             source="new",
             target="published",
@@ -196,7 +191,7 @@ class TestFieldTransitionsInspect(TestCase):
     def test_transition_equality(self) -> None:
         for wrong_value in [0, 1, True, False, None]:
             assert (
-                Transition(
+                fsm.Transition(
                     method=AdvancedBlogPost.publish,
                     source="new",
                     target="published",
@@ -208,7 +203,7 @@ class TestFieldTransitionsInspect(TestCase):
                 != wrong_value
             )
 
-        assert Transition(
+        assert fsm.Transition(
             method=AdvancedBlogPost.publish,
             source="new",
             target="published",
@@ -216,7 +211,7 @@ class TestFieldTransitionsInspect(TestCase):
             conditions=[],
             permission=None,
             custom={},
-        ) != Transition(
+        ) != fsm.Transition(
             method=SimpleBlogPost.publish,
             source="new",
             target="published",
@@ -226,7 +221,7 @@ class TestFieldTransitionsInspect(TestCase):
             custom={},
         )
 
-        assert Transition(
+        assert fsm.Transition(
             method=AdvancedBlogPost.empty,
             source=fsm.ANY_STATE,
             target="",
@@ -234,7 +229,7 @@ class TestFieldTransitionsInspect(TestCase):
             conditions=[],
             permission=None,
             custom={},
-        ) == Transition(
+        ) == fsm.Transition(
             method=SimpleBlogPost.empty,
             source=fsm.ANY_STATE,
             target="",
@@ -255,7 +250,7 @@ class TestFieldTransitionsInspect(TestCase):
         def publish():
             pass
 
-        obj = Transition(
+        obj = fsm.Transition(
             method=publish,
             source="",
             target="",
