@@ -6,6 +6,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 from tests.testapp.models import DbState
+from tests.testapp.models import DbStateAutoPk
 
 FK_AVAILABLE_STATES = (
     ("NEW", "New"),
@@ -17,40 +18,50 @@ FK_AVAILABLE_STATES = (
 )
 
 
-class FKBlogPost(models.Model):
-    state = fsm.FSMKeyField(DbState, default="NEW", protected=True, on_delete=models.CASCADE)
+class FSMKeyModelAbstract(models.Model):
+    state: fsm.FSMKeyField
 
-    @fsm.transition(field=state, source="NEW", target="PUBLISHED")
+    @fsm.transition(field="state", source="NEW", target="PUBLISHED")
     def publish(self):
         pass
 
-    @fsm.transition(field=state, source="PUBLISHED")
+    @fsm.transition(field="state", source="PUBLISHED")
     def notify_all(self):
         pass
 
-    @fsm.transition(field=state, source="PUBLISHED", target="HIDDEN")
+    @fsm.transition(field="state", source="PUBLISHED", target="HIDDEN")
     def hide(self):
         pass
 
-    @fsm.transition(field=state, source="NEW", target="REMOVED")
+    @fsm.transition(field="state", source="NEW", target="REMOVED")
     def remove(self):
         raise Exception("Upss")
 
-    @fsm.transition(field=state, source=["PUBLISHED", "HIDDEN"], target="STOLEN")
+    @fsm.transition(field="state", source=["PUBLISHED", "HIDDEN"], target="STOLEN")
     def steal(self):
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_STATE, target="MODERATED")
+    @fsm.transition(field="state", source=fsm.ANY_STATE, target="MODERATED")
     def moderate(self):
         pass
 
 
-class FSMKeyFieldTest(TestCase):
+class FSMKeyModel(FSMKeyModelAbstract):
+    state = fsm.FSMKeyField(DbState, default="NEW", protected=True, on_delete=models.CASCADE)
+
+
+class FSMKeyFieldTestCase(TestCase):
+    model: FSMKeyModelAbstract
+
     def setUp(self):
         DbState.objects.bulk_create(
-            DbState(pk=item[0], label=item[1]) for item in FK_AVAILABLE_STATES
+            DbState(
+                pk=item[0],
+                label=item[1],
+            )
+            for item in FK_AVAILABLE_STATES
         )
-        self.model = FKBlogPost()
+        self.model = FSMKeyModel()
 
     def test_initial_state_instantiated(self):
         assert self.model.state == "NEW"
@@ -103,47 +114,26 @@ class FSMKeyFieldTest(TestCase):
         assert self.model.state == "MODERATED"
 
 
-"""
-# TODO: FIX it
-class BlogPostStatus(models.Model):
-    name = models.CharField(unique=True, max_length=10)
-
-
-class BlogPostWithFKState(models.Model):
-    status = fsm.FSMKeyField(
-        BlogPostStatus,
-        default=lambda: BlogPostStatus.objects.get(name="new"),
+class AutoPkFSMKeyModel(FSMKeyModelAbstract):
+    state = fsm.FSMKeyField(
+        DbStateAutoPk,
+        to_field="name",  # FK with different column
+        default="NEW",
         on_delete=models.CASCADE,
     )
 
-    @fsm.transition(field=status, source="new", target="published")
-    def publish(self):
-        pass
 
-    @fsm.transition(field=status, source="published", target="hidden")
-    def hide(self):
-        pass
+class AutoPkFSMKeyFieldTestCase(FSMKeyFieldTestCase):
+    model: FSMKeyModelAbstract
 
-
-class BlogPostWithFKStateTest(TestCase):
     def setUp(self):
-        BlogPostStatus.objects.bulk_create(
+        DbStateAutoPk.objects.bulk_create(
             [
-                BlogPostStatus(name="new"),
-                BlogPostStatus(name="published"),
-                BlogPostStatus(name="hidden"),
+                DbStateAutoPk(
+                    name=item[1],
+                )
+                for item in FK_AVAILABLE_STATES
             ]
         )
-        self.model = BlogPostWithFKState()
 
-    def test_known_transition_should_succeed(self):
-        self.model.publish()
-        assert self.model.status == "published"
-
-        self.model.hide()
-        assert self.model.status == "hidden"
-
-    def test_unknown_transition_fails(self):
-        with pytest.raises(fsm.TransitionNotAllowed):
-            self.model.hide()
-"""
+        self.model = AutoPkFSMKeyModel()
