@@ -120,6 +120,14 @@ class DbState(models.Model):
         return self.label
 
 
+class DbStateAutoPk(models.Model):
+    """
+    States in DB
+    """
+
+    name = models.CharField(unique=True, max_length=10)
+
+
 class FKApplication(models.Model):
     """
     Student application need to be approved by dept chair and dean.

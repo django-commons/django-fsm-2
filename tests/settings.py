@@ -178,5 +178,6 @@ DJANGO_FSM_LOG_IGNORED_MODELS = (
     "tests.testapp.tests.test_state_transitions.Caterpillar",
     "tests.testapp.tests.test_string_field_parameter.BlogPostWithStringField",
     "tests.testapp.tests.test_transition_all_except_target.ExceptTargetTransition",
-    "tests.testapp.tests.test_key_field.FKBlogPost",
+    "tests.testapp.tests.test_key_field.FSMKeyModel",
+    "tests.testapp.tests.test_key_field.AutoPkFSMKeyModel",
 )
