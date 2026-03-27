@@ -8,35 +8,41 @@ import django_fsm as fsm
 from django_fsm.signals import post_transition
 from django_fsm.signals import pre_transition
 
+from ..choices import ApplicationState
+
 
 class SimpleBlogPost(models.Model):
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
-    @fsm.transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
     def publish(self):
         pass
 
-    @fsm.transition(source="published", field=state)
+    @fsm.transition(source=ApplicationState.PUBLISHED, field=state)
     def notify_all(self):
         pass
 
-    @fsm.transition(source="published", target="hidden", field=state)
+    @fsm.transition(source=ApplicationState.PUBLISHED, target=ApplicationState.HIDDEN, field=state)
     def hide(self):
         pass
 
-    @fsm.transition(source="new", target="removed", field=state)
+    @fsm.transition(source=ApplicationState.NEW, target=ApplicationState.REMOVED, field=state)
     def remove(self):
         raise Exception("Upss")
 
-    @fsm.transition(source=["published", "hidden"], target="stolen", field=state)
+    @fsm.transition(
+        source=[ApplicationState.PUBLISHED, ApplicationState.HIDDEN],
+        target=ApplicationState.STOLEN,
+        field=state,
+    )
     def steal(self):
         pass
 
-    @fsm.transition(source=fsm.ANY_STATE, target="moderated", field=state)
+    @fsm.transition(source=fsm.ANY_STATE, target=ApplicationState.MODERATED, field=state)
     def moderate(self):
         pass
 
-    @fsm.transition(source=fsm.ANY_OTHER_STATE, target="blocked", field=state)
+    @fsm.transition(source=fsm.ANY_OTHER_STATE, target=ApplicationState.BLOCKED, field=state)
     def block(self):
         pass
 
@@ -46,7 +52,7 @@ class SimpleBlogPost(models.Model):
 
 
 class AdvancedBlogPost(SimpleBlogPost):
-    @fsm.transition(field="state", source="new", target="published")
+    @fsm.transition(field="state", source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
     def publish(self):
         pass
 
@@ -56,16 +62,16 @@ class FSMFieldTest(TestCase):
         self.model = SimpleBlogPost()
 
     def test_initial_state_instantiated(self):
-        assert self.model.state == "new"
+        assert self.model.state == ApplicationState.NEW
 
     def test_known_transition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
         self.model.publish()
-        assert self.model.state == "published"
+        assert self.model.state == ApplicationState.PUBLISHED
 
         assert fsm.can_proceed(self.model.hide)
         self.model.hide()
-        assert self.model.state == "hidden"
+        assert self.model.state == ApplicationState.HIDDEN
 
     def test_unknown_transition_fails(self):
         assert not fsm.can_proceed(self.model.hide)
@@ -76,33 +82,33 @@ class FSMFieldTest(TestCase):
         assert fsm.can_proceed(self.model.remove)
         with pytest.raises(Exception, match="Upss"):
             self.model.remove()
-        assert self.model.state == "new"
+        assert self.model.state == ApplicationState.NEW
 
     def test_allowed_null_transition_should_succeed(self):
         self.model.publish()
         self.model.notify_all()
-        assert self.model.state == "published"
+        assert self.model.state == ApplicationState.PUBLISHED
 
     def test_unknown_null_transition_should_fail(self):
         with pytest.raises(fsm.TransitionNotAllowed):
             self.model.notify_all()
-        assert self.model.state == "new"
+        assert self.model.state == ApplicationState.NEW
 
     def test_multiple_source_support_path_1_works(self):
         self.model.publish()
         self.model.steal()
-        assert self.model.state == "stolen"
+        assert self.model.state == ApplicationState.STOLEN
 
     def test_multiple_source_support_path_2_works(self):
         self.model.publish()
         self.model.hide()
         self.model.steal()
-        assert self.model.state == "stolen"
+        assert self.model.state == ApplicationState.STOLEN
 
     def test_star_shortcut_succeed(self):
         assert fsm.can_proceed(self.model.moderate)
         self.model.moderate()
-        assert self.model.state == "moderated"
+        assert self.model.state == ApplicationState.MODERATED
 
     def test_plus_shortcut_succeeds_for_other_source(self):
         """Tests that the '+' shortcut succeeds for a source
@@ -110,7 +116,7 @@ class FSMFieldTest(TestCase):
         """
         assert fsm.can_proceed(self.model.block)
         self.model.block()
-        assert self.model.state == "blocked"
+        assert self.model.state == ApplicationState.BLOCKED
 
     def test_plus_shortcut_fails_for_same_source(self):
         """Tests that the '+' shortcut fails if the source

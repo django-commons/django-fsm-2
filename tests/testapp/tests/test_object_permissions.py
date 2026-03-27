@@ -8,9 +8,11 @@ from guardian.shortcuts import assign_perm
 
 import django_fsm as fsm
 
+from ..choices import ApplicationState
+
 
 class ObjectPermissionTestModel(models.Model):
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     objects: models.Manager[ObjectPermissionTestModel] = models.Manager()
 
@@ -21,9 +23,9 @@ class ObjectPermissionTestModel(models.Model):
 
     @fsm.transition(
         field=state,
-        source="new",
-        target="published",
-        on_error="failed",
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
         permission="testapp.can_publish_objectpermissiontestmodel",
     )
     def publish(self) -> None:

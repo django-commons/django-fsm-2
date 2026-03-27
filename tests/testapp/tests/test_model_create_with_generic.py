@@ -13,15 +13,15 @@ class Ticket(models.Model):
 
 
 class TaskState(models.TextChoices):
-    NEW = "new", "New"
-    DONE = "done", "Done"
+    NEW = "NEW", "New"
+    DONE = "DONE", "Done"
 
 
 class Task(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     causality = GenericForeignKey("content_type", "object_id")
-    state = fsm.FSMField(default=TaskState.NEW)
+    state = fsm.FSMField(choices=TaskState.choices, default=TaskState.NEW)
 
     objects: models.Manager[Task] = models.Manager()
 

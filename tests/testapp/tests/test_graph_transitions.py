@@ -14,9 +14,9 @@ from django.test import TestCase
 
 from django_fsm.management.commands.graph_transitions import node_label
 from django_fsm.management.commands.graph_transitions import node_name
+from tests.testapp.choices import BlogPostState
 from tests.testapp.models import Application
 from tests.testapp.models import BlogPost
-from tests.testapp.models import BlogPostState
 from tests.testapp.tests.test_model_create_with_generic import Task
 from tests.testapp.tests.test_model_create_with_generic import TaskState
 
@@ -30,17 +30,18 @@ class GraphTransitionsCommandTest(TestCase):
     EXTENSIONS_TO_TEST = ["png", "jpg", "jpeg"]
 
     def test_node_name(self):
-        assert node_name(Task.state.field, TaskState.DONE) == "testapp.task.state.done"
+        assert node_name(Task.state.field, TaskState.DONE) == "testapp.task.state.DONE"
         assert node_name(BlogPost.state.field, BlogPostState.NEW) == "testapp.blog_post.state.0"
 
     def test_node_label(self):
+        assert node_label(Task.state.field, TaskState.DONE) == "Done"
         assert node_label(Application.state.field, "new") == "new"
         assert (
             node_label(BlogPost.state.field, BlogPostState.PUBLISHED.value)
             == BlogPostState.PUBLISHED.label
         )
         # choices is not declared, fallbacking to the value instead
-        assert node_label(Task.state.field, TaskState.DONE.value) == TaskState.DONE.value
+        assert node_label(Task.state.field, TaskState.DONE.value) == TaskState.DONE.label
 
     def _call_command(self, *args: typing.Any, **kwargs: typing.Any) -> str:
         out = StringIO()

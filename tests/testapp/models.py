@@ -7,6 +7,9 @@ from django_fsm_log.decorators import fsm_log_description
 
 import django_fsm as fsm
 
+from .choices import ApplicationState
+from .choices import BlogPostState
+
 
 class Application(models.Model):
     """
@@ -14,30 +17,35 @@ class Application(models.Model):
     Test workflow
     """
 
-    state = fsm.FSMField(default="new")
+    state = fsm.FSMField(default=ApplicationState.NEW)
 
-    @fsm.transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def standard(self) -> None:
         pass
 
-    @fsm.transition(field=state, source="published")
+    @fsm.transition(field=state, source=ApplicationState.PUBLISHED)
     def no_target(self) -> None:
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_STATE, target="blocked")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=ApplicationState.BLOCKED)
     def any_source(self) -> None:
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target="hidden")
+    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.HIDDEN)
     def any_source_except_target(self) -> None:
         pass
 
     @fsm.transition(
         field=state,
-        source="new",
+        source=ApplicationState.NEW,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state(self, *, allowed: bool) -> None:
@@ -47,8 +55,8 @@ class Application(models.Model):
         field=state,
         source=fsm.ANY_STATE,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source(self, *, allowed: bool) -> None:
@@ -58,30 +66,43 @@ class Application(models.Model):
         field=state,
         source=fsm.ANY_OTHER_STATE,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
-    @fsm.transition(field=state, source="new", target=fsm.RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
     @fsm.transition(
-        field=state, source=fsm.ANY_STATE, target=fsm.RETURN_VALUE("moderated", "blocked")
+        field=state,
+        source=fsm.ANY_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
     @fsm.transition(
-        field=state, source=fsm.ANY_OTHER_STATE, target=fsm.RETURN_VALUE("moderated", "blocked")
+        field=state,
+        source=fsm.ANY_OTHER_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source_except_target(self) -> str:
-        return "published"
+        return ApplicationState.PUBLISHED
 
-    @fsm.transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def on_error(self) -> None:
         pass
 
@@ -105,30 +126,30 @@ class FKApplication(models.Model):
     Test workflow for FSMKeyField
     """
 
-    state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    state = fsm.FSMKeyField(DbState, default=ApplicationState.NEW, on_delete=models.CASCADE)
 
-    @fsm.transition(field=state, source="new", target="published")
+    @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
     def standard(self) -> None:
         pass
 
-    @fsm.transition(field=state, source="published")
+    @fsm.transition(field=state, source=ApplicationState.PUBLISHED)
     def no_target(self) -> None:
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_STATE, target="blocked")
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=ApplicationState.BLOCKED)
     def any_source(self) -> None:
         pass
 
-    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target="hidden")
+    @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.HIDDEN)
     def any_source_except_target(self) -> None:
         pass
 
     @fsm.transition(
         field=state,
-        source="new",
+        source=ApplicationState.NEW,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state(self, *, allowed: bool) -> None:
@@ -138,8 +159,8 @@ class FKApplication(models.Model):
         field=state,
         source=fsm.ANY_STATE,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source(self, *, allowed: bool) -> None:
@@ -149,51 +170,55 @@ class FKApplication(models.Model):
         field=state,
         source=fsm.ANY_OTHER_STATE,
         target=fsm.GET_STATE(
-            lambda _, allowed: "published" if allowed else "rejected",
-            states=["published", "rejected"],
+            lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
+            states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
     def get_state_any_source_except_target(self, *, allowed: bool) -> None:
         pass
 
-    @fsm.transition(field=state, source="new", target=fsm.RETURN_VALUE("moderated", "blocked"))
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
+    )
     def return_value(self) -> str:
         return "published"
 
     @fsm.transition(
-        field=state, source=fsm.ANY_STATE, target=fsm.RETURN_VALUE("moderated", "blocked")
+        field=state,
+        source=fsm.ANY_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source(self) -> str:
         return "published"
 
     @fsm.transition(
-        field=state, source=fsm.ANY_OTHER_STATE, target=fsm.RETURN_VALUE("moderated", "blocked")
+        field=state,
+        source=fsm.ANY_OTHER_STATE,
+        target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source_except_target(self) -> str:
         return "published"
 
-    @fsm.transition(field=state, source="new", target="published", on_error="failed")
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        on_error=ApplicationState.FAILED,
+    )
     def on_error(self) -> None:
         pass
 
 
 class MultiStateApplication(Application):
-    another_state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    another_state = fsm.FSMKeyField(DbState, default=ApplicationState.NEW, on_delete=models.CASCADE)
 
-    @fsm.transition(field=another_state, source="new", target="published")
+    @fsm.transition(
+        field=another_state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED
+    )
     def another_state_standard(self) -> None:
         pass
-
-
-class BlogPostState(models.IntegerChoices):
-    NEW = 0, "New"
-    PUBLISHED = 1, "Published"
-    HIDDEN = 2, "Hidden"
-    REMOVED = 3, "Removed"
-    RESTORED = 4, "Restored"
-    MODERATED = 5, "Moderated"
-    STOLEN = 6, "Stolen"
-    FAILED = 7, "Failed"
 
 
 class BlogPost(models.Model):
