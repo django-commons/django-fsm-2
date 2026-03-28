@@ -353,17 +353,17 @@ In your fixtures/initial_data.json:
 ```json
 [
     {
-        "pk": "new",
+        "pk": "_NEW_",
         "model": "myapp.dbstate",
         "fields": {
-            "label": "_NEW_"
+            "label": "New"
         }
     },
     {
-        "pk": "published",
+        "pk": "_PUBLISHED_",
         "model": "myapp.dbstate",
         "fields": {
-            "label": "_PUBLISHED_"
+            "label": "Published"
         }
     }
 ]

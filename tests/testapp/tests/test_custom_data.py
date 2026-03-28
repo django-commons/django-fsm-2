@@ -5,12 +5,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class ApplicationState(models.TextChoices):
-    NEW = "new", "New"
-    PUBLISHED = "published", "Published"
-    DESTROYED = "destroyed", "Destroyed"
-    REVIEW = "review", "Review"
+from ..choices import ApplicationState
 
 
 class BlogPostWithCustomData(models.Model):
@@ -32,25 +27,25 @@ class BlogPostWithCustomData(models.Model):
     @fsm.transition(
         field=state,
         source=ApplicationState.PUBLISHED,
-        target=ApplicationState.DESTROYED,
+        target=ApplicationState.REMOVED,
         custom={
-            "label": "Destroy",
+            "label": "Remove",
             "type": "manual",
         },
     )
-    def destroy(self):
+    def remove(self):
         pass
 
     @fsm.transition(
         field=state,
         source=ApplicationState.PUBLISHED,
-        target=ApplicationState.REVIEW,
+        target=ApplicationState.MODERATED,
         custom={
             "label": "Periodic review",
             "type": "automated",
         },
     )
-    def review(self):
+    def moderate(self):
         pass
 
 

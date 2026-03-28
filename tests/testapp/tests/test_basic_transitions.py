@@ -209,6 +209,7 @@ class TestFieldTransitionsInspect(TestCase):
                 != wrong_value
             )
 
+        # overridden transitions have different hash
         assert fsm.Transition(
             method=AdvancedBlogPost.publish,
             source="new",
@@ -227,6 +228,7 @@ class TestFieldTransitionsInspect(TestCase):
             custom={},
         )
 
+        # inherited transitions have original hash
         assert fsm.Transition(
             method=AdvancedBlogPost.empty,
             source=fsm.ANY_STATE,

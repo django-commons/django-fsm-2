@@ -6,11 +6,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class ApplicationState(models.TextChoices):
-    NEW = "new", "New"
-    PUBLISHED = "published", "Published"
-    DESTROYED = "destroyed", "Destroyed"
+from ..choices import ApplicationState
 
 
 def condition_func(instance: models.Model) -> bool:
@@ -38,10 +34,10 @@ class BlogPostWithConditions(models.Model):
     @fsm.transition(
         field=state,
         source=ApplicationState.PUBLISHED,
-        target=ApplicationState.DESTROYED,
+        target=ApplicationState.REMOVED,
         conditions=[condition_func, unmet_condition],
     )
-    def destroy(self):
+    def remove(self):
         pass
 
 
@@ -60,8 +56,8 @@ class ConditionalTest(TestCase):
     def test_unmet_condition(self):
         self.model.publish()
         assert self.model.state == ApplicationState.PUBLISHED
-        assert not fsm.can_proceed(self.model.destroy)
+        assert not fsm.can_proceed(self.model.remove)
         with pytest.raises(fsm.TransitionNotAllowed):
-            self.model.destroy()
+            self.model.remove()
 
-        assert fsm.can_proceed(self.model.destroy, check_conditions=False)
+        assert fsm.can_proceed(self.model.remove, check_conditions=False)

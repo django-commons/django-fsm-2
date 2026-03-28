@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from django import forms
 
+from .choices import AdminBlogPostState
 from .models import AdminBlogPost
-from .models import AdminBlogPostState
 
 
 class FSMLogDescriptionForm(forms.Form):

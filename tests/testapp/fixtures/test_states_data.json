@@ -1,27 +1,27 @@
 [
     {
         "model": "testapp.dbstate",
-         "pk": "new",
+         "pk": "_NEW_",
          "fields": { "label": "_New"}
     },
     {
         "model": "testapp.dbstate",
-         "pk": "draft",
+         "pk": "_DRAFT_",
          "fields": { "label": "_Draft"}
     },
     {
         "model": "testapp.dbstate",
-         "pk": "dept",
+         "pk": "_DEPT_",
          "fields": { "label": "_Dept"}
     },
     {
         "model": "testapp.dbstate",
-         "pk": "dean",
+         "pk": "_DEAN_",
          "fields": { "label": "_Dean"}
     },
     {
         "model": "testapp.dbstate",
-         "pk": "done",
+         "pk": "_DONE_",
          "fields": { "label": "_Done"}
     }
 ]
