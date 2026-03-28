@@ -6,13 +6,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class ApplicationState(models.TextChoices):
-    NEW = "NEW", "New"
-    PUBLISHED = "PUBLISHED", "Published"
-    REMOVED = "REMOVED", "Removed"
-    WAITING = "WAITING", "Waiting"
-    REJECTED = "REJECTED", "Rejected"
+from ..choices import ApplicationState
 
 
 class LockedBlogPost(fsm.ConcurrentTransitionMixin, models.Model):
@@ -39,14 +33,14 @@ class LockedBlogPost(fsm.ConcurrentTransitionMixin, models.Model):
 
 
 class ExtendedBlogPost(LockedBlogPost):
-    review_state = fsm.FSMField(default=ApplicationState.WAITING, protected=True)
+    review_state = fsm.FSMField(default=ApplicationState.BLOCKED, protected=True)
     notes = models.CharField(max_length=50)
 
     objects: models.Manager[ExtendedBlogPost] = models.Manager()
 
     @fsm.transition(
         field=review_state,
-        source=ApplicationState.WAITING,
+        source=ApplicationState.BLOCKED,
         target=ApplicationState.REJECTED,
     )
     def reject(self):
@@ -64,6 +58,7 @@ class TestLockMixin(TestCase):
 
         post = LockedBlogPost.objects.get(pk=post.pk)
         assert post.state == ApplicationState.PUBLISHED
+
         post.text = "test_crud_succeed2"
         post.save()
 
@@ -83,16 +78,16 @@ class TestLockMixin(TestCase):
         post.delete()
 
     def test_concurrent_modifications_raise_exception(self):
-        post1 = LockedBlogPost.objects.create()
-        post2 = LockedBlogPost.objects.get(pk=post1.pk)
+        saved_post = LockedBlogPost.objects.create()
+        stale_post = LockedBlogPost.objects.get(pk=saved_post.pk)
 
-        post1.publish()
-        post1.save()
+        saved_post.publish()
+        saved_post.save()
 
-        post2.text = "aaa"
-        post2.publish()
+        stale_post.text = "aaa"
+        stale_post.publish()
         with pytest.raises(fsm.ConcurrentTransition):
-            post2.save()
+            stale_post.save()
 
     def test_inheritance_crud_succeed(self):
         post = ExtendedBlogPost(text="test_inheritance_crud_succeed", notes="reject me")
@@ -101,6 +96,7 @@ class TestLockMixin(TestCase):
 
         post = ExtendedBlogPost.objects.get(pk=post.pk)
         assert post.state == ApplicationState.PUBLISHED
+
         post.text = "test_inheritance_crud_succeed2"
         post.reject()
         post.save()
@@ -110,12 +106,12 @@ class TestLockMixin(TestCase):
         assert post.text == "test_inheritance_crud_succeed2"
 
     def test_concurrent_modifications_after_refresh_db_succeed(self):  # bug 255
-        post1 = LockedBlogPost.objects.create()
-        post2 = LockedBlogPost.objects.get(pk=post1.pk)
+        saved_post = LockedBlogPost.objects.create()
+        stale_post = LockedBlogPost.objects.get(pk=saved_post.pk)
 
-        post1.publish()
-        post1.save()
+        saved_post.publish()
+        saved_post.save()
 
-        post2.refresh_from_db()
-        post2.remove()
-        post2.save()
+        stale_post.refresh_from_db()
+        stale_post.remove()
+        stale_post.save()

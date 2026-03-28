@@ -16,6 +16,7 @@ class ApplicationState(models.TextChoices):
     STOLEN = "stolen", "Stolen"
     CRASHED = "crashed", "Crashed"
     STICKED = "STICKED", "sticked"
+    DRAFT = "DRAFT", "Draft"
 
 
 class BlogPostState(models.IntegerChoices):

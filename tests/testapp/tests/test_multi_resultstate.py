@@ -15,7 +15,7 @@ class ApplicationState(models.TextChoices):
     REJECTED = "REJECTED", "Rejected"
 
 
-class MultiResultTest(models.Model):
+class MultiResultModel(models.Model):
     state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(
@@ -52,28 +52,30 @@ class MultiResultTest(models.Model):
         pass
 
 
-class Test(TestCase):
-    def test_return_state_succeed(self):
-        instance = MultiResultTest()
+class MultiResultStateReturnTests(TestCase):
+    def test_return_value_sets_state(self):
+        instance = MultiResultModel()
         instance.publish(is_public=True)
+
         assert instance.state == ApplicationState.PUBLISHED
 
-    def test_get_state_succeed(self):
-        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
+    def test_get_state_sets_state(self):
+        instance = MultiResultModel(state=ApplicationState.FOR_MODERATORS)
         instance.moderate(allowed=False)
+
         assert instance.state == ApplicationState.REJECTED
 
 
-class TestSignals(TestCase):
+class MultiResultStateSignalTests(TestCase):
     def setUp(self):
         self.pre_transition_called = False
         self.post_transition_called = False
-        pre_transition.connect(self.on_pre_transition, sender=MultiResultTest)
-        post_transition.connect(self.on_post_transition, sender=MultiResultTest)
+        pre_transition.connect(self.on_pre_transition, sender=MultiResultModel)
+        post_transition.connect(self.on_post_transition, sender=MultiResultModel)
 
     def tearDown(self):
-        pre_transition.disconnect(self.on_pre_transition, sender=MultiResultTest)
-        post_transition.disconnect(self.on_post_transition, sender=MultiResultTest)
+        pre_transition.disconnect(self.on_pre_transition, sender=MultiResultModel)
+        post_transition.disconnect(self.on_post_transition, sender=MultiResultModel)
 
     def on_pre_transition(self, sender, instance, name, source, target, **kwargs):
         assert instance.state == source
@@ -84,25 +86,29 @@ class TestSignals(TestCase):
         self.post_transition_called = True
 
     def test_signals_called_with_get_state(self):
-        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
+        instance = MultiResultModel(state=ApplicationState.FOR_MODERATORS)
         instance.moderate(allowed=False)
+
         assert self.pre_transition_called
         assert self.post_transition_called
 
     def test_signals_called_with_get_state_without_states(self):
-        instance = MultiResultTest(state=ApplicationState.FOR_MODERATORS)
+        instance = MultiResultModel(state=ApplicationState.FOR_MODERATORS)
         instance.moderate_without_states(allowed=False)
+
         assert self.pre_transition_called
         assert self.post_transition_called
 
     def test_signals_called_with_return_value(self):
-        instance = MultiResultTest()
+        instance = MultiResultModel()
         instance.publish(is_public=True)
+
         assert self.pre_transition_called
         assert self.post_transition_called
 
     def test_signals_called_with_return_value_without_states(self):
-        instance = MultiResultTest()
+        instance = MultiResultModel()
         instance.publish_without_states(is_public=True)
+
         assert self.pre_transition_called
         assert self.post_transition_called

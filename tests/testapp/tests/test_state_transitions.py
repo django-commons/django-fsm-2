@@ -52,16 +52,18 @@ class Butterfly(Insect):
 
 
 class TestStateProxy(TestCase):
-    def test_initial_proxy_set_succeed(self):
+    def test_initial_proxy_resolution(self):
         insect = Insect()
+
         assert isinstance(insect, Caterpillar)
 
-    def test_transition_proxy_set_succeed(self):
+    def test_proxy_updates_after_state_change(self):
         insect = Insect()
         insect.cocoon()
+
         assert isinstance(insect, Butterfly)
 
-    def test_load_proxy_set(self):
+    def test_proxy_resolution_after_load(self):
         Insect.objects.bulk_create(
             [
                 Insect(state=Insect.STATE.CATERPILLAR),
@@ -69,5 +71,4 @@ class TestStateProxy(TestCase):
             ]
         )
 
-        insects = Insect.objects.all()
-        assert {Caterpillar, Butterfly} == {insect.__class__ for insect in insects}
+        assert {insect.__class__ for insect in Insect.objects.all()} == {Caterpillar, Butterfly}

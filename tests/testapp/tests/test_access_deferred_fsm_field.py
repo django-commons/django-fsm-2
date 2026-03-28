@@ -22,15 +22,18 @@ class DeferrableModel(models.Model):
         pass
 
 
-class Test(TestCase):
+class DeferredFieldAccessTests(TestCase):
     def setUp(self):
         DeferrableModel.objects.create()
         self.model = DeferrableModel.objects.only("id").get()
 
-    def test_usecase(self):
+    def test_deferred_field_allows_transition(self):
         assert self.model.state == ApplicationState.NEW
+
         assert fsm.can_proceed(self.model.remove)
+
         self.model.remove()
 
         assert self.model.state == ApplicationState.REMOVED
+
         assert not fsm.can_proceed(self.model.remove)

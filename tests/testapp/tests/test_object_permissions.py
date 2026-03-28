@@ -49,6 +49,7 @@ class ObjectPermissionFSMFieldTest(TestCase):
 
     def test_object_only_access_success(self):
         assert fsm.has_transition_perm(self.model.publish, self.privileged)
+
         self.model.publish()
 
     def test_object_only_other_access_prohibited(self):

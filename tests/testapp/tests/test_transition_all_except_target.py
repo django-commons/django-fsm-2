@@ -24,10 +24,13 @@ class TestExceptTargetTransition(TestCase):
     def setUp(self):
         self.model = ExceptTargetTransition()
 
-    def test_usecase(self):
+    def test_all_except_target_blocks_after_reaching_target(self):
         assert self.model.state == ApplicationState.NEW
+
         assert fsm.can_proceed(self.model.remove)
+
         self.model.remove()
 
         assert self.model.state == ApplicationState.REMOVED
+
         assert not fsm.can_proceed(self.model.remove)

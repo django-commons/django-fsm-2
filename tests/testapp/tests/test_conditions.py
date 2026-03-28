@@ -41,22 +41,27 @@ class BlogPostWithConditions(models.Model):
         pass
 
 
-class ConditionalTest(TestCase):
+class ConditionTransitionTests(TestCase):
     def setUp(self):
         self.model = BlogPostWithConditions()
 
-    def test_initial_staet(self):
+    def test_initial_state_instantiated(self):
         assert self.model.state == ApplicationState.NEW
 
-    def test_known_transition_should_succeed(self):
+    def test_valid_condition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
+
         self.model.publish()
+
         assert self.model.state == ApplicationState.PUBLISHED
 
     def test_unmet_condition(self):
         self.model.publish()
+
         assert self.model.state == ApplicationState.PUBLISHED
+
         assert not fsm.can_proceed(self.model.remove)
+
         with pytest.raises(fsm.TransitionNotAllowed):
             self.model.remove()
 

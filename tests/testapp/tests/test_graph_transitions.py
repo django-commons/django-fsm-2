@@ -85,9 +85,9 @@ class GraphTransitionsCommandTest(TestCase):
                 export_dir.mkdir()
                 for model in self.MODELS_TO_TEST:
                     for extension in self.EXTENSIONS_TO_TEST:
-                        my_file = export_dir / f"{model}.{extension}"
-                        self._call_command("-o", my_file, model)
-                        assert my_file.exists()
+                        output_file = export_dir / f"{model}.{extension}"
+                        self._call_command("-o", output_file, model)
+                        assert output_file.exists()
             finally:
                 os.chdir(previous_cwd)
 

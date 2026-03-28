@@ -53,15 +53,20 @@ class CustomTransitionDataTest(TestCase):
     def setUp(self):
         self.model = BlogPostWithCustomData()
 
-    def test_initial_state(self):
+    def test_initial_state_exposes_custom_data(self):
         assert self.model.state == ApplicationState.NEW
-        transitions = list(self.model.get_available_state_transitions())  # type: ignore[attr-defined]
-        assert len(transitions) == 1
-        assert transitions[0].target == ApplicationState.PUBLISHED
-        assert transitions[0].custom == {"label": "Publish", "type": "*"}
+
+        available_transitions = list(self.model.get_available_state_transitions())  # type: ignore[attr-defined]
+
+        assert len(available_transitions) == 1
+
+        publish_transition = available_transitions[0]
+        assert publish_transition.target == ApplicationState.PUBLISHED
+        assert publish_transition.custom == {"label": "Publish", "type": "*"}
 
     def test_all_transitions_have_custom_data(self):
-        transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
-        for t in transitions:
-            assert t.custom["label"] is not None
-            assert t.custom["type"] is not None
+        all_transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
+
+        for transition in all_transitions:
+            assert transition.custom["label"] is not None
+            assert transition.custom["type"] is not None

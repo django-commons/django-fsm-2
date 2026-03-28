@@ -27,9 +27,11 @@ class BlogPostWithIntegerFieldTest(TestCase):
 
     def test_known_transition_should_succeed(self):
         self.model.publish()
+
         assert self.model.state == BlogPostState.PUBLISHED
 
         self.model.hide()
+
         assert self.model.state == BlogPostState.HIDDEN
 
     def test_unknown_transition_fails(self):

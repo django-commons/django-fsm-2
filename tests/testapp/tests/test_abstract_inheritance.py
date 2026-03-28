@@ -41,28 +41,35 @@ class InheritedFromAbstractModel(BaseAbstractModel):
         pass
 
 
-class TestinheritedModel(TestCase):
+class AbstractInheritanceTests(TestCase):
     def setUp(self):
         self.model = InheritedFromAbstractModel()
 
     def test_known_transition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
+
         self.model.publish()
         assert self.model.state == ApplicationState.PUBLISHED
 
         assert fsm.can_proceed(self.model.stick)
+
         self.model.stick()
         assert self.model.state == ApplicationState.STICKED
 
-    def test_field_available_transitions_works(self):
+    def test_available_transitions_from_inherited_model(self):
         self.model.publish()
         assert self.model.state == ApplicationState.PUBLISHED
-        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
-        assert [data.target for data in transitions] == [ApplicationState.STICKED]
 
-    def test_field_all_transitions_works(self):
+        transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
+        transition_targets = [data.target for data in transitions]
+
+        assert transition_targets == [ApplicationState.STICKED]
+
+    def test_all_transitions_from_inherited_model(self):
         transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
+        transition_pairs = {(data.source, data.target) for data in transitions}
+
         assert {
             (ApplicationState.NEW, ApplicationState.PUBLISHED),
             (ApplicationState.PUBLISHED, ApplicationState.STICKED),
-        } == {(data.source, data.target) for data in transitions}
+        } == transition_pairs

@@ -39,17 +39,21 @@ class FSMFieldExceptionTest(TestCase):
     def on_post_transition(self, **kwargs):
         self.post_transition_data = kwargs
 
-    def test_state_changed_after_fail(self):
+    def test_state_moves_to_error_on_exception(self):
         assert fsm.can_proceed(self.model.publish)
+
         with pytest.raises(Exception, match="Upss"):
             self.model.publish()
+
         assert self.model.state == ApplicationState.CRASHED
         assert self.post_transition_data["target"] == ApplicationState.CRASHED
         assert "exception" in self.post_transition_data
 
-    def test_state_not_changed_after_fail(self):
+    def test_state_unchanged_without_error_target(self):
         assert fsm.can_proceed(self.model.delete)
+
         with pytest.raises(Exception, match="Upss"):
             self.model.delete()
+
         assert self.model.state == ApplicationState.NEW
         assert self.post_transition_data == {}

@@ -30,12 +30,14 @@ class Task(models.Model):
         pass
 
 
-class Test(TestCase):
+class GenericRelationModelCreateTests(TestCase):
     def setUp(self):
         self.ticket = Ticket.objects.create()
 
-    def test_model_objects_create(self):
+    def test_model_create_with_generic_relation(self):
         """Check a model with state field can be created
         if one of the other fields is a property or a virtual field.
         """
-        Task.objects.create(causality=self.ticket)
+        created_task = Task.objects.create(causality=self.ticket)
+
+        assert created_task.pk is not None
