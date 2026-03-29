@@ -7,6 +7,8 @@ from django_fsm_log.decorators import fsm_log_description
 
 import django_fsm as fsm
 
+from .choices import AdminBlogPostState
+from .choices import AdminBlogPostStep
 from .choices import ApplicationState
 from .choices import BlogPostState
 
@@ -191,7 +193,7 @@ class FKApplication(models.Model):
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value(self) -> str:
-        return "published"
+        return ApplicationState.MODERATED
 
     @fsm.transition(
         field=state,
@@ -199,7 +201,7 @@ class FKApplication(models.Model):
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source(self) -> str:
-        return "published"
+        return ApplicationState.MODERATED
 
     @fsm.transition(
         field=state,
@@ -207,7 +209,7 @@ class FKApplication(models.Model):
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
     def return_value_any_source_except_target(self) -> str:
-        return "published"
+        return ApplicationState.MODERATED
 
     @fsm.transition(
         field=state,
@@ -303,19 +305,6 @@ class BlogPost(models.Model):
         pass
 
 
-class AdminBlogPostState(models.TextChoices):
-    CREATED = "created", "Created"
-    REVIEWED = "reviewed", "Reviewed"
-    PUBLISHED = "published", "Published"
-    HIDDEN = "hidden", "Hidden"
-
-
-class AdminBlogPostStep(models.IntegerChoices):
-    STEP_1 = 1, "Step one"
-    STEP_2 = 2, "Step two"
-    STEP_3 = 3, "Step three"
-
-
 class AdminBlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=50)
 
@@ -331,7 +320,12 @@ class AdminBlogPost(fsm.FSMModelMixin, models.Model):
         protected=False,
     )
 
-    key_state = fsm.FSMKeyField(DbState, default="new", on_delete=models.CASCADE)
+    key_state = fsm.FSMKeyField(
+        # See tests/testapp/fixtures/test_states_data.json
+        DbState,
+        default="_NEW_",
+        on_delete=models.CASCADE,
+    )
 
     # state transitions
     def __str__(self) -> str:

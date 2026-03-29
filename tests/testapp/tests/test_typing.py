@@ -8,7 +8,7 @@ from pathlib import Path
 from django.test import TestCase
 
 
-class BaseAdminTestCase(TestCase):
+class TypingImportTests(TestCase):
     project_root: Path
     env: dict[str, str]
 
@@ -24,7 +24,7 @@ class BaseAdminTestCase(TestCase):
         )
 
     def test_admin_module_imports_without_django_stubs_monkeypatch(self) -> None:
-        result = subprocess.run(  # noqa: S603
+        completed_process = subprocess.run(  # noqa: S603
             [
                 sys.executable,
                 "-c",
@@ -41,10 +41,10 @@ class BaseAdminTestCase(TestCase):
             text=True,
         )
 
-        assert result.returncode == 0, result.stderr
+        assert completed_process.returncode == 0, completed_process.stderr
 
     def test_main_module_imports_without_django_stubs_monkeypatch(self) -> None:
-        result = subprocess.run(  # noqa: S603
+        completed_process = subprocess.run(  # noqa: S603
             [
                 sys.executable,
                 "-c",
@@ -61,4 +61,4 @@ class BaseAdminTestCase(TestCase):
             text=True,
         )
 
-        assert result.returncode == 0, result.stderr
+        assert completed_process.returncode == 0, completed_process.stderr

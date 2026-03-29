@@ -30,20 +30,35 @@ class MultiDecoratedModel(models.Model):
     @fsm.transition(
         field=state, source=StateChoice.SUBMITTED_BY_ANONYMOUS, target=StateChoice.REVIEW_ANONYMOUS
     )
+    @fsm.transition(field=state, source=fsm.ANY_STATE, target=StateChoice.REVIEW_ANONYMOUS)
     def review(self):
         self.counter += 1
 
 
-def count_calls(sender, instance, name, source, target, **kwargs):
-    instance.signal_counter += 1
+class MultiDecoratorsTests(TestCase):
+    def setUp(self):
+        self.model = MultiDecoratedModel()
+        self.post_transition_called = False
+        post_transition.connect(self.on_post_transition, sender=MultiDecoratedModel)
 
+    def tearDown(self):
+        post_transition.disconnect(self.on_post_transition, sender=MultiDecoratedModel)
 
-post_transition.connect(count_calls, sender=MultiDecoratedModel)
+    def on_post_transition(self, sender, instance, name, source, target, **kwargs):
+        assert instance.state == target
+        self.post_transition_called = True
+        instance.signal_counter += 1
 
+    def test_decorated_method_called_once(self):
+        assert self.model.counter == 0
+        assert self.model.signal_counter == 0
 
-class TestStateProxy(TestCase):
-    def test_transition_method_called_once(self):
-        model = MultiDecoratedModel()
-        model.review()
-        assert model.counter == 1
-        assert model.signal_counter == 1
+        self.model.review()
+
+        assert self.model.counter == 1
+        assert self.model.signal_counter == 1
+
+        self.model.review()
+
+        assert self.model.counter == 2  # noqa: PLR2004
+        assert self.model.signal_counter == 2  # noqa: PLR2004

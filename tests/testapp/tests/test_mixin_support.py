@@ -5,11 +5,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class ApplicationState(models.TextChoices):
-    NEW = "NEW", "New"
-    DRAFT = "DRAFT", "Draft"
-    PUBLISHED = "PUBLISHED", "Published"
+from ..choices import ApplicationState
 
 
 class WorkflowMixin:
@@ -26,8 +22,8 @@ class MixinSupportTestModel(WorkflowMixin, models.Model):
     state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
 
-class Test(TestCase):
-    def test_usecase(self):
+class MixinSupportTests(TestCase):
+    def test_mixin_methods_drive_state_changes(self):
         model = MixinSupportTestModel()
 
         model.draft()

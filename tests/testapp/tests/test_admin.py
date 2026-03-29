@@ -23,11 +23,12 @@ from django_fsm_log.models import StateLog
 
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
-from tests.testapp.admin import AdminBlogPostAdmin
-from tests.testapp.admin_forms import AdminBlogPostRenameModelForm
-from tests.testapp.admin_forms import FSMLogDescriptionForm
-from tests.testapp.models import AdminBlogPost
-from tests.testapp.models import AdminBlogPostState
+
+from ..admin import AdminBlogPostAdmin
+from ..admin_forms import AdminBlogPostRenameModelForm
+from ..admin_forms import FSMLogDescriptionForm
+from ..choices import AdminBlogPostState
+from ..models import AdminBlogPost
 
 if typing.TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser

@@ -5,11 +5,7 @@ from django.test import TestCase
 
 import django_fsm as fsm
 
-
-class ApplicationState(models.TextChoices):
-    NEW = "NEW", "New"
-    PUBLISHED = "PUBLISHED", "Published"
-    STICKED = "STICKED", "sticked"
+from ..choices import ApplicationState
 
 
 class BaseModel(models.Model):
@@ -31,34 +27,39 @@ class InheritedModel(BaseModel):
         pass
 
 
-class TestinheritedModel(TestCase):
+class ProxyInheritanceTests(TestCase):
     def setUp(self):
         self.model = InheritedModel()
 
     def test_known_transition_should_succeed(self):
         assert fsm.can_proceed(self.model.publish)
+
         self.model.publish()
         assert self.model.state == ApplicationState.PUBLISHED
 
         assert fsm.can_proceed(self.model.stick)
+
         self.model.stick()
         assert self.model.state == ApplicationState.STICKED
 
-    def test_field_available_transitions_works(self):
+    def test_available_transitions_from_proxy(self):
         self.model.publish()
         assert self.model.state == ApplicationState.PUBLISHED
+
         transitions = self.model.get_available_state_transitions()  # type: ignore[attr-defined]
         assert [data.target for data in transitions] == [ApplicationState.STICKED]
 
-    def test_field_all_transitions_base_model(self):
+    def test_all_transitions_for_base_model(self):
         transitions = BaseModel().get_all_state_transitions()  # type: ignore[attr-defined]
-        assert {(ApplicationState.NEW, ApplicationState.PUBLISHED)} == {
-            (data.source, data.target) for data in transitions
+
+        assert {(data.source, data.target) for data in transitions} == {
+            (ApplicationState.NEW, ApplicationState.PUBLISHED)
         }
 
-    def test_field_all_transitions_works(self):
+    def test_all_transitions_for_proxy(self):
         transitions = self.model.get_all_state_transitions()  # type: ignore[attr-defined]
-        assert {
+
+        assert {(data.source, data.target) for data in transitions} == {
             (ApplicationState.NEW, ApplicationState.PUBLISHED),
             (ApplicationState.PUBLISHED, ApplicationState.STICKED),
-        } == {(data.source, data.target) for data in transitions}
+        }

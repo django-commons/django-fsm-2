@@ -34,7 +34,9 @@ class StringFieldTestCase(TestCase):
     def setUp(self):
         self.model = BlogPostWithStringField()
 
-    def test_initial_state(self):
+    def test_initial_state_is_new(self):
         assert self.model.state == ApplicationState.NEW
+
         self.model.publish()
+
         assert self.model.state == ApplicationState.PUBLISHED

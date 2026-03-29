@@ -9,7 +9,7 @@ def test_transition_eq_matches_name_and_transition() -> None:
     def publish() -> None:
         pass
 
-    transition = fsm.Transition(
+    publish_transition = fsm.Transition(
         method=publish,
         source="new",
         target="published",
@@ -33,10 +33,10 @@ def test_transition_eq_matches_name_and_transition() -> None:
         custom={},
     )
 
-    assert transition == "publish"
-    assert transition != other_transition
-    assert transition != "other"
-    assert transition != object()
+    assert publish_transition == "publish"
+    assert publish_transition != other_transition
+    assert publish_transition != "other"
+    assert publish_transition != object()
 
 
 def test_transition_same_name_different_models_not_equal() -> None:

@@ -170,7 +170,7 @@ DJANGO_FSM_LOG_IGNORED_MODELS = (
     "tests.testapp.tests.test_lock_mixin.ExtendedBlogPost",
     "tests.testapp.tests.test_lock_mixin.LockedBlogPost",
     "tests.testapp.tests.test_mixin_support.MixinSupportTestModel",
-    "tests.testapp.tests.test_multi_resultstate.MultiResultTest",
+    "tests.testapp.tests.test_multi_resultstate.MultiResultModel",
     "tests.testapp.tests.test_multidecorators.MultiDecoratedModel",
     "tests.testapp.tests.test_protected_field.ProtectedAccessModel",
     "tests.testapp.tests.test_protected_fields.RefreshableProtectedAccessModel",

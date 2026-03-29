@@ -35,28 +35,34 @@ class TestDirectAccessModels(TestCase):
 
         instance.publish()
         instance.save()
+
         assert instance.status == ApplicationState.PUBLISHED
 
     def test_refresh_from_db(self):
         instance = RefreshableModel()
         assert instance.status == ApplicationState.NEW
-        instance.save()
 
+        instance.save()
         instance.refresh_from_db()
+
         assert instance.status == ApplicationState.NEW
 
     def test_concurrent_refresh_from_db(self):
         instance = RefreshableModel()
         assert instance.status == ApplicationState.NEW
+
         instance.save()
 
         # NOTE: This simulates a concurrent update scenario
         concurrent_instance = RefreshableModel.objects.get(pk=instance.pk)
         assert concurrent_instance.status == instance.status == ApplicationState.NEW
+
         concurrent_instance.publish()
         assert concurrent_instance.status == ApplicationState.PUBLISHED
+
         concurrent_instance.save()
 
         assert instance.status == ApplicationState.NEW
+
         instance.refresh_from_db()
         assert instance.status == ApplicationState.PUBLISHED

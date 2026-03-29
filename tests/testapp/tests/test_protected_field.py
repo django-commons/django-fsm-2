@@ -30,9 +30,10 @@ class MultiProtectedAccessModel(models.Model):
 
 class TestDirectAccessModels(TestCase):
     def test_multi_protected_field_create(self):
-        obj = MultiProtectedAccessModel.objects.create()
-        assert obj.status1 == ApplicationState.NEW
-        assert obj.status2 == ApplicationState.NEW
+        instance = MultiProtectedAccessModel.objects.create()
+
+        assert instance.status1 == ApplicationState.NEW
+        assert instance.status2 == ApplicationState.NEW
 
     def test_no_direct_access(self):
         instance = ProtectedAccessModel()
@@ -46,4 +47,5 @@ class TestDirectAccessModels(TestCase):
 
         instance.publish()
         instance.save()
+
         assert instance.status == ApplicationState.PUBLISHED
