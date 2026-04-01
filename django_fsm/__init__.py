@@ -586,6 +586,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         update_fields: typing.Iterable[str] | None,
         forced_update: bool,
         returning_fields: bool | None = None,
+        *args,
+        **kwargs,
     ) -> bool:
         # _do_update is called once for each model class in the inheritance hierarchy. We can only
         # filter the base_qs on state fields (can be more than one!) present in this specific model.
@@ -606,6 +608,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
                 update_fields=update_fields,
                 forced_update=forced_update,
                 returning_fields=returning_fields,
+                *args,
+                **kwargs,
             )
         else:
             updated = super()._do_update(
@@ -615,6 +619,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
                 values=values,
                 update_fields=update_fields,
                 forced_update=forced_update,
+                *args,
+                **kwargs,
             )
 
         # It may happen that nothing was updated in the original _do_update method not because of
