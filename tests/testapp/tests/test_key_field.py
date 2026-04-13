@@ -84,7 +84,7 @@ class FSMKeyFieldTestCase(TestCase):
     def test_unknown_transition_fails(self):
         assert not fsm.can_proceed(self.model.hide)
 
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.hide()
 
     def test_state_non_changed_after_fail(self):
@@ -104,7 +104,7 @@ class FSMKeyFieldTestCase(TestCase):
         assert self.model.state == "_PUBLISHED_"
 
     def test_unknown_null_transition_should_fail(self):
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.notify_all()
 
         assert self.model.state == "_NEW_"
