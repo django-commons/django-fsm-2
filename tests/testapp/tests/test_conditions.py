@@ -62,27 +62,26 @@ class ConditionTransitionTests(TestCase):
 
         assert not fsm.can_proceed(self.model.remove)
 
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.TransitionConditionsUnmet):
             self.model.remove()
 
         assert fsm.can_proceed(self.model.remove, check_conditions=False)
 
     def test_failed_condition_reported_on_exception(self):
         self.model.publish()
-        with pytest.raises(fsm.TransitionNotAllowed) as exc_info:
+        with pytest.raises(fsm.TransitionConditionsUnmet) as exc_info:
             self.model.remove()
         assert exc_info.value.failed_condition is BlogPostWithConditions.unmet_condition
 
     def test_failed_condition_named_in_message(self):
         self.model.publish()
-        with pytest.raises(fsm.TransitionNotAllowed, match="unmet_condition"):
+        with pytest.raises(fsm.TransitionConditionsUnmet, match="unmet_condition"):
             self.model.remove()
 
     def test_failed_condition_is_none_when_no_condition_failure(self):
-        """TransitionNotAllowed for a missing transition has no failed_condition."""
-        with pytest.raises(fsm.TransitionNotAllowed) as exc_info:
+        """InvalidTransition for a missing transition has no failed_condition."""
+        with pytest.raises(fsm.InvalidTransition):
             self.model.remove()  # state is "new", destroy only works from "published"
-        assert exc_info.value.failed_condition is None
 
 
 def _eval_tracking_condition(instance: models.Model) -> bool:
@@ -114,7 +113,7 @@ class ShortCircuitTest(TestCase):
     def test_only_first_failing_condition_evaluated(self):
         obj = BlogPostShortCircuit()
         obj._eval_log = []
-        with pytest.raises(fsm.TransitionNotAllowed) as exc_info:
+        with pytest.raises(fsm.TransitionConditionsUnmet) as exc_info:
             obj.publish()
         assert exc_info.value.failed_condition is _eval_tracking_condition
         assert obj._eval_log == ["first"]

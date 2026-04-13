@@ -35,5 +35,5 @@ class BlogPostWithIntegerFieldTest(TestCase):
         assert self.model.state == BlogPostState.HIDDEN
 
     def test_unknown_transition_fails(self):
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.hide()

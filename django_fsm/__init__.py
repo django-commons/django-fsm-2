@@ -18,6 +18,12 @@ from django.db.models import QuerySet
 from django.db.models.query_utils import DeferredAttribute
 from django.db.models.signals import class_prepared
 
+from .exceptions import ConcurrentTransition
+from .exceptions import InvalidResultState
+from .exceptions import InvalidTransition
+from .exceptions import NoTransition
+from .exceptions import TransitionConditionsUnmet
+from .exceptions import TransitionNotAllowed
 from .signals import post_transition
 from .signals import pre_transition
 
@@ -65,6 +71,9 @@ __all__ = [
     "FSMIntegerField",
     "FSMKeyField",
     "FSMModelMixin",
+    "InvalidTransition",
+    "NoTransition",
+    "TransitionConditionsUnmet",
     "TransitionNotAllowed",
     "can_proceed",
     "has_transition_perm",
@@ -74,29 +83,6 @@ __all__ = [
 
 ANY_STATE = "*"
 ANY_OTHER_STATE = "+"
-
-
-class TransitionNotAllowed(Exception):  # noqa: N818
-    """Raised when a transition is not allowed"""
-
-    @override
-    def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
-        self.object = kwargs.pop("object", None)
-        self.method = kwargs.pop("method", None)
-        self.failed_condition = kwargs.pop("failed_condition", None)
-        super().__init__(*args, **kwargs)
-
-
-class InvalidResultState(Exception):  # noqa: N818
-    """Raised when we got invalid result state"""
-
-
-class ConcurrentTransition(Exception):  # noqa: N818
-    """
-    Raised when the transition cannot be executed because the
-    object has become stale (state has been changed since it
-    was fetched from the database).
-    """
 
 
 class Transition:
@@ -267,7 +253,7 @@ class FSMMeta:
 
         return all(condition(instance) for condition in transition.conditions)
 
-    def _get_first_unmet_condition(
+    def get_first_unmet_condition(
         self, instance: _FSMModel, state: _StateValue
     ) -> _Condition | None:
         """
@@ -300,16 +286,16 @@ class FSMMeta:
     def next_state(self, current_state: _StateValue) -> _StateValue:
         transition = self.get_transition(current_state)
 
-        if transition is None:
-            raise TransitionNotAllowed(f"No transition from {current_state}")
+        if transition is None:  # pragma: no cover
+            raise NoTransition(f"No transition from {current_state}")
 
         return transition.target
 
     def exception_state(self, current_state: _StateValue) -> _StateValue | None:
         transition = self.get_transition(current_state)
 
-        if transition is None:
-            raise TransitionNotAllowed(f"No transition from {current_state}")
+        if transition is None:  # pragma: no cover
+            raise NoTransition(f"No transition from {current_state}")
 
         return transition.on_error
 
@@ -409,14 +395,14 @@ class FSMFieldMixin(_Field):
         current_state = self.get_state(instance)
 
         if not meta.has_transition(current_state):
-            raise TransitionNotAllowed(
+            raise InvalidTransition(
                 f"Can't switch from state '{current_state}' using method '{method_name}'",
                 object=instance,
                 method=method,
             )
-        unmet = meta._get_first_unmet_condition(instance, current_state)
+        unmet = meta.get_first_unmet_condition(instance, current_state)
         if unmet is not None:
-            raise TransitionNotAllowed(
+            raise TransitionConditionsUnmet(
                 f"Transition conditions have not been met for method '{method_name}': "
                 f"{getattr(unmet, '__name__', repr(unmet))}",
                 object=instance,

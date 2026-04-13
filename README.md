@@ -172,15 +172,15 @@ class XXX(fsm.FSMModelMixin, models.Model):
 ```
 
 When a transition is blocked by an unmet condition, the raised
-`TransitionNotAllowed` exception includes the failing callable in its
+`TransitionConditionsUnmet` exception includes the failing callable in its
 `failed_condition` attribute for programmatic handling:
 
 ```python
-from django_fsm import TransitionNotAllowed
+from django_fsm import TransitionConditionsUnmet
 
 try:
     instance.publish()
-except TransitionNotAllowed as e:
+except TransitionConditionsUnmet as e:
     print(e.failed_condition)  # e.g. <function can_publish at 0x...>
 ```
 
