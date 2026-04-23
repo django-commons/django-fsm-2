@@ -4,6 +4,7 @@ State tracking functionality for django models
 
 from __future__ import annotations
 
+import abc
 import inspect
 import typing
 from functools import partialmethod
@@ -399,10 +400,8 @@ class FSMFieldMixin(_Field):
         try:
             result = method(instance, *args, **kwargs)
             if next_state is not None:
-                if hasattr(next_state, "get_state"):
-                    next_state = next_state.get_state(
-                        instance, transition, result, args=args, kwargs=kwargs
-                    )
+                if isinstance(next_state, State):
+                    next_state = next_state.get_state(instance, result, args=args, kwargs=kwargs)
                     signal_kwargs["target"] = next_state
                 self.set_proxy(instance, next_state)
                 self.set_state(instance, next_state)
@@ -736,10 +735,10 @@ def has_transition_perm(bound_method: typing.Any, user: UserWithPermissions) -> 
 class State:
     allowed_states: typing.Sequence[_StateValue]
 
+    @abc.abstractmethod
     def get_state(
         self,
         model: _FSMModel,
-        transition: Transition,
         result: typing.Any,
         args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
@@ -751,10 +750,10 @@ class RETURN_VALUE(State):  # noqa: N801
     def __init__(self, *allowed_states: _StateValue) -> None:
         self.allowed_states = allowed_states or []
 
+    @override
     def get_state(
         self,
         model: _FSMModel,
-        transition: Transition,
         result: typing.Any,
         args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
@@ -775,10 +774,10 @@ class GET_STATE(State):  # noqa: N801
         self.func = func
         self.allowed_states = states or []
 
+    @override
     def get_state(
         self,
         model: _FSMModel,
-        transition: Transition,
         result: _StateValue,
         args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
