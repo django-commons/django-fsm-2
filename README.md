@@ -171,6 +171,19 @@ class XXX(fsm.FSMModelMixin, models.Model):
         pass
 ```
 
+When a transition is blocked by an unmet condition, the raised
+`TransitionConditionsUnmet` exception includes the failing callable in its
+`failed_condition` attribute for programmatic handling:
+
+```python
+from django_fsm import TransitionConditionsUnmet
+
+try:
+    instance.publish()
+except TransitionConditionsUnmet as e:
+    print(e.failed_condition)  # e.g. <function can_publish at 0x...>
+```
+
 ### Protected state fields
 
 Use `protected=True` to prevent direct assignment. Only transitions may
