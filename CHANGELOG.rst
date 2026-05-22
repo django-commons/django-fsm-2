@@ -5,6 +5,8 @@ Unreleased
 ~~~~~~~~~~
 
 - Update ``State.get_state`` signature to remove ``transition`` parameter (It wasn't used in ``RETURN_VALUE`` and ``GET_STATE`` and was buggy)
+- Add Unfold support to admin
+- Add Django 6.1 support
 
 
 django-fsm-2 4.2.4 2026-03-16
