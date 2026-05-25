@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import typing
 from dataclasses import dataclass
 
+from asgiref.sync import async_to_sync
 from django import http
 from django.apps import apps
 from django.conf import settings
@@ -38,6 +40,12 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 else:
     _ModelAdmin = admin.ModelAdmin
     _FormType = type[Form | ModelForm]
+
+
+async def _drain_async_iter(
+    agen: typing.AsyncIterable[fsm.Transition],
+) -> list[fsm.Transition]:
+    return [t async for t in agen]
 
 
 @dataclass
@@ -206,27 +214,51 @@ class FSMAdminMixin(_ModelAdmin):
 
     # Transition helpers
 
+    def _field_has_async_transition(self, field_name: str) -> bool:
+        field = self.model._meta.get_field(field_name)
+        assert isinstance(field, fsm.FSMFieldMixin)
+        transitions = field.transitions.get(self.model, {})
+        return any(inspect.iscoroutinefunction(method) for method in transitions.values())
+
     def _get_fsm_extra_context(
         self, *, request: http.HttpRequest, obj: fsm._FSMModel | None
     ) -> typing.Generator[FSMObjectTransition]:
         for field_name in sorted(self.fsm_fields):
-            transitions_func = getattr(obj, f"get_available_user_{field_name}_transitions", None)
-            if callable(transitions_func):
+            # ADDRESS BEFORE MERGE: the `if not callable(...)` guards below are unreachable
+            # because contribute_to_class always installs these partialmethods for any
+            # FSMFieldMixin. Same shape on the sync branch (pre-existing). Should probably
+            # drop or assert on both, leaving for now.
+            if self._field_has_async_transition(field_name):
+                async_transitions_func = getattr(
+                    obj, f"aget_available_user_{field_name}_transitions", None
+                )
+                if not callable(async_transitions_func):  # pragma: no cover
+                    continue
+                available_transitions = async_to_sync(_drain_async_iter)(
+                    async_transitions_func(user=request.user)
+                )
+            else:
+                transitions_func = getattr(
+                    obj, f"get_available_user_{field_name}_transitions", None
+                )
+                if not callable(transitions_func):  # pragma: no cover
+                    continue
                 available_transitions = transitions_func(user=request.user)
-                if admin_allowed_transitions := [
-                    FSMTransitionContext(
-                        name=t.name,
-                        label=self.get_fsm_label(t),
-                        help_text=self.get_help_text(t),
-                    )
-                    for t in available_transitions
-                    if self.is_fsm_transition_visible(t)
-                ]:
-                    yield FSMObjectTransition(
-                        fsm_field=field_name,
-                        block_label=self.get_fsm_block_label(fsm_field_name=field_name),
-                        available_transitions=admin_allowed_transitions,
-                    )
+
+            if admin_allowed_transitions := [
+                FSMTransitionContext(
+                    name=t.name,
+                    label=self.get_fsm_label(t),
+                    help_text=self.get_help_text(t),
+                )
+                for t in available_transitions
+                if self.is_fsm_transition_visible(t)
+            ]:
+                yield FSMObjectTransition(
+                    fsm_field=field_name,
+                    block_label=self.get_fsm_block_label(fsm_field_name=field_name),
+                    available_transitions=admin_allowed_transitions,
+                )
 
     def _get_fsm_transition_func(
         self, *, obj: fsm._FSMModel, transition_name: str
@@ -273,13 +305,19 @@ class FSMAdminMixin(_ModelAdmin):
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
         kwargs = kwargs or {}
+
+        if inspect.iscoroutinefunction(transition_func):
+            call = async_to_sync(transition_func)
+        else:
+            call = transition_func
+
         if self._is_fsm_log_enabled():
             try:
-                transition_func(by=request.user, **kwargs)
+                call(by=request.user, **kwargs)
             except TypeError:
-                transition_func(**kwargs)
+                call(**kwargs)
         else:
-            transition_func(**kwargs)
+            call(**kwargs)
 
     def _apply_fsm_transition(
         self,
@@ -351,7 +389,12 @@ class FSMAdminMixin(_ModelAdmin):
 
         transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
 
-        if not transition.has_perm(obj, user=request.user):
+        if inspect.iscoroutinefunction(transition.permission):
+            has_perm = async_to_sync(transition.ahas_perm)(obj, request.user)
+        else:
+            has_perm = transition.has_perm(obj, user=request.user)
+
+        if not has_perm:
             self.message_user(
                 request=request,
                 message=self.fsm_transition_not_allowed_msg.format(

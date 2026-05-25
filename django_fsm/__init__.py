@@ -66,6 +66,9 @@ __all__ = [
     "FSMKeyField",
     "FSMModelMixin",
     "TransitionNotAllowed",
+    "acan_proceed",
+    "ahas_transition_perm",
+    "atransition",
     "can_proceed",
     "has_transition_perm",
     "transition",
@@ -129,6 +132,25 @@ class Transition:
         if not self.permission:
             return True
         if callable(self.permission):
+            if inspect.iscoroutinefunction(self.permission):
+                raise TypeError(
+                    f"Permission {getattr(self.permission, '__qualname__', repr(self.permission))} "
+                    f"is a coroutine function; use ahas_transition_perm() or call the transition "
+                    f"from async code."
+                )
+            return bool(self.permission(instance, user))
+        if user.has_perm(self.permission, instance):
+            return True
+        if user.has_perm(self.permission):
+            return True
+        return False
+
+    async def ahas_perm(self, instance: _FSMModel, user: UserWithPermissions) -> bool:
+        if not self.permission:
+            return True
+        if callable(self.permission):
+            if inspect.iscoroutinefunction(self.permission):
+                return bool(await self.permission(instance, user))
             return bool(self.permission(instance, user))
         if user.has_perm(self.permission, instance):
             return True
@@ -185,6 +207,29 @@ def get_available_user_FIELD_transitions(  # noqa: N802
     """
     for transition in get_available_FIELD_transitions(instance, field):
         if transition and transition.has_perm(instance, user):
+            yield transition
+
+
+async def aget_available_FIELD_transitions(  # noqa: N802
+    instance: _FSMModel,
+    field: FSMFieldMixin,
+) -> typing.AsyncGenerator[Transition | None]:
+    curr_state = await field.aget_state(instance)
+    transitions = field.transitions[instance.__class__]
+
+    for transition in transitions.values():
+        meta: FSMMeta = transition._django_fsm
+        if meta.has_transition(curr_state) and await meta.aconditions_met(instance, curr_state):
+            yield meta.get_transition(curr_state)
+
+
+async def aget_available_user_FIELD_transitions(  # noqa: N802
+    instance: _FSMModel,
+    user: UserWithPermissions,
+    field: FSMFieldMixin,
+) -> typing.AsyncGenerator[Transition]:
+    async for transition in aget_available_FIELD_transitions(instance, field):
+        if transition and await transition.ahas_perm(instance, user):
             yield transition
 
 
@@ -264,7 +309,34 @@ class FSMMeta:
         if transition.conditions is None:
             return True
 
-        return all(condition(instance) for condition in transition.conditions)
+        for condition in transition.conditions:
+            if inspect.iscoroutinefunction(condition):
+                raise TypeError(
+                    f"Condition {getattr(condition, '__qualname__', repr(condition))} is a "
+                    f"coroutine function; use acan_proceed() or call the transition from async "
+                    f"code."
+                )
+            if not condition(instance):
+                return False
+        return True
+
+    async def aconditions_met(self, instance: _FSMModel, state: _StateValue) -> bool:
+        transition = self.get_transition(state)
+
+        if transition is None:
+            return False
+
+        if transition.conditions is None:
+            return True
+
+        for condition in transition.conditions:
+            if inspect.iscoroutinefunction(condition):
+                ok = await condition(instance)
+            else:
+                ok = condition(instance)
+            if not ok:
+                return False
+        return True
 
     def has_transition_perm(
         self, instance: _FSMModel, state: _StateValue, user: UserWithPermissions
@@ -275,6 +347,16 @@ class FSMMeta:
             return False
 
         return transition.has_perm(instance, user)
+
+    async def ahas_transition_perm(
+        self, instance: _FSMModel, state: _StateValue, user: UserWithPermissions
+    ) -> bool:
+        transition = self.get_transition(state)
+
+        if not transition:
+            return False
+
+        return await transition.ahas_perm(instance, user)
 
     def next_state(self, current_state: _StateValue) -> _StateValue:
         transition = self.get_transition(current_state)
@@ -351,6 +433,18 @@ class FSMFieldMixin(_Field):
         # The state field may be deferred. We delegate the logic of figuring this out
         # and loading the deferred field on-demand to Django's built-in DeferredAttribute class.
         return DeferredAttribute(self).__get__(instance)
+
+    async def aget_state(self, instance: _FSMModel) -> typing.Any:
+        """
+        Async variant of ``get_state``. If the field is deferred, loads it via
+        ``arefresh_from_db`` instead of the sync path that would raise
+        ``SynchronousOnlyOperation`` from an async context.
+        """
+        data = instance.__dict__
+        field_name = self.attname
+        if field_name not in data:
+            await instance.arefresh_from_db(fields=[field_name])
+        return data[field_name]
 
     def set_state(self, instance: _FSMModel, state: _StateValue) -> None:
         instance.__dict__[self.name] = state
@@ -437,6 +531,79 @@ class FSMFieldMixin(_Field):
 
         return result
 
+    async def achange_state(
+        self,
+        instance: _FSMModel,
+        method: typing.Any,
+        *args: typing.Any,
+        **kwargs: typing.Any,
+    ) -> typing.Any:
+        """
+        Async variant of ``change_state``. Awaits the transition method and dispatches
+        ``pre_transition`` / ``post_transition`` via ``Signal.asend`` so async receivers
+        are awaited and sync receivers still fire.
+        """
+        meta: FSMMeta = method._django_fsm
+        method_name: str = method.__name__
+        current_state = await self.aget_state(instance)
+
+        if not meta.has_transition(current_state):
+            raise TransitionNotAllowed(
+                f"Can't switch from state '{current_state}' using method '{method_name}'",
+                object=instance,
+                method=method,
+            )
+        if not await meta.aconditions_met(instance, current_state):
+            raise TransitionNotAllowed(
+                f"Transition conditions have not been met for method '{method_name}'",
+                object=instance,
+                method=method,
+            )
+
+        next_state = meta.next_state(current_state)
+
+        signal_kwargs = {
+            "sender": instance.__class__,
+            "instance": instance,
+            "name": method_name,
+            "field": meta.field,
+            "source": current_state,
+            "target": next_state,
+            "method_args": args,
+            "method_kwargs": kwargs,
+        }
+
+        await pre_transition.asend(**signal_kwargs)
+
+        try:
+            result = await method(instance, *args, **kwargs)
+            if next_state is not None:
+                if isinstance(next_state, State):
+                    next_state = await next_state.aget_state(
+                        instance, result, args=args, kwargs=kwargs
+                    )
+                    signal_kwargs["target"] = next_state
+                self.set_proxy(instance, next_state)
+                self.set_state(instance, next_state)
+        except Exception as exc:
+            exception_state = meta.exception_state(current_state)
+            if exception_state:
+                self.set_proxy(instance, exception_state)
+                self.set_state(instance, exception_state)
+                signal_kwargs["target"] = exception_state
+                signal_kwargs["exception"] = exc
+                # ADDRESS BEFORE MERGE: if a post_transition receiver raises here, the bare
+                # `raise` below re-raises that receiver exception instead of the original
+                # `exc`. asend() also cancels sibling async receivers via asyncio.gather().
+                # Same shape as sync change_state, so not sure if asend_robust (and the sync
+                # equivalent send_robust) should be addressed now or later.
+                await post_transition.asend(**signal_kwargs)
+            raise
+        else:
+            await post_transition.asend(**signal_kwargs)
+
+        return result
+
     def get_all_transitions(self, instance_cls: type[_FSMModel]) -> typing.Generator[Transition]:
         """
         Returns [(source, target, name, method)] for all field transitions
@@ -471,6 +638,16 @@ class FSMFieldMixin(_Field):
             cls,
             f"get_available_user_{self.name}_transitions",
             partialmethod(get_available_user_FIELD_transitions, field=self),
+        )
+        setattr(
+            cls,
+            f"aget_available_{self.name}_transitions",
+            partialmethod(aget_available_FIELD_transitions, field=self),
+        )
+        setattr(
+            cls,
+            f"aget_available_user_{self.name}_transitions",
+            partialmethod(aget_available_user_FIELD_transitions, field=self),
         )
 
         class_prepared.connect(self._collect_transitions)
@@ -529,6 +706,9 @@ class FSMKeyField(FSMFieldMixin, ForeignKey):
     def get_state(self, instance: _FSMModel) -> typing.Any:
         return instance.__dict__[self.attname]
 
+    async def aget_state(self, instance: _FSMModel) -> typing.Any:
+        return instance.__dict__[self.attname]
+
     def set_state(self, instance: _FSMModel, state: _StateValue) -> None:
         instance.__dict__[self.attname] = self.to_python(state)
 
@@ -553,6 +733,20 @@ class FSMModelMixin(_FSMModel):
             setattr(self._meta.get_field(f), "protected", False)
 
         super().refresh_from_db(*args, **kwargs)
+
+        for f in protected_fields:
+            setattr(self._meta.get_field(f), "protected", True)
+
+    async def arefresh_from_db(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        protected_fields = self._get_protected_fsm_fields()
+
+        # ADDRESS BEFORE MERGE: This here is not safe against concurrency, but in principle
+        # that is also the case for the sync refresh_from_db, so not sure if this should be
+        # addressed now or later.
+        for f in protected_fields:
+            setattr(self._meta.get_field(f), "protected", False)
+
+        await super().arefresh_from_db(*args, **kwargs)
 
         for f in protected_fields:
             setattr(self._meta.get_field(f), "protected", True)
@@ -660,9 +854,50 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         self._update_initial_state()
 
     @override
+    async def arefresh_from_db(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        await super().arefresh_from_db(*args, **kwargs)
+        self._update_initial_state()
+
+    @override
     def save(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         super().save(*args, **kwargs)
         self._update_initial_state()
+
+
+def _register_transition(
+    func: typing.Any,
+    field: FSMFieldMixin | str,
+    source: _StateValue | typing.Sequence[_StateValue],
+    target: _StateValue | State | None,
+    on_error: _StateValue | None,
+    conditions: list[_Condition] | None,
+    permission: _Permission | None,
+    custom: dict[str, typing.Any] | None,
+) -> tuple[FSMMeta, bool]:
+    """
+    Attach ``FSMMeta`` to ``func`` on first decoration and register the transition(s)
+    defined by ``source`` / ``target``. Returns the meta and whether an outer wrapper
+    has already been installed by an earlier (inner) decorator.
+    """
+    fsm_meta = getattr(func, "_django_fsm", None)
+    if fsm_meta:
+        wrapper_installed = True
+    else:
+        wrapper_installed = False
+        fsm_meta = FSMMeta(field=field, method=func)
+        setattr(func, "_django_fsm", fsm_meta)
+
+    if isinstance(source, list | tuple | set):
+        for state in source:
+            func._django_fsm.add_transition(
+                func, state, target, on_error, conditions, permission, custom
+            )
+    else:
+        func._django_fsm.add_transition(
+            func, source, target, on_error, conditions, permission, custom
+        )
+
+    return fsm_meta, wrapper_installed
 
 
 def transition(
@@ -675,30 +910,22 @@ def transition(
     custom: dict[str, typing.Any] | None = None,
 ) -> typing.Callable[[typing.Any], typing.Any]:
     """
-    Method decorator to mark allowed transitions.
+    Method decorator to mark allowed transitions on a synchronous method.
 
-    Set target to None if current state needs to be validated and
-    has not changed after the function call.
+    Set target to None if current state needs to be validated and has not changed
+    after the function call. For ``async def`` methods, use :func:`atransition`.
     """
 
     def inner_transition(func: typing.Any) -> typing.Any:
-        fsm_meta = getattr(func, "_django_fsm", None)
-        if fsm_meta:
-            wrapper_installed = True
-        else:
-            wrapper_installed = False
-            fsm_meta = FSMMeta(field=field, method=func)
-            setattr(func, "_django_fsm", fsm_meta)
-
-        if isinstance(source, list | tuple | set):
-            for state in source:
-                func._django_fsm.add_transition(
-                    func, state, target, on_error, conditions, permission, custom
-                )
-        else:
-            func._django_fsm.add_transition(
-                func, source, target, on_error, conditions, permission, custom
+        if inspect.iscoroutinefunction(func):
+            raise TypeError(
+                f"{getattr(func, '__qualname__', repr(func))} is a coroutine function; "
+                f"use @atransition for async transitions."
             )
+
+        fsm_meta, wrapper_installed = _register_transition(
+            func, field, source, target, on_error, conditions, permission, custom
+        )
 
         @wraps(func)
         def _change_state(
@@ -706,6 +933,50 @@ def transition(
         ) -> typing.Any:
             assert isinstance(fsm_meta.field, FSMFieldMixin)
             return fsm_meta.field.change_state(instance, func, *args, **kwargs)
+
+        if not wrapper_installed:
+            return _change_state
+
+        return func
+
+    return inner_transition
+
+
+def atransition(
+    field: FSMFieldMixin | str,
+    source: _StateValue | typing.Sequence[_StateValue] = ANY_STATE,
+    target: _StateValue | State | None = None,
+    on_error: _StateValue | None = None,
+    conditions: list[_Condition] | None = None,
+    permission: _Permission | None = None,
+    custom: dict[str, typing.Any] | None = None,
+) -> typing.Callable[[typing.Any], typing.Any]:
+    """
+    Method decorator to mark allowed transitions on an ``async def`` method.
+
+    Same shape as :func:`transition`. Conditions, ``permission``, and ``GET_STATE.func``
+    may be sync or coroutine functions; coroutine callables are awaited. The
+    transition dispatches ``pre_transition`` / ``post_transition`` via
+    ``Signal.asend()`` so both sync and async receivers fire.
+    """
+
+    def inner_transition(func: typing.Any) -> typing.Any:
+        if not inspect.iscoroutinefunction(func):
+            raise TypeError(
+                f"{getattr(func, '__qualname__', repr(func))} is not a coroutine function; "
+                f"use @transition for synchronous transitions."
+            )
+
+        fsm_meta, wrapper_installed = _register_transition(
+            func, field, source, target, on_error, conditions, permission, custom
+        )
+
+        @wraps(func)
+        async def _change_state(
+            instance: _FSMModel, *args: typing.Any, **kwargs: typing.Any
+        ) -> typing.Any:
+            assert isinstance(fsm_meta.field, FSMFieldMixin)
+            return await fsm_meta.field.achange_state(instance, func, *args, **kwargs)
 
         if not wrapper_installed:
             return _change_state
@@ -752,6 +1023,36 @@ def has_transition_perm(bound_method: typing.Any, user: UserWithPermissions) -> 
     )
 
 
+async def acan_proceed(bound_method: typing.Any, check_conditions: bool = True) -> bool:  # noqa: FBT001, FBT002
+    if not hasattr(bound_method, "_django_fsm"):
+        raise TypeError(f"{bound_method.__func__.__name__} method is not transition")
+
+    meta: FSMMeta = bound_method._django_fsm
+    self = bound_method.__self__
+    current_state = await meta.field.aget_state(self)
+
+    if not meta.has_transition(current_state):
+        return False
+    if not check_conditions:
+        return True
+    return await meta.aconditions_met(self, current_state)
+
+
+async def ahas_transition_perm(bound_method: typing.Any, user: UserWithPermissions) -> bool:
+    if not hasattr(bound_method, "_django_fsm"):
+        raise TypeError(f"{bound_method.__func__.__name__} method is not transition")
+
+    meta: FSMMeta = bound_method._django_fsm
+    self = bound_method.__self__
+    current_state = await meta.field.aget_state(self)
+
+    return bool(
+        meta.has_transition(current_state)
+        and await meta.aconditions_met(self, current_state)
+        and await meta.ahas_transition_perm(self, current_state, user)
+    )
+
+
 class State:
     allowed_states: typing.Sequence[_StateValue]
 
@@ -764,6 +1065,19 @@ class State:
         kwargs: dict[str, typing.Any] | None = None,
     ) -> _StateValue:
         raise NotImplementedError
+
+    async def aget_state(
+        self,
+        model: _FSMModel,
+        result: _StateValue,
+        args: typing.Sequence[typing.Any] | None = None,
+        kwargs: dict[str, typing.Any] | None = None,
+    ) -> _StateValue:
+        """
+        Default async resolution: delegates to the sync ``get_state``.
+        Subclasses that need to await user-supplied callables override this.
+        """
+        return self.get_state(model, result, args, kwargs)
 
 
 class RETURN_VALUE(State):  # noqa: N801
@@ -806,7 +1120,34 @@ class GET_STATE(State):  # noqa: N801
             args = ()
         if kwargs is None:
             kwargs = {}
+        if inspect.iscoroutinefunction(self.func):
+            raise TypeError(
+                f"GET_STATE.func {getattr(self.func, '__qualname__', repr(self.func))} is a "
+                f"coroutine function; the transition method must be async (use `async def`)."
+            )
         result_state = self.func(model, *args, **kwargs)
+        if self.allowed_states and result_state not in self.allowed_states:
+            raise InvalidResultState(
+                f"{result_state} is not in list of allowed states\n{self.allowed_states}"
+            )
+        return result_state
+
+    @override
+    async def aget_state(
+        self,
+        model: _FSMModel,
+        result: _StateValue,
+        args: typing.Sequence[typing.Any] | None = None,
+        kwargs: dict[str, typing.Any] | None = None,
+    ) -> _StateValue:
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        if inspect.iscoroutinefunction(self.func):
+            result_state = await self.func(model, *args, **kwargs)
+        else:
+            result_state = self.func(model, *args, **kwargs)
         if self.allowed_states and result_state not in self.allowed_states:
             raise InvalidResultState(
                 f"{result_state} is not in list of allowed states\n{self.allowed_states}"
