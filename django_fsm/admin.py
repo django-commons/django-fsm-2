@@ -224,10 +224,9 @@ class FSMAdminMixin(_ModelAdmin):
         self, *, request: http.HttpRequest, obj: fsm._FSMModel | None
     ) -> typing.Generator[FSMObjectTransition]:
         for field_name in sorted(self.fsm_fields):
-            # ADDRESS BEFORE MERGE: the `if not callable(...)` guards below are unreachable
+            # ADDRESS BEFORE MERGE: I think the `if not callable(...)` guards below are unreachable
             # because contribute_to_class always installs these partialmethods for any
-            # FSMFieldMixin. Same shape on the sync branch (pre-existing). Should probably
-            # drop or assert on both, leaving for now.
+            # FSMFieldMixin. Same shape on the sync branch, so maybe pre-existing...?
             if self._field_has_async_transition(field_name):
                 async_transitions_func = getattr(
                     obj, f"aget_available_user_{field_name}_transitions", None

@@ -435,11 +435,6 @@ class FSMFieldMixin(_Field):
         return DeferredAttribute(self).__get__(instance)
 
     async def aget_state(self, instance: _FSMModel) -> typing.Any:
-        """
-        Async variant of ``get_state``. If the field is deferred, loads it via
-        ``arefresh_from_db`` instead of the sync path that would raise
-        ``SynchronousOnlyOperation`` from an async context.
-        """
         data = instance.__dict__
         field_name = self.attname
         if field_name not in data:
@@ -538,11 +533,6 @@ class FSMFieldMixin(_Field):
         *args: typing.Any,
         **kwargs: typing.Any,
     ) -> typing.Any:
-        """
-        Async variant of ``change_state``. Awaits the transition method and dispatches
-        ``pre_transition`` / ``post_transition`` via ``Signal.asend`` so async receivers
-        are awaited and sync receivers still fire.
-        """
         meta: FSMMeta = method._django_fsm
         method_name: str = method.__name__
         current_state = await self.aget_state(instance)
