@@ -77,7 +77,7 @@ class FSMFieldTest(TestCase):
 
     def test_unavailable_transition_fails(self):
         assert not fsm.can_proceed(self.model.hide)
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.hide()
 
     def test_state_unchanged_when_transition_raises(self):
@@ -94,7 +94,7 @@ class FSMFieldTest(TestCase):
         assert self.model.state == ApplicationState.PUBLISHED
 
     def test_unavailable_transition_with_empty_target_keeps_state(self):
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.notify_all()
 
         assert self.model.state == ApplicationState.NEW
@@ -134,7 +134,7 @@ class FSMFieldTest(TestCase):
         self.model.block()
 
         assert not fsm.can_proceed(self.model.block)
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.block()
 
     def test_empty_string_target_sets_blank_state(self):
@@ -170,7 +170,7 @@ class StateSignalsTests(TestCase):
         assert self.post_transition_called
 
     def test_signals_do_not_fire_on_invalid_transition(self):
-        with pytest.raises(fsm.TransitionNotAllowed):
+        with pytest.raises(fsm.InvalidTransition):
             self.model.hide()
 
         assert not self.pre_transition_called
