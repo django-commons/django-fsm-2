@@ -1,6 +1,7 @@
 {% extends 'admin/change_form.html' %}
 
 {% block submit_buttons_bottom %}
+  {{ block.super }}
 
   {% for fsm_object_transition in fsm_object_transitions %}
       <div class="submit-row">
@@ -10,6 +11,4 @@
         {% endfor %}
       </div>
   {% endfor %}
-
-  {{ block.super }}
 {% endblock %}
