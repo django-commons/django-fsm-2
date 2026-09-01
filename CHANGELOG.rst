@@ -9,6 +9,7 @@ Unreleased
 - Add Django 6.1 support
 - Add ``TransitionConditionsUnmet`` with ``failed_condition`` for unmet conditions
 - Add ``NoTransition`` and ``InvalidTransition`` subclasses for ``TransitionNotAllowed``
+- Move admin transition buttons after save buttons so that a transition is not used as the default button when pressing the Enter key (#145)
 
 
 django-fsm-2 4.2.4 2026-03-16
