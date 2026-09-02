@@ -9,9 +9,8 @@ Unreleased
 - Add Django 6.1 support
 - Add ``TransitionConditionsUnmet`` with ``failed_condition`` for unmet conditions
 - Add ``NoTransition`` and ``InvalidTransition`` subclasses for ``TransitionNotAllowed``
-- Fix admin transition buttons rendering ``title="None"`` (and the transition form page
-  rendering a stray "None") when a transition has no configured ``help_text``, which is
-  the common case since most transitions don't set ``custom=dict(help_text=...)``
+- Move admin transition buttons after save buttons so that a transition is not used as the default button when pressing the Enter key (#145)
+- Fix stray "None"s in admin when a transition has no configured ``help_text`` (#148)
 
 
 django-fsm-2 4.2.4 2026-03-16
