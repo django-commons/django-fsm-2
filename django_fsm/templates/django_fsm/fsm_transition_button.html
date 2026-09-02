@@ -3,7 +3,7 @@
   class="button"
   name="_fsm_transition_to"
   value="{{ transition.name }}"
-  title="{{ transition.help_text }}"
+  {% if transition.help_text %}title="{{ transition.help_text }}"{% endif %}
 >
   {{ transition.label }}
 </button>
