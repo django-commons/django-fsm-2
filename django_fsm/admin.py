@@ -281,6 +281,15 @@ class FSMAdminMixin(_ModelAdmin):
         else:
             transition_func(**kwargs)
 
+    def _log_fsm_transition(
+        self, *, request: http.HttpRequest, obj: fsm._FSMModel, field: fsm.FSMFieldMixin
+    ) -> None:
+        """Record the transition in the admin change history (LogEntry)."""
+        try:
+            self.log_change(request, obj, [{"changed": {"fields": [str(field.verbose_name)]}}])
+        except Exception:
+            logger.exception("Failed to write admin log entry for FSM transition")
+
     def _apply_fsm_transition(
         self,
         *,
@@ -289,11 +298,10 @@ class FSMAdminMixin(_ModelAdmin):
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> bool:
+        transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
         try:
             self._execute_fsm_transition(
-                transition_func=self._get_fsm_transition_func(
-                    obj=obj, transition_name=transition_name
-                ),
+                transition_func=transition_func,
                 request=request,
                 kwargs=kwargs,
             )
@@ -335,6 +343,11 @@ class FSMAdminMixin(_ModelAdmin):
                     transition_name=transition_name,
                 ),
                 level=messages.SUCCESS,
+            )
+            self._log_fsm_transition(
+                request=request,
+                obj=obj,
+                field=transition_func._django_fsm.field,  # type: ignore[attr-defined]
             )
             return True
 
