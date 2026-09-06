@@ -20,6 +20,8 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.test.utils import modify_settings
 from django.urls import reverse
+from django.utils.functional import Promise
+from django.utils.translation import gettext_lazy as _
 from django_fsm_log.models import StateLog
 
 import django_fsm as fsm
@@ -213,9 +215,6 @@ class ModelAdminTestCase(TestCase):
         assert called["comment"] == "Because"
 
     def test_log_fsm_transition_stringifies_lazy_verbose_name(self) -> None:
-        from django.utils.functional import Promise
-        from django.utils.translation import gettext_lazy as _
-
         fake_field = mock.Mock(verbose_name=_("Fancy State"))
 
         with mock.patch.object(self.model_admin, "log_change") as mock_log_change:
