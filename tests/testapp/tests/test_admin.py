@@ -480,6 +480,30 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
 
         self.assert_state_log_for_user()
 
+    def test_permission_denied_transition_is_blocked_without_form(
+        self, mock_message_user: mock.Mock
+    ) -> None:
+        self.assert_state_log_empty()
+        original_state = self.blog_post.state
+
+        self.model_admin.response_change(
+            request=self.make_request(
+                data={"_fsm_transition_to": "permission_denied"},
+            ),
+            obj=self.blog_post,
+        )
+
+        mock_message_user.assert_called_once_with(
+            request=mock.ANY,
+            message="FSM transition 'permission_denied' is not allowed.",
+            level=messages.ERROR,
+        )
+
+        self.blog_post.refresh_from_db()
+        assert self.blog_post.state == original_state
+        self.assert_state_log_empty()
+        assert LogEntry.objects.count() == 0
+
     def test_transition_applied_writes_admin_log_entry(self, mock_message_user: mock.Mock) -> None:
         assert LogEntry.objects.count() == 0
 
@@ -550,10 +574,12 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
-        with mock.patch(
-            "tests.testapp.models.AdminBlogPost.moderate",
+        failing_moderate = mock.Mock(
+            _django_fsm=AdminBlogPost.moderate._django_fsm,  # type: ignore[attr-defined]
             side_effect=fsm.ConcurrentTransition("error message"),
-        ):
+        )
+
+        with mock.patch("tests.testapp.models.AdminBlogPost.moderate", failing_moderate):
             self.model_admin.response_change(
                 request=self.make_request(
                     data={"_fsm_transition_to": "moderate"},
@@ -832,7 +858,7 @@ class TransitionViewTestCase(BaseAdminTestCase):
         )
         self.assert_state_log_empty()
 
-    def test_transition_without_form_(self, mock_message_user: mock.Mock) -> None:
+    def test_transition_without_form(self, mock_message_user: mock.Mock) -> None:
         self.assert_state_log_empty()
 
         res = self.model_admin.fsm_transition_view(

@@ -47,6 +47,13 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
     _TransitionFunc: typing.TypeAlias = typing.Callable[..., _StateValue | typing.Any | None]
 
+    class _TransitionMethod(typing.Protocol):
+        """A `@transition`-decorated method"""
+
+        _django_fsm: FSMMeta
+
+        def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any: ...
+
 else:
     _FSMModel = object
     _Field = object
@@ -323,7 +330,7 @@ class FSMFieldMixin(_Field):
 
     transitions: dict[  # cls -> (transitions name -> method)
         type[_FSMModel],
-        dict[str, typing.Any],
+        dict[str, _TransitionMethod],
     ]
     state_proxy: dict[_StateValue, str]  # state -> ProxyClsRef
 
@@ -505,7 +512,7 @@ class FSMFieldMixin(_Field):
                 )
             )
 
-        sender_transitions: dict[str, typing.Any] = {}
+        sender_transitions: dict[str, _TransitionMethod] = {}
         transitions = inspect.getmembers(sender, predicate=is_field_transition_method)
         for method_name, method in transitions:
             method._django_fsm.field = self
