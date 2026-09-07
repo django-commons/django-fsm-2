@@ -15,6 +15,8 @@ Unreleased
   form configured (the common case). **Behavior change:** if you have a
   ``permission`` set on a transition, it is now actually enforced on these paths
 - Fix stray "None"s in admin when a transition has no configured ``help_text`` (#148)
+- Fix ``FSMAdminMixin`` not writing a Django admin ``LogEntry`` for applied transitions,
+  so state changes made in the admin no longer disappear from the object's "History"
 
 
 django-fsm-2 4.2.4 2026-03-16
