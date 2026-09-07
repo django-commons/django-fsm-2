@@ -773,15 +773,22 @@ class TransitionViewTestCase(BaseAdminTestCase):
     def test_permission_denied(self, mock_message_user: mock.Mock) -> None:
         self.assert_state_log_empty()
 
-        self.model_admin.fsm_transition_view(
-            request=self.make_request(
-                data={
-                    "description": "Because",
-                },
-            ),
-            object_id=str(self.blog_post.pk),
-            transition_name="permission_denied",
-        )
+        with mock.patch.object(
+            self.model_admin,
+            "fsm_forms",
+            {
+                "permission_denied": FSMLogDescriptionForm,
+            },
+        ):
+            self.model_admin.fsm_transition_view(
+                request=self.make_request(
+                    data={
+                        "description": "Because",
+                    },
+                ),
+                object_id=str(self.blog_post.pk),
+                transition_name="permission_denied",
+            )
 
         mock_message_user.assert_called_once_with(
             request=mock.ANY,
