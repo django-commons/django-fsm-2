@@ -46,18 +46,16 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     _Permission: typing.TypeAlias = str | typing.Callable[[_FSMModel, UserWithPermissions], bool]
     _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
 
+    _TransitionF = typing.TypeVar(
+        "_TransitionF",
+        bound=typing.Callable[..., _StateValue | typing.Any | None],
+    )
+
     class _TransitionMethod(typing.Protocol):
         """A `@transition`-decorated method"""
 
         __name__: str
         __qualname__: str
-        _django_fsm: FSMMeta
-
-        def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any: ...
-
-    class _TransitionMethod(typing.Protocol):
-        """A `@transition`-decorated method"""
-
         _django_fsm: FSMMeta
 
         def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any: ...
@@ -103,7 +101,7 @@ ANY_OTHER_STATE = "+"
 class Transition:
     def __init__(
         self,
-        method: typing.Callable[..., _StateValue | typing.Any | None],
+        method: _TransitionF,
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
@@ -206,9 +204,9 @@ class FSMMeta:
         self.field = field
         self.transitions = {}
 
-    def get_transition(self, source: _StateValue) -> Transition | None:
+    def get_transition(self, source: _StateValue | None) -> Transition | None:
         return (
-            self.transitions.get(source, None)
+            self.transitions.get(source, None)  # type: ignore[arg-type]
             or self.transitions.get(ANY_STATE, None)
             or self.transitions.get(ANY_OTHER_STATE, None)
         )
@@ -236,7 +234,7 @@ class FSMMeta:
             custom=custom,
         )
 
-    def has_transition(self, state: _StateValue) -> bool:
+    def has_transition(self, state: _StateValue | None) -> bool:
         """
         Lookup if any transition exists from current model state using current method
         """
@@ -254,7 +252,7 @@ class FSMMeta:
 
         return False
 
-    def conditions_met(self, instance: _FSMModel, state: _StateValue) -> bool:
+    def conditions_met(self, instance: _FSMModel, state: _StateValue | None) -> bool:
         """
         Check if all conditions have been met
         """
@@ -269,7 +267,7 @@ class FSMMeta:
         return all(condition(instance) for condition in transition.conditions)
 
     def get_first_unmet_condition(
-        self, instance: _FSMModel, state: _StateValue
+        self, instance: _FSMModel, state: _StateValue | None
     ) -> _Condition | None:
         """
         Return the first condition callable that is not met, or None.
@@ -289,7 +287,7 @@ class FSMMeta:
         return None
 
     def has_transition_perm(
-        self, instance: _FSMModel, state: _StateValue, user: UserWithPermissions
+        self, instance: _FSMModel, state: _StateValue | None, user: UserWithPermissions
     ) -> bool:
         transition = self.get_transition(state)
 
@@ -298,7 +296,7 @@ class FSMMeta:
 
         return transition.has_perm(instance, user)
 
-    def next_state(self, current_state: _StateValue) -> _StateValue:
+    def next_state(self, current_state: _StateValue | None) -> _StateValue:
         transition = self.get_transition(current_state)
 
         if transition is None:  # pragma: no cover
@@ -306,7 +304,7 @@ class FSMMeta:
 
         return transition.target
 
-    def exception_state(self, current_state: _StateValue) -> _StateValue | None:
+    def exception_state(self, current_state: _StateValue | None) -> _StateValue | None:
         transition = self.get_transition(current_state)
 
         if transition is None:  # pragma: no cover
@@ -319,7 +317,11 @@ class FSMFieldDescriptor:
     def __init__(self, field: FSMFieldMixin) -> None:
         self.field = field
 
-    def __get__(self, instance: _FSMModel, cls: typing.Any | None = None) -> typing.Any:
+    def __get__(
+        self,
+        instance: _FSMModel | None,
+        cls: type[_FSMModel] | None = None,
+    ) -> _StateValue | None | FSMFieldDescriptor:
         if instance is None:
             return self
         return self.field.get_state(instance)
@@ -369,10 +371,10 @@ class FSMFieldMixin(_Field):
             kwargs["protected"] = self.protected
         return name, path, args, kwargs
 
-    def get_state(self, instance: _FSMModel) -> typing.Any:
+    def get_state(self, instance: _FSMModel) -> _StateValue | None:
         # The state field may be deferred. We delegate the logic of figuring this out
         # and loading the deferred field on-demand to Django's built-in DeferredAttribute class.
-        return DeferredAttribute(self).__get__(instance)
+        return DeferredAttribute(self).__get__(instance)  # type: ignore[no-any-return]
 
     def set_state(self, instance: _FSMModel, state: _StateValue) -> None:
         instance.__dict__[self.name] = state
@@ -551,8 +553,8 @@ class FSMKeyField(FSMFieldMixin, ForeignKey):
     State Machine support for Django model
     """
 
-    def get_state(self, instance: _FSMModel) -> typing.Any:
-        return instance.__dict__[self.attname]
+    def get_state(self, instance: _FSMModel) -> _StateValue | None:
+        return instance.__dict__[self.attname]  # type: ignore[no-any-return]
 
     def set_state(self, instance: _FSMModel, state: _StateValue) -> None:
         instance.__dict__[self.attname] = self.to_python(state)
@@ -698,7 +700,7 @@ def transition(
     conditions: list[_Condition] | None = None,
     permission: _Permission | None = None,
     custom: dict[str, typing.Any] | None = None,
-) -> typing.Callable[[typing.Any], typing.Any]:
+) -> typing.Callable[[_TransitionF], _TransitionF]:
     """
     Method decorator to mark allowed transitions.
 
@@ -706,7 +708,7 @@ def transition(
     has not changed after the function call.
     """
 
-    def inner_transition(func: typing.Any) -> typing.Any:
+    def inner_transition(func: _TransitionF) -> _TransitionF:
         fsm_meta = getattr(func, "_django_fsm", None)
         if fsm_meta:
             wrapper_installed = True
@@ -715,14 +717,22 @@ def transition(
             fsm_meta = FSMMeta(field=field, method=func)
             setattr(func, "_django_fsm", fsm_meta)
 
+        method = typing.cast("_TransitionMethod", func)
+        target_state = typing.cast("_StateValue", target)
         if isinstance(source, list | tuple | set):
             for state in source:
-                func._django_fsm.add_transition(
-                    func, state, target, on_error, conditions, permission, custom
+                fsm_meta.add_transition(
+                    method, state, target_state, on_error, conditions, permission, custom
                 )
         else:
-            func._django_fsm.add_transition(
-                func, source, target, on_error, conditions, permission, custom
+            fsm_meta.add_transition(
+                method,
+                typing.cast("_StateValue", source),
+                target_state,
+                on_error,
+                conditions,
+                permission,
+                custom,
             )
 
         @wraps(func)
@@ -730,10 +740,10 @@ def transition(
             instance: _FSMModel, *args: typing.Any, **kwargs: typing.Any
         ) -> typing.Any:
             assert isinstance(fsm_meta.field, FSMFieldMixin)
-            return fsm_meta.field.change_state(instance, func, *args, **kwargs)
+            return fsm_meta.field.change_state(instance, method, *args, **kwargs)
 
         if not wrapper_installed:
-            return _change_state
+            return typing.cast("_TransitionF", _change_state)
 
         return func
 

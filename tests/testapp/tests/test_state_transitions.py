@@ -21,7 +21,7 @@ class Insect(models.Model):
     objects: models.Manager[Insect] = models.Manager()
 
     @fsm.transition(field=state, source=STATE.CATERPILLAR, target=STATE.BUTTERFLY)
-    def cocoon(self):
+    def cocoon(self) -> None:
         pass
 
     def fly(self):

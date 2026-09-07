@@ -15,7 +15,7 @@ class BaseAbstractModel(models.Model):
         abstract = True
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 
@@ -29,7 +29,7 @@ class AnotherFromAbstractModel(BaseAbstractModel):
     @fsm.transition(
         field="state", source=ApplicationState.PUBLISHED, target=ApplicationState.STICKED
     )
-    def stick(self):
+    def stick(self) -> None:
         pass
 
 
@@ -37,7 +37,7 @@ class InheritedFromAbstractModel(BaseAbstractModel):
     @fsm.transition(
         field="state", source=ApplicationState.PUBLISHED, target=ApplicationState.STICKED
     )
-    def stick(self):
+    def stick(self) -> None:
         pass
 
 

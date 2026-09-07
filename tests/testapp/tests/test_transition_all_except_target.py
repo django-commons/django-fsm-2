@@ -12,11 +12,11 @@ class ExceptTargetTransition(models.Model):
     state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.REMOVED)
-    def remove(self):
+    def remove(self) -> None:
         pass
 
 

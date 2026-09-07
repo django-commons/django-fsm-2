@@ -14,11 +14,11 @@ class DeferrableModel(models.Model):
     objects: models.Manager[DeferrableModel] = models.Manager()
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(field=state, source=fsm.ANY_OTHER_STATE, target=ApplicationState.REMOVED)
-    def remove(self):
+    def remove(self) -> None:
         pass
 
 

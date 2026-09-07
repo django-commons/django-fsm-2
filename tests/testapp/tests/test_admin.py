@@ -574,7 +574,9 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
         blog_post = AdminBlogPost.objects.create(title="Article name")
         assert blog_post.state == AdminBlogPostState.CREATED
 
-        failing_moderate_mock = mock.MagicMock(side_effect=fsm.ConcurrentTransition("error message"))
+        failing_moderate_mock = mock.MagicMock(
+            side_effect=fsm.ConcurrentTransition("error message")
+        )
         failing_moderate_mock._django_fsm = AdminBlogPost.moderate._django_fsm  # type: ignore[attr-defined]
         with mock.patch.object(AdminBlogPost, "moderate", new=failing_moderate_mock):
             self.model_admin.response_change(

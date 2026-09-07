@@ -15,19 +15,19 @@ class SimpleBlogPost(models.Model):
     state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(source=ApplicationState.PUBLISHED, field=state)
-    def notify_all(self):
+    def notify_all(self) -> None:
         pass
 
     @fsm.transition(source=ApplicationState.PUBLISHED, target=ApplicationState.HIDDEN, field=state)
-    def hide(self):
+    def hide(self) -> None:
         pass
 
     @fsm.transition(source=ApplicationState.NEW, target=ApplicationState.REMOVED, field=state)
-    def remove(self):
+    def remove(self) -> None:
         raise Exception("Upss")
 
     @fsm.transition(
@@ -35,25 +35,25 @@ class SimpleBlogPost(models.Model):
         target=ApplicationState.STOLEN,
         field=state,
     )
-    def steal(self):
+    def steal(self) -> None:
         pass
 
     @fsm.transition(source=fsm.ANY_STATE, target=ApplicationState.MODERATED, field=state)
-    def moderate(self):
+    def moderate(self) -> None:
         pass
 
     @fsm.transition(source=fsm.ANY_OTHER_STATE, target=ApplicationState.BLOCKED, field=state)
-    def block(self):
+    def block(self) -> None:
         pass
 
     @fsm.transition(source=fsm.ANY_STATE, target="", field=state)
-    def empty(self):
+    def empty(self) -> None:
         pass
 
 
 class AdvancedBlogPost(SimpleBlogPost):
     @fsm.transition(field="state", source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 

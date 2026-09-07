@@ -28,7 +28,7 @@ class BlogPostWithConditions(models.Model):
         target=ApplicationState.PUBLISHED,
         conditions=[condition_func, model_condition],
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(
@@ -37,7 +37,7 @@ class BlogPostWithConditions(models.Model):
         target=ApplicationState.REMOVED,
         conditions=[condition_func, unmet_condition],
     )
-    def remove(self):
+    def remove(self) -> None:
         pass
 
 
@@ -105,7 +105,7 @@ class BlogPostShortCircuit(models.Model):
         target="published",
         conditions=[_eval_tracking_condition, _never_reached_condition],
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 

@@ -19,11 +19,11 @@ class ExceptionalBlogPost(models.Model):
         target=ApplicationState.PUBLISHED,
         on_error=ApplicationState.CRASHED,
     )
-    def publish(self):
+    def publish(self) -> None:
         raise Exception("Upss")
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.REMOVED)
-    def delete(self):
+    def remove(self) -> None:
         raise Exception("Upss")
 
 
@@ -50,10 +50,10 @@ class FSMFieldExceptionTest(TestCase):
         assert "exception" in self.post_transition_data
 
     def test_state_unchanged_without_error_target(self):
-        assert fsm.can_proceed(self.model.delete)
+        assert fsm.can_proceed(self.model.remove)
 
         with pytest.raises(Exception, match="Upss"):
-            self.model.delete()
+            self.model.remove()
 
         assert self.model.state == ApplicationState.NEW
         assert self.post_transition_data == {}

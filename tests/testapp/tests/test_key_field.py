@@ -22,27 +22,27 @@ class FSMKeyModelAbstract(models.Model):
     state: fsm.FSMKeyField
 
     @fsm.transition(field="state", source="_NEW_", target="_PUBLISHED_")
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(field="state", source="_PUBLISHED_")
-    def notify_all(self):
+    def notify_all(self) -> None:
         pass
 
     @fsm.transition(field="state", source="_PUBLISHED_", target="_HIDDEN_")
-    def hide(self):
+    def hide(self) -> None:
         pass
 
     @fsm.transition(field="state", source="_NEW_", target="_REMOVED_")
-    def remove(self):
+    def remove(self) -> None:
         raise Exception("Upss")
 
     @fsm.transition(field="state", source=["_PUBLISHED_", "_HIDDEN_"], target="_STOLEN_")
-    def steal(self):
+    def steal(self) -> None:
         pass
 
     @fsm.transition(field="state", source=fsm.ANY_STATE, target="_MODERATED_")
-    def moderate(self):
+    def moderate(self) -> None:
         pass
 
 

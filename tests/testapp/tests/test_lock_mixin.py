@@ -20,7 +20,7 @@ class LockedBlogPost(fsm.ConcurrentTransitionMixin, models.Model):
         source=ApplicationState.NEW,
         target=ApplicationState.PUBLISHED,
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(
@@ -28,7 +28,7 @@ class LockedBlogPost(fsm.ConcurrentTransitionMixin, models.Model):
         source=ApplicationState.PUBLISHED,
         target=ApplicationState.REMOVED,
     )
-    def remove(self):
+    def remove(self) -> None:
         pass
 
 
@@ -43,7 +43,7 @@ class ExtendedBlogPost(LockedBlogPost):
         source=ApplicationState.BLOCKED,
         target=ApplicationState.REJECTED,
     )
-    def reject(self):
+    def reject(self) -> None:
         pass
 
 
