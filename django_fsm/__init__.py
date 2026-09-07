@@ -55,7 +55,7 @@ if typing.TYPE_CHECKING:  # pragma: no cover
         """A `@transition`-decorated method"""
 
         __name__: str
-        __qualname__: str
+
         _django_fsm: FSMMeta
 
         def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any: ...
