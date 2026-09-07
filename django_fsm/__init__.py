@@ -45,7 +45,15 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     _StateValue: typing.TypeAlias = str | int | models.Choices
     _Permission: typing.TypeAlias = str | typing.Callable[[_FSMModel, UserWithPermissions], bool]
     _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
-    _TransitionFunc: typing.TypeAlias = typing.Callable[..., _StateValue | typing.Any | None]
+
+    class _TransitionMethod(typing.Protocol):
+        """A `@transition`-decorated method"""
+
+        __name__: str
+        __qualname__: str
+        _django_fsm: FSMMeta
+
+        def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any: ...
 
     class _TransitionMethod(typing.Protocol):
         """A `@transition`-decorated method"""
@@ -95,7 +103,7 @@ ANY_OTHER_STATE = "+"
 class Transition:
     def __init__(
         self,
-        method: _TransitionFunc,
+        method: typing.Callable[..., _StateValue | typing.Any | None],
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
@@ -207,7 +215,7 @@ class FSMMeta:
 
     def add_transition(
         self,
-        method: _TransitionFunc,
+        method: _TransitionMethod,
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None = None,
@@ -393,7 +401,7 @@ class FSMFieldMixin(_Field):
     def change_state(
         self,
         instance: _FSMModel,
-        method: typing.Any,
+        method: _TransitionMethod,
         *args: typing.Any,
         **kwargs: typing.Any,
     ) -> typing.Any:
@@ -498,7 +506,7 @@ class FSMFieldMixin(_Field):
         if not issubclass(sender, self.base_cls):
             return
 
-        def is_field_transition_method(attr: _TransitionFunc) -> bool:
+        def is_field_transition_method(attr: object) -> bool:
             return (
                 (inspect.ismethod(attr) or inspect.isfunction(attr))
                 and hasattr(attr, "_django_fsm")
@@ -779,7 +787,7 @@ class State:
         result: _StateValue,
         args: typing.Sequence[typing.Any] | None = None,
         kwargs: dict[str, typing.Any] | None = None,
-    ) -> _StateValue:
+    ) -> typing.Any:
         raise NotImplementedError
 
 

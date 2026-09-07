@@ -264,7 +264,7 @@ class FSMAdminMixin(_ModelAdmin):
     def _execute_fsm_transition(
         self,
         *,
-        transition_func: fsm._TransitionFunc,
+        transition_func: typing.Callable[..., typing.Any],
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
