@@ -21,7 +21,7 @@ class BlogPostWithCustomData(models.Model):
             "type": "*",
         },
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(
@@ -33,7 +33,7 @@ class BlogPostWithCustomData(models.Model):
             "type": "manual",
         },
     )
-    def remove(self):
+    def remove(self) -> None:
         pass
 
     @fsm.transition(
@@ -45,7 +45,7 @@ class BlogPostWithCustomData(models.Model):
             "type": "automated",
         },
     )
-    def moderate(self):
+    def moderate(self) -> None:
         pass
 
 

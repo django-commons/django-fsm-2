@@ -17,7 +17,7 @@ class ProtectedAccessModel(models.Model):
     objects: models.Manager[ProtectedAccessModel] = models.Manager()
 
     @fsm.transition(field=status, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 

@@ -31,7 +31,7 @@ class MultiDecoratedModel(models.Model):
         field=state, source=StateChoice.SUBMITTED_BY_ANONYMOUS, target=StateChoice.REVIEW_ANONYMOUS
     )
     @fsm.transition(field=state, source=fsm.ANY_STATE, target=StateChoice.REVIEW_ANONYMOUS)
-    def review(self):
+    def review(self) -> None:
         self.counter += 1
 
 

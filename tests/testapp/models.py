@@ -80,7 +80,7 @@ class Application(models.Model):
         source=ApplicationState.NEW,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value(self) -> str:
+    def return_value(self) -> ApplicationState:
         return ApplicationState.PUBLISHED
 
     @fsm.transition(
@@ -88,7 +88,7 @@ class Application(models.Model):
         source=fsm.ANY_STATE,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value_any_source(self) -> str:
+    def return_value_any_source(self) -> ApplicationState:
         return ApplicationState.PUBLISHED
 
     @fsm.transition(
@@ -96,7 +96,7 @@ class Application(models.Model):
         source=fsm.ANY_OTHER_STATE,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value_any_source_except_target(self) -> str:
+    def return_value_any_source_except_target(self) -> ApplicationState:
         return ApplicationState.PUBLISHED
 
     @fsm.transition(
@@ -192,7 +192,7 @@ class FKApplication(models.Model):
         source=ApplicationState.NEW,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value(self) -> str:
+    def return_value(self) -> ApplicationState:
         return ApplicationState.MODERATED
 
     @fsm.transition(
@@ -200,7 +200,7 @@ class FKApplication(models.Model):
         source=fsm.ANY_STATE,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value_any_source(self) -> str:
+    def return_value_any_source(self) -> ApplicationState:
         return ApplicationState.MODERATED
 
     @fsm.transition(
@@ -208,7 +208,7 @@ class FKApplication(models.Model):
         source=fsm.ANY_OTHER_STATE,
         target=fsm.RETURN_VALUE(ApplicationState.MODERATED, ApplicationState.BLOCKED),
     )
-    def return_value_any_source_except_target(self) -> str:
+    def return_value_any_source_except_target(self) -> ApplicationState:
         return ApplicationState.MODERATED
 
     @fsm.transition(

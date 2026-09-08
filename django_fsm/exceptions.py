@@ -11,7 +11,7 @@ except ImportError:  # pragma: no cover
 if typing.TYPE_CHECKING:  # pragma: no cover
     from . import _Condition
     from . import _FSMModel
-    from . import _TransitionFunc
+    from . import _TransitionMethod
 
 
 class FSMException(Exception):  # noqa: N818
@@ -30,7 +30,7 @@ class InvalidTransition(TransitionNotAllowed):
     """Raised when a transition method is not valid for the current state"""
 
     object: _FSMModel
-    method: _TransitionFunc
+    method: _TransitionMethod
 
     @override
     def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:

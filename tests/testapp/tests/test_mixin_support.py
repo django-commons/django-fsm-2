@@ -10,11 +10,11 @@ from ..choices import ApplicationState
 
 class WorkflowMixin:
     @fsm.transition(field="state", source=fsm.ANY_STATE, target=ApplicationState.DRAFT)
-    def draft(self):
+    def draft(self) -> None:
         pass
 
     @fsm.transition(field="state", source=ApplicationState.DRAFT, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 

@@ -14,19 +14,19 @@ class BlogPostWithStringField(models.Model):
     @fsm.transition(
         field="state", source=ApplicationState.NEW, target=ApplicationState.PUBLISHED, conditions=[]
     )
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(
         field="state", source=ApplicationState.PUBLISHED, target=ApplicationState.REMOVED
     )
-    def remove(self):
+    def remove(self) -> None:
         pass
 
     @fsm.transition(
         field="state", source=ApplicationState.PUBLISHED, target=ApplicationState.MODERATED
     )
-    def review(self):
+    def review(self) -> None:
         pass
 
 

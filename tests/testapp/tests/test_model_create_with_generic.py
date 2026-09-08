@@ -26,7 +26,7 @@ class Task(models.Model):
     objects: models.Manager[Task] = models.Manager()
 
     @fsm.transition(field=state, source=TaskState.NEW, target=TaskState.DONE)
-    def do(self):
+    def do(self) -> None:
         pass
 
 

@@ -12,7 +12,7 @@ class BaseModel(models.Model):
     state = fsm.FSMField(choices=ApplicationState.choices, default=ApplicationState.NEW)
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=ApplicationState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
 
@@ -23,7 +23,7 @@ class InheritedModel(BaseModel):
     @fsm.transition(
         field="state", source=ApplicationState.PUBLISHED, target=ApplicationState.STICKED
     )
-    def stick(self):
+    def stick(self) -> None:
         pass
 
 

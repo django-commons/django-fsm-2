@@ -13,11 +13,11 @@ class BlogPostWithIntegerField(models.Model):
     state = fsm.FSMIntegerField(choices=BlogPostState.choices, default=BlogPostState.NEW)
 
     @fsm.transition(field=state, source=BlogPostState.NEW, target=BlogPostState.PUBLISHED)
-    def publish(self):
+    def publish(self) -> None:
         pass
 
     @fsm.transition(field=state, source=BlogPostState.PUBLISHED, target=BlogPostState.HIDDEN)
-    def hide(self):
+    def hide(self) -> None:
         pass
 
 

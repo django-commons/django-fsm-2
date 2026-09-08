@@ -23,11 +23,11 @@ class MultiResultModel(models.Model):
         source=ApplicationState.NEW,
         target=fsm.RETURN_VALUE(ApplicationState.FOR_MODERATORS, ApplicationState.PUBLISHED),
     )
-    def publish(self, *, is_public=False):
+    def publish(self, *, is_public: bool = False) -> ApplicationState:
         return ApplicationState.PUBLISHED if is_public else ApplicationState.FOR_MODERATORS
 
     @fsm.transition(field=state, source=ApplicationState.NEW, target=fsm.RETURN_VALUE())
-    def publish_without_states(self, *, is_public=False):
+    def publish_without_states(self, *, is_public: bool = False) -> ApplicationState:
         return ApplicationState.PUBLISHED if is_public else ApplicationState.FOR_MODERATORS
 
     @fsm.transition(
@@ -38,7 +38,7 @@ class MultiResultModel(models.Model):
             states=[ApplicationState.PUBLISHED, ApplicationState.REJECTED],
         ),
     )
-    def moderate(self, allowed):
+    def moderate(self, *, allowed: bool) -> None:
         pass
 
     @fsm.transition(
@@ -48,7 +48,7 @@ class MultiResultModel(models.Model):
             lambda _, allowed: ApplicationState.PUBLISHED if allowed else ApplicationState.REJECTED,
         ),
     )
-    def moderate_without_states(self, allowed):
+    def moderate_without_states(self, *, allowed: bool) -> None:
         pass
 
 
