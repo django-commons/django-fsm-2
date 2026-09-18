@@ -32,6 +32,8 @@ from ..admin_forms import AdminBlogPostRenameModelForm
 from ..admin_forms import FSMLogDescriptionForm
 from ..choices import AdminBlogPostState
 from ..models import AdminBlogPost
+from .test_multidecorators import MultiDecoratedModel
+from .test_multidecorators import StateChoice
 
 if typing.TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -1015,3 +1017,65 @@ class NoFsmLogModelFormTransitionViewTestCase(ModelFormTransitionViewTestCase):
     """
 
     fsm_log_enabled = False
+
+
+class MultiDecoratedAdmin(FSMAdminMixin, admin.ModelAdmin[MultiDecoratedModel]):
+    fsm_fields = ["state"]
+
+
+class TransitionByNameResolvesSourceStateTestCase(TestCase):
+    """Regression: `_get_fsm_transition_by_name` must match the object's current
+    source state — not return an arbitrary decoration entry."""
+
+    staff_user: fsm.UserWithPermissions
+    regular_user: fsm.UserWithPermissions
+
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()  # noqa: N806
+        cls.staff_user = User.objects.create_user(
+            username="staff",
+            password="x",  # noqa: S106
+            is_staff=True,
+        )
+        cls.regular_user = User.objects.create_user(
+            username="regular",
+            password="x",  # noqa: S106
+        )
+
+    def setUp(self):
+        self.model_admin = MultiDecoratedAdmin(MultiDecoratedModel, AdminSite())
+
+    def _lookup(self, state: StateChoice) -> tuple[fsm.Transition, MultiDecoratedModel]:
+        obj = MultiDecoratedModel()
+        obj.state = state
+        transition = self.model_admin._get_fsm_transition_by_name(obj=obj, transition_name="review")
+        return transition, obj
+
+    def test_matches_submitted_by_user_source(self):
+        transition, obj = self._lookup(StateChoice.SUBMITTED_BY_USER)
+
+        assert transition.source == StateChoice.SUBMITTED_BY_USER
+        assert transition.custom["label"] == "Review (user)"
+        assert transition.has_perm(obj, self.staff_user) is False
+        assert transition.has_perm(obj, self.regular_user) is False
+
+    def test_matches_submitted_by_admin_source(self):
+        transition, obj = self._lookup(StateChoice.SUBMITTED_BY_ADMIN)
+
+        assert transition.source == StateChoice.SUBMITTED_BY_ADMIN
+        assert transition.custom["label"] == "Review (admin)"
+        assert transition.has_perm(obj, self.staff_user) is True
+        assert transition.has_perm(obj, self.regular_user) is False
+
+    def test_matches_submitted_by_anonymous_source(self):
+        transition, _obj = self._lookup(StateChoice.SUBMITTED_BY_ANONYMOUS)
+
+        assert transition.source == StateChoice.SUBMITTED_BY_ANONYMOUS
+        assert transition.custom["label"] == "Review (anon)"
+
+    def test_falls_back_to_any_state_when_no_explicit_source_matches(self):
+        transition, _obj = self._lookup(StateChoice.REVIEW_USER)
+
+        assert transition.source == fsm.ANY_STATE
+        assert transition.custom["label"] == "Review (any)"
