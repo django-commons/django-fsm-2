@@ -1056,7 +1056,7 @@ class TransitionByNameResolvesSourceStateTestCase(TestCase):
         transition, obj = self._lookup(StateChoice.SUBMITTED_BY_USER)
 
         assert transition.source == StateChoice.SUBMITTED_BY_USER
-        assert transition.custom["label"] == "Review (user)"
+        assert transition.custom["label"] == "Review (always forbidden)"
         assert transition.has_perm(obj, self.staff_user) is False
         assert transition.has_perm(obj, self.regular_user) is False
 

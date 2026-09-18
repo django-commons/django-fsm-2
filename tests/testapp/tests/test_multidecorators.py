@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.contrib.auth.models import User
 from django.db import models
 from django.test import TestCase
 
@@ -26,7 +27,7 @@ class MultiDecoratedModel(models.Model):
         source=StateChoice.SUBMITTED_BY_USER,
         target=StateChoice.REVIEW_USER,
         permission=lambda _instance, _user: False,
-        custom={"label": "Review (user)"},
+        custom={"label": "Review (always forbidden)"},
     )
     @fsm.transition(
         field=state,
@@ -78,3 +79,56 @@ class MultiDecoratorsTestCase(TestCase):
 
         assert self.model.counter == 2  # noqa: PLR2004
         assert self.model.signal_counter == 2  # noqa: PLR2004
+
+
+class MultiDecoratedTransitionPermissionsTestCase(TestCase):
+    """Each `@fsm.transition` decoration on `review` carries its own permission —
+    `has_transition_perm` must check the one matching the instance's current
+    source state, not some other decoration on the same method."""
+
+    def setUp(self):
+        self.staff_user = User.objects.create(username="staff", is_staff=True)
+        self.regular_user = User.objects.create(username="regular")
+
+    def test_denies_everyone_when_source_permission_is_always_false(self):
+        model = MultiDecoratedModel(state=StateChoice.SUBMITTED_BY_USER)
+
+        assert not fsm.has_transition_perm(model.review, self.staff_user)
+        assert not fsm.has_transition_perm(model.review, self.regular_user)
+
+    def test_checks_is_staff_permission_for_admin_source_state(self):
+        model = MultiDecoratedModel(state=StateChoice.SUBMITTED_BY_ADMIN)
+
+        assert fsm.has_transition_perm(model.review, self.staff_user)
+        assert not fsm.has_transition_perm(model.review, self.regular_user)
+
+    def test_allows_everyone_when_source_state_has_no_permission(self):
+        model = MultiDecoratedModel(state=StateChoice.SUBMITTED_BY_ANONYMOUS)
+
+        assert fsm.has_transition_perm(model.review, self.staff_user)
+        assert fsm.has_transition_perm(model.review, self.regular_user)
+
+    def test_falls_back_to_any_state_permission(self):
+        model = MultiDecoratedModel(state=StateChoice.REVIEW_USER)
+
+        assert fsm.has_transition_perm(model.review, self.staff_user)
+        assert fsm.has_transition_perm(model.review, self.regular_user)
+
+    def test_available_user_state_transitions_respects_source_permission(self):
+        model = MultiDecoratedModel(state=StateChoice.SUBMITTED_BY_ADMIN)
+
+        staff_transitions = {
+            transition.name
+            for transition in model.get_available_user_state_transitions(  # type: ignore[attr-defined]
+                self.staff_user
+            )
+        }
+        regular_transitions = {
+            transition.name
+            for transition in model.get_available_user_state_transitions(  # type: ignore[attr-defined]
+                self.regular_user
+            )
+        }
+
+        assert staff_transitions == {"review"}
+        assert regular_transitions == set()
