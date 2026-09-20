@@ -49,6 +49,8 @@ class FSMKeyModelAbstract(models.Model):
 class FSMKeyModel(FSMKeyModelAbstract):
     state = fsm.FSMKeyField(DbState, default="_NEW_", protected=True, on_delete=models.CASCADE)
 
+    objects: models.Manager[FSMKeyModel] = models.Manager()
+
 
 class FSMKeyFieldTestCase(TestCase):
     model: FSMKeyModelAbstract
@@ -127,6 +129,31 @@ class FSMKeyFieldTestCase(TestCase):
 
         self.model.moderate()
         assert self.model.state == "_MODERATED_"
+
+
+class FSMKeyFieldDeferredAccessTestCase(TestCase):
+    def setUp(self):
+        DbState.objects.bulk_create(
+            objs=[
+                DbState(
+                    pk=item[0],
+                    label=item[1],
+                )
+                for item in FK_AVAILABLE_STATES
+            ],
+            ignore_conflicts=True,
+        )
+        FSMKeyModel.objects.create()
+        self.model = FSMKeyModel.objects.only("id").get()
+
+    def test_deferred_field_allows_transition(self):
+        assert self.model.state == "_NEW_"
+
+        assert fsm.can_proceed(self.model.publish)
+
+        self.model.publish()
+
+        assert self.model.state == "_PUBLISHED_"
 
 
 class AutoPkFSMKeyModel(FSMKeyModelAbstract):
