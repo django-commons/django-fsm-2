@@ -251,8 +251,15 @@ class FSMAdminMixin(_ModelAdmin):
         self, *, obj: fsm._FSMModel, transition_name: str
     ) -> fsm.Transition:
         transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
-        # Each transition method stores one transition per source; first entry is sufficient.
-        return next(iter(transition_func._django_fsm.transitions.values()))
+        meta: fsm.FSMMeta = transition_func._django_fsm
+        current_state = meta.field.get_state(obj)
+        transition = meta.get_transition(current_state)
+        if transition is None:
+            # No decoration matches the current state; fall back so callers can
+            # still report the transition name. The subsequent attempt in
+            # _apply_fsm_transition will raise TransitionNotAllowed.
+            return next(iter(meta.transitions.values()))
+        return transition
 
     @staticmethod
     def _is_fsm_log_enabled() -> bool:
