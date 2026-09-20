@@ -17,6 +17,8 @@ Unreleased
 - Fix stray "None"s in admin when a transition has no configured ``help_text`` (#148)
 - Fix ``FSMAdminMixin`` not writing a Django admin ``LogEntry`` for applied transitions,
   so state changes made in the admin no longer disappear from the object's "History"
+- Fix ``on_error`` being silently ignored when set to a falsy-but-valid state value
+  (e.g. ``0``)
 
 
 django-fsm-2 4.2.4 2026-03-16

@@ -20,6 +20,16 @@ class BlogPostWithIntegerField(models.Model):
     def hide(self) -> None:
         pass
 
+    # BlogPostState.NEW == 0, a falsy-but-valid on_error target.
+    @fsm.transition(
+        field=state,
+        source=BlogPostState.PUBLISHED,
+        target=BlogPostState.HIDDEN,
+        on_error=BlogPostState.NEW,
+    )
+    def hide_with_error(self) -> None:
+        raise Exception("boom")
+
 
 class BlogPostWithIntegerFieldTest(TestCase):
     def setUp(self):
@@ -37,3 +47,12 @@ class BlogPostWithIntegerFieldTest(TestCase):
     def test_unknown_transition_fails(self):
         with pytest.raises(fsm.InvalidTransition):
             self.model.hide()
+
+    def test_falsy_on_error_state_is_applied(self):
+        self.model.publish()
+        assert self.model.state == BlogPostState.PUBLISHED
+
+        with pytest.raises(Exception, match="boom"):
+            self.model.hide_with_error()
+
+        assert self.model.state == BlogPostState.NEW
