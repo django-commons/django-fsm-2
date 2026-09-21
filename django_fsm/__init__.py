@@ -452,7 +452,7 @@ class FSMFieldMixin(_Field):
                 self.set_state(instance, next_state)
         except Exception as exc:
             exception_state = meta.exception_state(current_state)
-            if exception_state:
+            if exception_state is not None:
                 self.set_proxy(instance, exception_state)
                 self.set_state(instance, exception_state)
                 signal_kwargs["target"] = exception_state
