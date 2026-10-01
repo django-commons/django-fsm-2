@@ -24,7 +24,7 @@ class TypingImportTests(TestCase):
         )
 
     def test_admin_module_imports_without_django_stubs_monkeypatch(self) -> None:
-        completed_process = subprocess.run(  # noqa: S603
+        completed_process = subprocess.run(
             [
                 sys.executable,
                 "-c",
@@ -44,7 +44,7 @@ class TypingImportTests(TestCase):
         assert completed_process.returncode == 0, completed_process.stderr
 
     def test_main_module_imports_without_django_stubs_monkeypatch(self) -> None:
-        completed_process = subprocess.run(  # noqa: S603
+        completed_process = subprocess.run(
             [
                 sys.executable,
                 "-c",

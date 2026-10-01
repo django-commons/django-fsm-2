@@ -321,7 +321,7 @@ class FSMFieldDescriptor:
         self,
         instance: _FSMModel | None,
         cls: type[_FSMModel] | None = None,
-    ) -> _StateValue | None | FSMFieldDescriptor:
+    ) -> _StateValue | FSMFieldDescriptor | None:
         if instance is None:
             return self
         return self.field.get_state(instance)
@@ -548,7 +548,9 @@ class FSMIntegerField(FSMFieldMixin, IntegerField):
     """
 
 
-class FSMKeyField(FSMFieldMixin, ForeignKey):
+# FSMFieldMixin.descriptor_class is a FSMFieldDescriptor, not the
+# ForeignKeyDeferredAttribute that ForeignKey declares.
+class FSMKeyField(FSMFieldMixin, ForeignKey):  # type: ignore[misc]
     """
     State Machine support for Django model
     """
@@ -629,8 +631,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         values: typing.Collection[tuple[_Field, type[models.Model] | None, typing.Any]],
         update_fields: typing.Iterable[str] | None,
         forced_update: bool,
-        returning_fields: bool | None = None,
-    ) -> bool:
+        returning_fields: typing.Sequence[_Field] = (),
+    ) -> typing.Any:  # bool on Django < 6.0, list of updated rows on Django >= 6.0
         # _do_update is called once for each model class in the inheritance hierarchy. We can only
         # filter the base_qs on state fields (can be more than one!) present in this specific model.
 
@@ -642,7 +644,7 @@ class ConcurrentTransitionMixin(FSMModelMixin):
 
         # Django 6.0+ added returning_fields parameter to _do_update
         if DJANGO_VERSION >= (6, 0):
-            updated = super()._do_update(  # type: ignore[call-arg]
+            updated = super()._do_update(
                 base_qs=base_qs.filter(**state_filter),
                 using=using,
                 pk_val=pk_val,
@@ -652,7 +654,8 @@ class ConcurrentTransitionMixin(FSMModelMixin):
                 returning_fields=returning_fields,
             )
         else:
-            updated = super()._do_update(
+            # django-stubs tracks Django 6.x, where returning_fields is required.
+            updated = super()._do_update(  # type: ignore[call-arg]
                 base_qs=base_qs.filter(**state_filter),
                 using=using,
                 pk_val=pk_val,
