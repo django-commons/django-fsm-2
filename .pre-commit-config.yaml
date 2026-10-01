@@ -23,28 +23,28 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.39.0
+    rev: v1.50.3
     hooks:
       - id: typos
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.29.1
+    rev: "1.32.0"
     hooks:
       - id: django-upgrade
-        args: [--target-version, "4.2"]
+        args: [--target-version, "5.2"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.3
+    rev: v0.16.9
     hooks:
       - id: ruff-format
       - id: ruff-check
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+    rev: v2.3.1
     hooks:
       - id: mypy
         additional_dependencies:
-          - django-stubs==5.2.9
+          - django-stubs==6.1.1
           - django-guardian
           - django_fsm_log
           - django-unfold

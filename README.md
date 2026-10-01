@@ -30,10 +30,11 @@ Nice introduction is available here: https://gist.github.com/Nagyman/9502133
 from django.db import models
 import django_fsm as fsm
 
-class BlogPost(fsm.FSMModelMixin, models.Model):
-    state = fsm.FSMField(default='new')
 
-    @fsm.transition(field=state, source='new', target='published')
+class BlogPost(fsm.FSMModelMixin, models.Model):
+    state = fsm.FSMField(default="new")
+
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self, **kwargs):
         pass
 ```
@@ -66,7 +67,7 @@ Add `django_fsm` to your Django apps (required to [graph transitions](#drawing-t
 ```python
 INSTALLED_APPS = (
     ...,
-    'django_fsm',
+    "django_fsm",
     ...,
 )
 ```
@@ -94,8 +95,9 @@ uv pip install django-fsm-2
 ```python
 import django_fsm as fsm
 
+
 class BlogPost(fsm.FSMModelMixin, models.Model):
-    state = fsm.FSMField(default='new')
+    state = fsm.FSMField(default="new")
 ```
 
 ### Declaring a transition
@@ -103,7 +105,8 @@ class BlogPost(fsm.FSMModelMixin, models.Model):
 ```python
 import django_fsm as fsm
 
-@fsm.transition(field=state, source='new', target='published')
+
+@fsm.transition(field=state, source="new", target="published")
 def publish(self, **kwargs):
     """
     This function may contain side effects,
@@ -119,6 +122,7 @@ changes in memory. **You must call `save()` to persist it**.
 ```python
 import django_fsm as fsm
 
+
 def publish_view(request, post_id, **kwargs):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not fsm.can_proceed(post.publish):
@@ -126,7 +130,7 @@ def publish_view(request, post_id, **kwargs):
 
     post.publish()
     post.save()
-    return redirect('/')
+    return redirect("/")
 ```
 
 ### Preconditions (conditions)
@@ -138,17 +142,14 @@ side effects.
 ```python
 import django_fsm as fsm
 
+
 def can_publish(instance):
     # No publishing after 17 hours
     return datetime.datetime.now().hour <= 17
 
+
 class XXX(fsm.FSMModelMixin, models.Model):
-    @fsm.transition(
-        field=state,
-        source='new',
-        target='published',
-        conditions=[can_publish]
-    )
+    @fsm.transition(field=state, source="new", target="published", conditions=[can_publish])
     def publish(self, **kwargs):
         pass
 ```
@@ -157,16 +158,13 @@ You can also use model methods:
 
 ```python
 import django_fsm as fsm
+
+
 class XXX(fsm.FSMModelMixin, models.Model):
     def can_destroy(self):
         return self.is_under_investigation()
 
-    @fsm.transition(
-        field=state,
-        source='*',
-        target='destroyed',
-        conditions=[can_destroy]
-    )
+    @fsm.transition(field=state, source="*", target="destroyed", conditions=[can_destroy])
     def destroy(self, **kwargs):
         pass
 ```
@@ -196,11 +194,13 @@ allow refresh without enabling arbitrary writes elsewhere.
 ```python
 import django_fsm as fsm
 
+
 class BlogPost(fsm.FSMModelMixin, models.Model):
-    state = fsm.FSMField(default='new', protected=True)
+    state = fsm.FSMField(default="new", protected=True)
+
 
 model = BlogPost()
-model.state = 'invalid'  # Raises AttributeError
+model.state = "invalid"  # Raises AttributeError
 model.refresh_from_db()  # Works
 ```
 
@@ -217,31 +217,34 @@ implementation.
 ```python
 import django_fsm as fsm
 
-@fsm.transition(
-    field=state,
-    source='*',
-    target=fsm.RETURN_VALUE('for_moderators', 'published'),
-)
-def publish(self, is_public=False, **kwargs):
-    return 'for_moderators' if is_public else 'published'
 
 @fsm.transition(
     field=state,
-    source='for_moderators',
+    source="*",
+    target=fsm.RETURN_VALUE("for_moderators", "published"),
+)
+def publish(self, is_public=False, **kwargs):
+    return "for_moderators" if is_public else "published"
+
+
+@fsm.transition(
+    field=state,
+    source="for_moderators",
     target=fsm.GET_STATE(
-        lambda self, allowed: 'published' if allowed else 'rejected',
-        states=['published', 'rejected'],
+        lambda self, allowed: "published" if allowed else "rejected",
+        states=["published", "rejected"],
     ),
 )
 def moderate(self, allowed, **kwargs):
     pass
 
+
 @fsm.transition(
     field=state,
-    source='for_moderators',
+    source="for_moderators",
     target=fsm.GET_STATE(
-        lambda self, **kwargs: 'published' if kwargs.get('allowed', True) else 'rejected',
-        states=['published', 'rejected'],
+        lambda self, **kwargs: "published" if kwargs.get("allowed", True) else "rejected",
+        states=["published", "rejected"],
     ),
 )
 def moderate(self, allowed=True, **kwargs):
@@ -255,9 +258,9 @@ Use `custom` to attach arbitrary data to a transition.
 ```python
 @fsm.transition(
     field=state,
-    source='*',
-    target='onhold',
-    custom=dict(verbose='Hold for legal reasons'),
+    source="*",
+    target="onhold",
+    custom=dict(verbose="Hold for legal reasons"),
 )
 def legal_hold(self, **kwargs):
     pass
@@ -269,12 +272,7 @@ If a transition method raises an exception, you can specify an `on_error`
 state.
 
 ```python
-@fsm.transition(
-    field=state,
-    source='new',
-    target='published',
-    on_error='failed'
-)
+@fsm.transition(field=state, source="new", target="published", on_error="failed")
 def publish(self, **kwargs):
     """
     Some exception could happen here
@@ -289,18 +287,19 @@ accepts a permission string or a callable that receives `(instance, user)`.
 ```python
 @fsm.transition(
     field=state,
-    source='*',
-    target='published',
-    permission=lambda instance, user: not user.has_perm('myapp.can_make_mistakes'),
+    source="*",
+    target="published",
+    permission=lambda instance, user: not user.has_perm("myapp.can_make_mistakes"),
 )
 def publish(self, **kwargs):
     pass
 
+
 @fsm.transition(
     field=state,
-    source='*',
-    target='removed',
-    permission='myapp.can_remove_post',
+    source="*",
+    target="removed",
+    permission="myapp.can_remove_post",
 )
 def remove(self, **kwargs):
     pass
@@ -311,6 +310,7 @@ Check permission with `has_transition_perm`:
 ```python
 import django_fsm as fsm
 
+
 def publish_view(request, post_id):
     post = get_object_or_404(BlogPost, pk=post_id)
     if not fsm.has_transition_perm(post.publish, request.user):
@@ -318,7 +318,7 @@ def publish_view(request, post_id):
 
     post.publish()
     post.save()
-    return redirect('/')
+    return redirect("/")
 ```
 
 ### Model helpers
@@ -346,6 +346,8 @@ integrity.
 
 ```python
 import django_fsm as fsm
+
+
 class DbState(fsm.FSMModelMixin, models.Model):
     id = models.CharField(primary_key=True)
     label = models.CharField()
@@ -355,9 +357,9 @@ class DbState(fsm.FSMModelMixin, models.Model):
 
 
 class BlogPost(fsm.FSMModelMixin, models.Model):
-    state = fsm.FSMKeyField(DbState, default='new')
+    state = fsm.FSMKeyField(DbState, default="new")
 
-    @fsm.transition(field=state, source='new', target='published')
+    @fsm.transition(field=state, source="new", target="published")
     def publish(self, **kwargs):
         pass
 ```
@@ -390,10 +392,12 @@ names, even if the field is accessed without the `_id` postfix.
 ```python
 import django_fsm as fsm
 
+
 class BlogPostStateChoices(models.IntegerChoices):
     NEW = 10, "New"
     PUBLISHED = 20, "Published"
     HIDDEN = 30, "Hidden"
+
 
 class BlogPostWithIntegerField(fsm.FSMModelMixin, models.Model):
     state = fsm.FSMIntegerField(default=BlogPostStateChoices.NEW)
@@ -430,8 +434,9 @@ on `save()`.
 ```python
 import django_fsm as fsm
 
+
 class BlogPost(fsm.ConcurrentTransitionMixin, models.Model):
-    state = fsm.FSMField(default='new')
+    state = fsm.FSMField(default="new")
 ```
 
 For guaranteed protection against race conditions caused by concurrently
@@ -459,10 +464,11 @@ Update import path:
 ``` python
 from django_fsm.admin import FSMAdminMixin
 
+
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     # Declare the fsm fields you want to manage
-    fsm_fields = ['my_fsm_field']
+    fsm_fields = ["my_fsm_field"]
     ...
 ```
 
@@ -470,22 +476,22 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
 
 ``` python
 @fsm.transition(
-    field='state',
-    source=['startstate'],
-    target='finalstate',
+    field="state",
+    source=["startstate"],
+    target="finalstate",
     custom={
         "label": "My awesome transition",  # this
         "help_text": "Rename blog post",  # and this
     },
 )
-def do_something(self, **kwargs):
-       ...
+def do_something(self, **kwargs): ...
 ```
 
 or by overriding some methods in FSMAdminMixin
 
 ``` python
 from django_fsm.admin import FSMAdminMixin
+
 
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
@@ -523,6 +529,7 @@ or from the admin:
 ``` python
 from django_fsm.admin import FSMAdminMixin
 
+
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
     ...
@@ -531,7 +538,6 @@ class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
         if transition.name == "do_something":
             return False
         return super().is_fsm_transition_visible(transition)
-
 ```
 
 NB: By adding `FSM_ADMIN_FORCE_PERMIT = True` to your configuration settings (or `fsm_default_disallow_transition = False` to your admin), the above restriction becomes the default.
@@ -539,6 +545,7 @@ Then one must explicitly allow that a transition method shows up in the admin in
 
 ``` python
 from django_fsm.admin import FSMAdminMixin
+
 
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
@@ -557,10 +564,12 @@ or define an admin-level mapping via `fsm_forms`. Both accept a `forms.Form`/
 from django import forms
 import django_fsm as fsm
 
+
 class RenameForm(forms.Form):
     new_title = forms.CharField(max_length=255)
     # it's also possible to declare fsm log description
     description = forms.CharField(max_length=255)
+
 
 class BlogPost(fsm.FSMModelMixin, models.Model):
     title = models.CharField(max_length=255)
@@ -587,6 +596,7 @@ transition definition:
 from django_fsm.admin import FSMAdminMixin
 
 from .admin_forms import RenameForm
+
 
 @admin.register(AdminBlogPost)
 class MyAdmin(FSMAdminMixin, admin.ModelAdmin):
@@ -616,8 +626,8 @@ If you use [Django Unfold](https://github.com/unfoldadmin/django-unfold), this p
 ```python
 INSTALLED_APPS = (
     ...,
-    'unfold',
-    'django_fsm.contrib.unfold',
+    "unfold",
+    "django_fsm.contrib.unfold",
     ...,
 )
 ```
@@ -643,7 +653,7 @@ uv pip install "graphviz>=0.4"
 ```python
 INSTALLED_APPS = (
     ...,
-    'django_fsm',
+    "django_fsm",
     ...,
 )
 ```
