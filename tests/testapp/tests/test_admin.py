@@ -18,14 +18,13 @@ from django.http import HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.test import TestCase
 from django.test.client import RequestFactory
-from django.test.utils import modify_settings
 from django.urls import reverse
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
-from django_fsm_log.models import StateLog
 
 import django_fsm as fsm
 from django_fsm.admin import FSMAdminMixin
+from django_fsm.models import StateLog
 
 from ..admin import AdminBlogPostAdmin
 from ..admin_forms import AdminBlogPostRenameModelForm
@@ -40,27 +39,20 @@ if typing.TYPE_CHECKING:
     from django.contrib.auth.models import User
     from django.core.handlers.wsgi import WSGIRequest
 
-disable_fsm_log = modify_settings(
-    DJANGO_FSM_LOG_IGNORED_MODELS={
-        "append": "tests.testapp.models.AdminBlogPost",
-    }
-)
-
 
 class BaseAdminTestCase(TestCase):
     model = AdminBlogPost
     admin_class = AdminBlogPostAdmin
-    user: User | AnonymousUser
+    user: User
     blog_post: AdminBlogPost
 
-    fsm_log_enabled = True
-
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.user = get_user_model().objects.create_user(
             username="jacob",
             password="password",  # noqa: S106
             is_staff=True,
+            is_superuser=True,
         )
 
         cls.blog_post = cls.model.objects.create(
@@ -87,19 +79,16 @@ class BaseAdminTestCase(TestCase):
         state: AdminBlogPostState | None = None,
         transition: str | None = None,
     ) -> None:
-        if self.fsm_log_enabled:
-            statelog = StateLog.objects.get()
-            assert statelog.by == self.user
-            if description is not None:
-                assert statelog.description == description
-            if source_state is not None:
-                assert statelog.source_state == source_state
-            if state is not None:
-                assert statelog.state == state
-            if transition is not None:
-                assert statelog.transition == transition
-        else:
-            self.assert_state_log_empty()
+        statelog = StateLog.objects.get()
+        assert statelog.by == self.user
+        if description is not None:
+            assert statelog.description == description
+        if source_state is not None:
+            assert statelog.source_state == source_state
+        if state is not None:
+            assert statelog.state == state
+        if transition is not None:
+            assert statelog.transition == transition
 
 
 class EmptyFieldAdmin(FSMAdminMixin, admin.ModelAdmin[AdminBlogPost]):
@@ -207,12 +196,11 @@ class ModelAdminTestCase(TestCase):
         def transition_method(*, comment: str) -> None:
             called["comment"] = comment
 
-        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=False):
-            self.model_admin._execute_fsm_transition(
-                transition_func=transition_method,
-                request=self.request,
-                kwargs={"comment": "Because"},
-            )
+        self.model_admin._execute_fsm_transition(
+            transition_func=transition_method,
+            request=self.request,
+            kwargs={"comment": "Because"},
+        )
 
         assert called["comment"] == "Because"
 
@@ -661,11 +649,6 @@ class ResponseChangeViewTestCase(BaseAdminTestCase):
         mock_message_user.assert_not_called()
 
 
-@disable_fsm_log
-class ResponseChangeViewWithoutFsmLogTestCase(ResponseChangeViewTestCase):
-    fsm_log_enabled = False
-
-
 @mock.patch("tests.testapp.admin.AdminBlogPostAdmin.message_user")
 class TransitionViewTestCase(BaseAdminTestCase):
     # Errors
@@ -991,7 +974,7 @@ class ModelFormTransitionViewTestCase(TransitionViewTestCase):
                 "complex_transition": AdminBlogPostRenameModelForm,
                 "invalid": FSMLogDescriptionForm,
             },
-            clear=False,
+            clear=True,
         )
         self.fsm_forms_patcher.start()
         super().setUp()
@@ -999,24 +982,6 @@ class ModelFormTransitionViewTestCase(TransitionViewTestCase):
     def tearDown(self) -> None:
         self.fsm_forms_patcher.stop()
         super().tearDown()
-
-
-@disable_fsm_log
-class NoFsmLogTransitionViewTestCase(TransitionViewTestCase):
-    """
-    Runs TransitionViewTestCase but with **FSM log disabled**
-    """
-
-    fsm_log_enabled = False
-
-
-@disable_fsm_log
-class NoFsmLogModelFormTransitionViewTestCase(ModelFormTransitionViewTestCase):
-    """
-    Runs TransitionViewTestCase but with **class-based forms** and **FSM log disabled**
-    """
-
-    fsm_log_enabled = False
 
 
 class MultiDecoratedAdmin(FSMAdminMixin, admin.ModelAdmin[MultiDecoratedModel]):
@@ -1079,3 +1044,25 @@ class TransitionByNameResolvesSourceStateTestCase(TestCase):
 
         assert transition.source == fsm.ANY_STATE
         assert transition.custom["label"] == "Review (any)"
+
+
+class InlineTestCase(BaseAdminTestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.blog_post.force_state(AdminBlogPostState.HIDDEN)
+        cls.blog_post.save()
+
+    def setUp(self) -> None:
+        self.client.force_login(user=self.user)
+
+    def test_page(self) -> None:
+        assert StateLog.objects.count() == 1
+        self.client.get(
+            reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
+                kwargs={
+                    "object_id": self.blog_post.pk,
+                },
+            )
+        )

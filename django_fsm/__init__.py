@@ -5,10 +5,17 @@ State tracking functionality for django models
 from __future__ import annotations
 
 import abc
+import contextlib
 import inspect
 import typing
 from functools import partialmethod
 from functools import wraps
+
+try:
+    from typing import override
+except ImportError:  # pragma: no cover
+    # Py<3.12
+    from typing_extensions import override
 
 from django import VERSION as DJANGO_VERSION
 from django.apps import apps as django_apps
@@ -67,12 +74,6 @@ else:
     IntegerField = models.IntegerField
     ForeignKey = models.ForeignKey
     Self = typing.Any
-
-try:
-    from typing import override
-except ImportError:  # pragma: no cover
-    # Py<3.12
-    from typing_extensions import override
 
 __all__ = [
     "GET_STATE",
@@ -695,6 +696,24 @@ class ConcurrentTransitionMixin(FSMModelMixin):
         self._update_initial_state()
 
 
+class FSMLogDescriptor:
+    ATTR_PREFIX = "__django_fsm_log_attr_"
+
+    def __init__(self, instance: models.Model, attrs: dict[str, typing.Any]) -> None:
+        self.instance = instance
+        self.attrs = attrs
+
+    def __enter__(self) -> typing.Self:
+        for name, value in self.attrs.items():
+            setattr(self.instance, self.ATTR_PREFIX + name, value)
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        for name in self.attrs:
+            with contextlib.suppress(AttributeError):
+                delattr(self.instance, self.ATTR_PREFIX + name)
+
+
 def transition(
     field: FSMFieldMixin | str,
     source: _StateValue | typing.Sequence[_StateValue] = ANY_STATE,
@@ -743,6 +762,14 @@ def transition(
             instance: _FSMModel, *args: typing.Any, **kwargs: typing.Any
         ) -> typing.Any:
             assert isinstance(fsm_meta.field, FSMFieldMixin)
+            log_attrs: dict[str, typing.Any] = {}
+            if "by" in kwargs:
+                log_attrs["by"] = kwargs.pop("by")
+            if "description" in kwargs:
+                log_attrs["description"] = kwargs.pop("description")
+            if log_attrs:
+                with FSMLogDescriptor(instance, log_attrs):
+                    return fsm_meta.field.change_state(instance, method, *args, **kwargs)
             return fsm_meta.field.change_state(instance, method, *args, **kwargs)
 
         if not wrapper_installed:
