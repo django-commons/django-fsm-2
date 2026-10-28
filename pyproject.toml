@@ -87,20 +87,17 @@ extend-ignore = [
     "COM812",  # This rule may cause conflicts when used with the formatter
     "D",  # pydocstyle
     "DOC",  # pydoclint
-    "B",
+    "B",  # Bandit
     "PTH",
     "ANN",  # Missing type annotation
     "S101",  # Use of `assert` detected
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
     "ARG001",  # Unused function argument
     "ARG002",  # Unused method argument
-    "TRY002",  # Create your own exception
     "TRY003",  # Avoid specifying long messages outside the exception class
     "EM101",  # Exception must not use a string literal, assign to variable first
     "EM102",  # Exception must not use an f-string literal, assign to variable first
     "SLF001",  # Private member accessed
-    "SIM103",  # Return the condition directly
-    "PLC0415",  # `import` should be at the top-level of a file
     "CPY001",  # Missing copyright notice at top of file
     "PLR0913",  # Too many arguments in function definition
     "PLR0917",  # Too many positional arguments
@@ -115,6 +112,7 @@ fixable = [
 "tests/*" = [
     "DJ008",  # Model does not define `__str__` method
     "TID252",  # Prefer absolute imports over relative imports from parent modules
+    "TRY002",  # Create your own exception
 ]
 
 [tool.ruff.lint.isort]
