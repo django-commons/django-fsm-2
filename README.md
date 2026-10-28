@@ -671,6 +671,34 @@ INSTALLED_APPS = (
 ./manage.py graph_transitions -e transition_1,transition_2 myapp.Blog
 ```
 
+### Styling the graph
+
+`graph_transitions`'s `Command` is designed to be subclassed, so you can
+color or style the exported diagram by overriding a couple of hook methods.
+Subclass the command from an app listed before `django_fsm` in
+`INSTALLED_APPS`:
+
+```python
+# myapp/management/commands/graph_transitions.py
+from django_fsm.management.commands.graph_transitions import Command as BaseCommand
+
+STATE_COLORS = {"approved": "green", "rejected": "red"}
+
+
+class Command(BaseCommand):
+    def get_transition_edge_attrs(self, transition):
+        if transition.name == "approve":
+            return {"color": "green", "penwidth": "2"}
+        if color := transition.custom.get("graph_color"):
+            return {"color": color, "penwidth": "2"}
+        return super().get_transition_edge_attrs(transition)
+
+    def get_state_node_attrs(self, field, state, label):
+        if color := STATE_COLORS.get(state):
+            return {"style": "filled", "fillcolor": color}
+        return super().get_state_node_attrs(field, state, label)
+```
+
 ## Extensions
 
 Transition logging support could be achieved with help of django-fsm-log

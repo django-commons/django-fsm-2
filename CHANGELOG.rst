@@ -19,6 +19,11 @@ Unreleased
   so state changes made in the admin no longer disappear from the object's "History"
 - Fix ``on_error`` being silently ignored when set to a falsy-but-valid state value
   (e.g. ``0``)
+- Make ``graph_transitions``'s ``Command`` fully subclassable
+  (``get_transition_edge_attrs``/``get_state_node_attrs`` styling hooks, plus
+  ``node_name``/``node_label``/``all_fsm_fields_data``/``one_fsm_fields_data``/
+  ``generate_dot`` as overridable methods) for colorizing and customizing the
+  exported GraphViz diagram (#154)
 
 
 django-fsm-2 4.2.4 2026-03-16
