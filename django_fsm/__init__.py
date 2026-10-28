@@ -132,7 +132,7 @@ class Transition:
             return bool(self.permission(instance, user))
         if user.has_perm(self.permission, instance):
             return True
-        if user.has_perm(self.permission):
+        if user.has_perm(self.permission):  # noqa: SIM103
             return True
         return False
 
@@ -244,7 +244,7 @@ class FSMMeta:
         if ANY_STATE in self.transitions:
             return True
 
-        if (
+        if (  # noqa: SIM103
             ANY_OTHER_STATE in self.transitions
             and self.transitions[ANY_OTHER_STATE].target != state
         ):
