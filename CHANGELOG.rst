@@ -4,7 +4,11 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
-- Admin: decide whether to pass ``by=request.user`` to a transition by inspecting its signature (a ``by`` parameter or ``**kwargs``) instead of retrying on ``TypeError``. A ``TypeError`` raised inside a transition body is no longer retried (which ran the body twice and dropped ``by``) and now propagates. Custom transition decorators must use ``functools.wraps`` so the real signature is visible
+- Fix ``FSMAdminMixin`` running a transition body twice when it raised ``TypeError`` (and
+  dropping ``by`` on the retry): ``by=request.user`` is now passed only when the transition
+  accepts ``by`` or ``**kwargs``. **Behavior change:** a decorator that wraps a transition
+  without ``functools.wraps`` hides its real signature, so ``by`` is passed even if the wrapped
+  method does not accept it and raises ``TypeError``; use ``functools.wraps``
 
 
 django-fsm-2 4.3.0 2026-10-28
