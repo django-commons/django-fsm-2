@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Admin: run the transition and the save in a single ``transaction.atomic()``, so ``post_transition`` side effects (e.g. ``django_fsm_log`` rows) roll back if the save fails
+- Admin: **Backwards-incompatible** - ``FSMAdminMixin`` now applies a form-less transition in ``save_model`` (previously in ``response_change``, after a second ``save()``), so a transition button click saves once. Subclasses overriding ``save_model`` must call ``super()``, and ``response_change`` no longer applies the transition itself
+- Admin: **Backwards-incompatible** - if a transition fails from the change form, the whole submission is rolled back, so edits to other fields are discarded too (previously they had already been saved)
+- Admin: **Backwards-incompatible** - only handle ``TransitionNotAllowed``/``ConcurrentTransition`` when applying a transition; other exceptions now propagate (HTTP 500) instead of being shown as an admin error message
 - Fix ``FSMAdminMixin`` running a transition body twice when it raised ``TypeError`` (and
   dropping ``by`` on the retry): ``by=request.user`` is now passed only when the transition
   accepts ``by`` or ``**kwargs``. **Behavior change:** a decorator that wraps a transition

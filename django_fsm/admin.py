@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.core.exceptions import AppRegistryNotReady
 from django.core.exceptions import ImproperlyConfigured
+from django.db import transaction
 from django.forms import Form
 from django.forms import ModelForm
 from django.shortcuts import redirect
@@ -143,6 +144,39 @@ class FSMAdminMixin(_ModelAdmin):
         )
 
     @override
+    def save_model(
+        self,
+        request: http.HttpRequest,
+        obj: fsm._FSMModel,
+        form: typing.Any,
+        change: bool,
+    ) -> None:
+        """
+        Apply the requested transition and persist the object in a single atomic save.
+
+        The form's changes are already applied to `obj`, so the transition's own `obj.save()`
+        persists them together with the new state (`ModelAdmin.save_model` only calls
+        `obj.save()` too). Transitions that need an intermediate form are handled by
+        `fsm_transition_view`.
+        """
+        transition_name = request.POST.get(self.fsm_post_param)
+        if (
+            change
+            and transition_name
+            and not self.get_fsm_transition_form(
+                self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
+            )
+        ):
+            self._apply_fsm_transition(
+                obj=obj,
+                transition_name=transition_name,
+                request=request,
+            )
+            return
+
+        super().save_model(request, obj, form, change)
+
+    @override
     def response_change(self, request: http.HttpRequest, obj: fsm._FSMModel) -> http.HttpResponse:
         transition_name = request.POST.get(self.fsm_post_param)
         if not transition_name:
@@ -161,13 +195,7 @@ class FSMAdminMixin(_ModelAdmin):
                 )
             )
 
-        if self._apply_fsm_transition(
-            obj=obj,
-            transition_name=transition_name,
-            request=request,
-        ):
-            logger.info("FSM transition %s completed successfully", transition_name)
-
+        # The transition itself has already been applied (and saved) in `save_model`.
         return http.HttpResponseRedirect(
             redirect_to=add_preserved_filters(
                 context={
@@ -318,6 +346,11 @@ class FSMAdminMixin(_ModelAdmin):
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> bool:
+        """
+        Run the transition and persist the object atomically.
+
+        If either step fails, the database changes are rolled back and an error message is shown.
+        """
         transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
         transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
 
@@ -325,12 +358,13 @@ class FSMAdminMixin(_ModelAdmin):
             return False
 
         try:
-            self._execute_fsm_transition(
-                transition_func=transition_func,
-                request=request,
-                kwargs=kwargs,
-            )
-            obj.save()
+            with transaction.atomic():
+                self._execute_fsm_transition(
+                    transition_func=transition_func,
+                    request=request,
+                    kwargs=kwargs,
+                )
+                obj.save()
         except fsm.TransitionNotAllowed:
             self.message_user(
                 request=request,
@@ -341,17 +375,6 @@ class FSMAdminMixin(_ModelAdmin):
             )
             return False
         except fsm.ConcurrentTransition as err:
-            self.message_user(
-                request=request,
-                message=self.fsm_transition_error_msg.format(
-                    transition_name=transition_name,
-                    error=str(err),
-                ),
-                level=messages.ERROR,
-            )
-            return False
-        except Exception as err:
-            logger.exception("Unexpected error during FSM transition %s", transition_name)
             self.message_user(
                 request=request,
                 message=self.fsm_transition_error_msg.format(
