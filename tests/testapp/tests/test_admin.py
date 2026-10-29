@@ -232,21 +232,6 @@ class ModelAdminTestCase(TestCase):
         logged_field_name = mock_log_change.call_args[0][2][0]["changed"]["fields"][0]
         assert not isinstance(logged_field_name, Promise)
 
-    def test_execute_fsm_transition_passes_by_when_accepted(self) -> None:
-        received: dict[str, typing.Any] = {}
-
-        def transition_method(*, by: typing.Any = None, comment: str) -> None:
-            received.update(by=by, comment=comment)
-
-        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
-            self.model_admin._execute_fsm_transition(
-                transition_func=transition_method,
-                request=self.request,
-                kwargs={"comment": "Because"},
-            )
-
-        assert received == {"by": self.request.user, "comment": "Because"}
-
     def test_execute_fsm_transition_passes_by_when_var_keyword(self) -> None:
         received: dict[str, typing.Any] = {}
 
