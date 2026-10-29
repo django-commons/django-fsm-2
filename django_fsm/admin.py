@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import logging
 import typing
 from dataclasses import dataclass
@@ -20,6 +19,8 @@ from django.shortcuts import render
 from django.urls import URLPattern
 from django.urls import path
 from django.urls import reverse
+from django.utils.inspect import func_accepts_kwargs
+from django.utils.inspect import func_supports_parameter
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
@@ -277,7 +278,9 @@ class FSMAdminMixin(_ModelAdmin):
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
         kwargs = kwargs or {}
-        if self._is_fsm_log_enabled() and self._accepts_by_argument(transition_func):
+        if self._is_fsm_log_enabled() and (
+            func_supports_parameter(transition_func, "by") or func_accepts_kwargs(transition_func)
+        ):
             transition_func(by=request.user, **kwargs)
         else:
             transition_func(**kwargs)
@@ -306,24 +309,6 @@ class FSMAdminMixin(_ModelAdmin):
             self.log_change(request, obj, [{"changed": {"fields": [str(field.verbose_name)]}}])
         except Exception:
             logger.exception("Failed to write admin log entry for FSM transition")
-
-    @staticmethod
-    def _accepts_by_argument(transition_func: typing.Callable[..., typing.Any]) -> bool:
-        # inspect.signature follows ``__wrapped__``, so methods decorated with
-        # ``fsm_log_by`` (which uses ``functools.wraps``) expose the real signature.
-        try:
-            parameters = inspect.signature(transition_func).parameters.values()
-        except (TypeError, ValueError):  # pragma: no cover
-            return False
-        return any(
-            param.kind is inspect.Parameter.VAR_KEYWORD
-            or (
-                param.name == "by"
-                and param.kind
-                in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
-            )
-            for param in parameters
-        )
 
     def _apply_fsm_transition(
         self,
