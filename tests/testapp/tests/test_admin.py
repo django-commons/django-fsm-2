@@ -1171,3 +1171,31 @@ class TransitionByNameResolvesSourceStateTestCase(TestCase):
 
         assert transition.source == fsm.ANY_STATE
         assert transition.custom["label"] == "Review (any)"
+
+
+class ChangeFormTransitionButtonTestCase(TestCase):
+    def test_transition_button_applies_transition(self) -> None:
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            password="password",  # noqa: S106
+        )
+        self.client.force_login(user)
+        blog_post = AdminBlogPost.objects.create(title="Article name")
+
+        # FSMKeyField does not round-trip through ModelForm validation; keep it out of the form.
+        with mock.patch.object(AdminBlogPostAdmin, "readonly_fields", ("key_state",)):
+            response = self.client.post(
+                reverse("admin:testapp_adminblogpost_change", kwargs={"object_id": blog_post.pk}),
+                data={
+                    "title": "New name",
+                    "step": blog_post.step,
+                    "django_fsm_log-statelog-content_type-object_id-TOTAL_FORMS": "0",
+                    "django_fsm_log-statelog-content_type-object_id-INITIAL_FORMS": "0",
+                    "_fsm_transition_to": "moderate",
+                },
+            )
+
+        assert response.status_code == HTTPStatus.FOUND
+        blog_post.refresh_from_db()
+        assert blog_post.state == AdminBlogPostState.REVIEWED
+        assert blog_post.title == "New name"
