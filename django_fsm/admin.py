@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.core.exceptions import AppRegistryNotReady
 from django.core.exceptions import ImproperlyConfigured
+from django.db import router
 from django.db import transaction
 from django.forms import Form
 from django.forms import ModelForm
@@ -159,6 +160,7 @@ class FSMAdminMixin(_ModelAdmin):
                 self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
             )
         ):
+            request._fsm_transition_handled = True  # type: ignore[attr-defined]
             self._apply_fsm_transition(
                 obj=obj,
                 transition_name=transition_name,
@@ -174,7 +176,7 @@ class FSMAdminMixin(_ModelAdmin):
         if not transition_name:
             return super().response_change(request=request, obj=obj)
 
-        if self.get_fsm_transition_form(
+        if not getattr(request, "_fsm_transition_handled", False) and self.get_fsm_transition_form(
             transition=self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
         ):
             return redirect(
@@ -344,7 +346,7 @@ class FSMAdminMixin(_ModelAdmin):
             return False
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(type(obj))):
                 self._execute_fsm_transition(
                     transition_func=transition_func,
                     request=request,
