@@ -151,14 +151,8 @@ class FSMAdminMixin(_ModelAdmin):
         form: typing.Any,
         change: bool,
     ) -> None:
-        """
-        Apply the requested transition and persist the object in a single atomic save.
-
-        The form's changes are already applied to `obj`, so the transition's own `obj.save()`
-        persists them together with the new state (`ModelAdmin.save_model` only calls
-        `obj.save()` too). Transitions that need an intermediate form are handled by
-        `fsm_transition_view`.
-        """
+        # The form's edits are already on `obj`, so the transition's `obj.save()` persists them
+        # with the new state (the default `save_model` only calls `obj.save()` too).
         transition_name = request.POST.get(self.fsm_post_param)
         if (
             change
@@ -346,11 +340,6 @@ class FSMAdminMixin(_ModelAdmin):
         request: http.HttpRequest,
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> bool:
-        """
-        Run the transition and persist the object atomically.
-
-        If either step fails, the database changes are rolled back and an error message is shown.
-        """
         transition_func = self._get_fsm_transition_func(obj=obj, transition_name=transition_name)
         transition = self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
 

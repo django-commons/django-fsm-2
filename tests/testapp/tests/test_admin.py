@@ -1175,8 +1175,6 @@ class TransitionByNameResolvesSourceStateTestCase(TestCase):
 
 
 class ChangeFormTransitionSaveTestCase(TestCase):
-    """End-to-end tests: clicking a transition button in the admin change form."""
-
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_superuser(
