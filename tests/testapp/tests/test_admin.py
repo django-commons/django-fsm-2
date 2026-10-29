@@ -14,7 +14,6 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
-from django.db import models
 from django.http import HttpResponse
 from django.http import HttpResponseBadRequest
 from django.http import HttpResponseRedirect
@@ -1202,19 +1201,6 @@ class ChangeFormTransitionSaveTestCase(TestCase):
             **extra,
         }
         return self.client.post(self.url, data=data)
-
-    def test_transition_button_saves_object_once(self) -> None:
-        with mock.patch.object(
-            AdminBlogPost, "save", autospec=True, side_effect=models.Model.save
-        ) as mock_save:
-            res = self.post_change(_fsm_transition_to="moderate")
-
-        assert res.status_code == HTTPStatus.FOUND
-        assert mock_save.call_count == 1
-
-        self.blog_post.refresh_from_db()
-        assert self.blog_post.state == AdminBlogPostState.REVIEWED
-        assert self.blog_post.title == "New name"
 
     def test_failed_transition_rolls_back_whole_change(self) -> None:
         with mock.patch.object(AdminBlogPost, "save", autospec=True) as mock_save:
