@@ -151,8 +151,6 @@ class FSMAdminMixin(_ModelAdmin):
         form: typing.Any,
         change: bool,
     ) -> None:
-        # The form's edits are already on `obj`, so the transition's `obj.save()` persists them
-        # with the new state (the default `save_model` only calls `obj.save()` too).
         transition_name = request.POST.get(self.fsm_post_param)
         if (
             change
@@ -189,7 +187,6 @@ class FSMAdminMixin(_ModelAdmin):
                 )
             )
 
-        # The transition itself has already been applied (and saved) in `save_model`.
         return http.HttpResponseRedirect(
             redirect_to=add_preserved_filters(
                 context={
