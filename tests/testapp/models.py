@@ -244,7 +244,7 @@ class BlogPost(models.Model):
             ("can_remove_post", "Can remove post"),
         ]
 
-    def can_restore(self: models.Model, user: fsm.UserWithPermissions) -> bool:
+    def can_restore(self, user: fsm.UserWithPermissions) -> bool:
         if isinstance(user, AbstractUser):
             return bool(user.is_superuser or user.is_staff)
         return False

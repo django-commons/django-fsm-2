@@ -43,8 +43,8 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 
     _FSMModel: typing.TypeAlias = models.Model
     _StateValue: typing.TypeAlias = str | int | models.Choices
-    _Permission: typing.TypeAlias = str | typing.Callable[[_FSMModel, UserWithPermissions], bool]
-    _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
+    _Permission: typing.TypeAlias = str | typing.Callable[[typing.Any, UserWithPermissions], bool]
+    _Condition: typing.TypeAlias = typing.Callable[[typing.Any], bool]
 
     _TransitionF = typing.TypeVar(
         "_TransitionF",

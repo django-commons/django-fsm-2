@@ -9,24 +9,29 @@ import django_fsm as fsm
 from ..choices import ApplicationState
 
 
-def condition_func(instance: models.Model) -> bool:
+def condition_func(instance: BlogPostWithConditions) -> bool:
     return True
 
 
 class BlogPostWithConditions(models.Model):
+    author = models.CharField(max_length=50, blank=True)
     state = fsm.FSMField(default=ApplicationState.NEW)
 
-    def model_condition(self: models.Model) -> bool:
+    def model_condition(self) -> bool:
         return True
 
-    def unmet_condition(self: models.Model) -> bool:
+    def unmet_condition(self) -> bool:
         return False
 
     @fsm.transition(
         field=state,
         source=ApplicationState.NEW,
         target=ApplicationState.PUBLISHED,
-        conditions=[condition_func, model_condition],
+        conditions=[
+            condition_func,
+            model_condition,
+            lambda instance: bool(instance.author),
+        ],
     )
     def publish(self) -> None:
         pass
@@ -35,7 +40,11 @@ class BlogPostWithConditions(models.Model):
         field=state,
         source=ApplicationState.PUBLISHED,
         target=ApplicationState.REMOVED,
-        conditions=[condition_func, unmet_condition],
+        conditions=[
+            condition_func,
+            unmet_condition,
+            lambda instance: bool(instance.author),
+        ],
     )
     def remove(self) -> None:
         pass
@@ -43,7 +52,7 @@ class BlogPostWithConditions(models.Model):
 
 class ConditionTransitionTests(TestCase):
     def setUp(self):
-        self.model = BlogPostWithConditions()
+        self.model = BlogPostWithConditions(author="someone")
 
     def test_initial_state_instantiated(self):
         assert self.model.state == ApplicationState.NEW
