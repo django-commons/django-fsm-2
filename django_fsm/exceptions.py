@@ -42,7 +42,7 @@ class InvalidTransition(TransitionNotAllowed):
 class TransitionConditionsUnmet(InvalidTransition):
     """Raised when a transition condition fails"""
 
-    failed_condition: _Condition
+    failed_condition: _Condition[_FSMModel]
 
     @override
     def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:

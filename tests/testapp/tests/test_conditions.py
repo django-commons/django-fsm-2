@@ -9,7 +9,7 @@ import django_fsm as fsm
 from ..choices import ApplicationState
 
 
-def condition_func(instance: BlogPostWithConditions) -> bool:
+def condition_func(instance: models.Model) -> bool:
     return True
 
 
@@ -47,6 +47,17 @@ class BlogPostWithConditions(models.Model):
         ],
     )
     def remove(self) -> None:
+        pass
+
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        conditions=[
+            lambda instance: bool(instance.author),
+        ],
+    )
+    def lambda_only(self) -> None:
         pass
 
 
@@ -93,13 +104,13 @@ class ConditionTransitionTests(TestCase):
             self.model.remove()  # state is "new", destroy only works from "published"
 
 
-def _eval_tracking_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("first")  # type: ignore[attr-defined]
+def _eval_tracking_condition(instance: BlogPostShortCircuit) -> bool:
+    instance._eval_log.append("first")
     return False
 
 
-def _never_reached_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("second")  # type: ignore[attr-defined]
+def _never_reached_condition(instance: BlogPostShortCircuit) -> bool:
+    instance._eval_log.append("second")
     return False
 
 
