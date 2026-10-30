@@ -4,6 +4,13 @@ Changelog
 Unreleased
 ~~~~~~~~~~
 
+- Fix ``FSMAdminMixin`` running a transition body twice when it raised ``TypeError`` (and
+  dropping ``by`` on the retry): ``by=request.user`` is now passed only when the transition
+  accepts ``by`` or ``**kwargs``. **Behavior change:** a decorator that wraps a transition
+  without ``functools.wraps`` hides its real signature, so ``by`` is passed even if the wrapped
+  method does not accept it and raises ``TypeError``; use ``functools.wraps``
+
+
 django-fsm-2 4.3.0 2026-10-28
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

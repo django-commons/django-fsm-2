@@ -19,6 +19,8 @@ from django.shortcuts import render
 from django.urls import URLPattern
 from django.urls import path
 from django.urls import reverse
+from django.utils.inspect import func_accepts_kwargs
+from django.utils.inspect import func_supports_parameter
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
@@ -276,11 +278,10 @@ class FSMAdminMixin(_ModelAdmin):
         kwargs: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
         kwargs = kwargs or {}
-        if self._is_fsm_log_enabled():
-            try:
-                transition_func(by=request.user, **kwargs)
-            except TypeError:
-                transition_func(**kwargs)
+        if self._is_fsm_log_enabled() and (
+            func_supports_parameter(transition_func, "by") or func_accepts_kwargs(transition_func)
+        ):
+            transition_func(by=request.user, **kwargs)
         else:
             transition_func(**kwargs)
 

@@ -232,6 +232,66 @@ class ModelAdminTestCase(TestCase):
         logged_field_name = mock_log_change.call_args[0][2][0]["changed"]["fields"][0]
         assert not isinstance(logged_field_name, Promise)
 
+    def test_execute_fsm_transition_passes_by_when_var_keyword(self) -> None:
+        received: dict[str, typing.Any] = {}
+
+        def transition_method(**kwargs: typing.Any) -> None:
+            received.update(kwargs)
+
+        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
+            self.model_admin._execute_fsm_transition(
+                transition_func=transition_method,
+                request=self.request,
+                kwargs={"comment": "Because"},
+            )
+
+        assert received == {"by": self.request.user, "comment": "Because"}
+
+    def test_execute_fsm_transition_omits_by_when_not_accepted(self) -> None:
+        calls: list[dict[str, typing.Any]] = []
+
+        def transition_method(*, comment: str) -> None:
+            calls.append({"comment": comment})
+
+        with mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True):
+            self.model_admin._execute_fsm_transition(
+                transition_func=transition_method,
+                request=self.request,
+                kwargs={"comment": "Because"},
+            )
+
+        assert calls == [{"comment": "Because"}]
+
+    def test_execute_fsm_transition_type_error_in_body_is_not_retried(self) -> None:
+        calls: list[typing.Any] = []
+
+        def transition_method(*, by: typing.Any = None) -> None:
+            calls.append(by)
+            raise TypeError("boom from the transition body")
+
+        with (
+            mock.patch.object(self.model_admin, "_is_fsm_log_enabled", return_value=True),
+            pytest.raises(TypeError, match="boom from the transition body"),
+        ):
+            self.model_admin._execute_fsm_transition(
+                transition_func=transition_method,
+                request=self.request,
+            )
+
+        assert calls == [self.request.user]
+
+    def test_execute_fsm_transition_with_fsm_log_by_decorated_method(self) -> None:
+        blog_post = AdminBlogPost.objects.create(title="Article name")
+
+        self.model_admin._execute_fsm_transition(
+            transition_func=blog_post.moderate,
+            request=self.request,
+        )
+        blog_post.save()
+
+        log = StateLog.objects.get(object_id=blog_post.pk)
+        assert log.by == self.request.user
+
     # Context
     def test_get_fsm_extra_context_filters_admin_hidden(
         self,
