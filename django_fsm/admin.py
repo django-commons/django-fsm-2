@@ -160,7 +160,6 @@ class FSMAdminMixin(_ModelAdmin):
                 self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
             )
         ):
-            request._fsm_transition_handled = True  # type: ignore[attr-defined]
             self._apply_fsm_transition(
                 obj=obj,
                 transition_name=transition_name,
@@ -176,7 +175,7 @@ class FSMAdminMixin(_ModelAdmin):
         if not transition_name:
             return super().response_change(request=request, obj=obj)
 
-        if not getattr(request, "_fsm_transition_handled", False) and self.get_fsm_transition_form(
+        if self.get_fsm_transition_form(
             transition=self._get_fsm_transition_by_name(obj=obj, transition_name=transition_name)
         ):
             return redirect(
