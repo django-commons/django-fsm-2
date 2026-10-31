@@ -33,7 +33,7 @@ class MultiDecoratedModel(models.Model):
         field=state,
         source=StateChoice.SUBMITTED_BY_ADMIN,
         target=StateChoice.REVIEW_ADMIN,
-        permission=lambda _instance, user: user.is_staff,
+        permission=lambda _instance, user: user.is_staff,  # type: ignore[union-attr]
         custom={"label": "Review (admin)"},
     )
     @fsm.transition(

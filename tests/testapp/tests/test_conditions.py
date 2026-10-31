@@ -14,19 +14,24 @@ def condition_func(instance: models.Model) -> bool:
 
 
 class BlogPostWithConditions(models.Model):
+    author = models.CharField(max_length=50, blank=True)
     state = fsm.FSMField(default=ApplicationState.NEW)
 
-    def model_condition(self: models.Model) -> bool:
+    def model_condition(self) -> bool:
         return True
 
-    def unmet_condition(self: models.Model) -> bool:
+    def unmet_condition(self) -> bool:
         return False
 
     @fsm.transition(
         field=state,
         source=ApplicationState.NEW,
         target=ApplicationState.PUBLISHED,
-        conditions=[condition_func, model_condition],
+        conditions=[
+            condition_func,
+            model_condition,
+            lambda instance: bool(instance.author),
+        ],
     )
     def publish(self) -> None:
         pass
@@ -35,15 +40,30 @@ class BlogPostWithConditions(models.Model):
         field=state,
         source=ApplicationState.PUBLISHED,
         target=ApplicationState.REMOVED,
-        conditions=[condition_func, unmet_condition],
+        conditions=[
+            condition_func,
+            unmet_condition,
+            lambda instance: bool(instance.author),
+        ],
     )
     def remove(self) -> None:
+        pass
+
+    @fsm.transition(
+        field=state,
+        source=ApplicationState.NEW,
+        target=ApplicationState.PUBLISHED,
+        conditions=[
+            lambda instance: bool(instance.author),
+        ],
+    )
+    def lambda_only(self) -> None:
         pass
 
 
 class ConditionTransitionTests(TestCase):
     def setUp(self):
-        self.model = BlogPostWithConditions()
+        self.model = BlogPostWithConditions(author="someone")
 
     def test_initial_state_instantiated(self):
         assert self.model.state == ApplicationState.NEW
@@ -84,13 +104,13 @@ class ConditionTransitionTests(TestCase):
             self.model.remove()  # state is "new", destroy only works from "published"
 
 
-def _eval_tracking_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("first")  # type: ignore[attr-defined]
+def _eval_tracking_condition(instance: BlogPostShortCircuit) -> bool:
+    instance._eval_log.append("first")
     return False
 
 
-def _never_reached_condition(instance: models.Model) -> bool:
-    instance._eval_log.append("second")  # type: ignore[attr-defined]
+def _never_reached_condition(instance: BlogPostShortCircuit) -> bool:
+    instance._eval_log.append("second")
     return False
 
 

@@ -43,8 +43,9 @@ if typing.TYPE_CHECKING:  # pragma: no cover
 
     _FSMModel: typing.TypeAlias = models.Model
     _StateValue: typing.TypeAlias = str | int | models.Choices
-    _Permission: typing.TypeAlias = str | typing.Callable[[_FSMModel, UserWithPermissions], bool]
-    _Condition: typing.TypeAlias = typing.Callable[[_FSMModel], bool]
+    _M = typing.TypeVar("_M", bound=models.Model)
+    _Permission: typing.TypeAlias = str | typing.Callable[[_M, UserWithPermissions], bool]
+    _Condition: typing.TypeAlias = typing.Callable[[_M], bool]
 
     _TransitionF = typing.TypeVar(
         "_TransitionF",
@@ -105,8 +106,8 @@ class Transition:
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None,
-        conditions: list[_Condition] | None,
-        permission: _Permission | None,
+        conditions: typing.Sequence[_Condition[_FSMModel]] | None,
+        permission: _Permission[_FSMModel] | None,
         custom: dict[str, typing.Any] | None,
     ) -> None:
         self.method = method
@@ -217,8 +218,8 @@ class FSMMeta:
         source: _StateValue,
         target: _StateValue,
         on_error: _StateValue | None = None,
-        conditions: list[_Condition] | None = None,
-        permission: _Permission | None = None,
+        conditions: typing.Sequence[_Condition[_FSMModel]] | None = None,
+        permission: _Permission[_FSMModel] | None = None,
         custom: dict[str, typing.Any] | None = None,
     ) -> None:
         if source in self.transitions:
@@ -268,7 +269,7 @@ class FSMMeta:
 
     def get_first_unmet_condition(
         self, instance: _FSMModel, state: _StateValue | None
-    ) -> _Condition | None:
+    ) -> _Condition[_FSMModel] | None:
         """
         Return the first condition callable that is not met, or None.
 
@@ -700,8 +701,8 @@ def transition(
     source: _StateValue | typing.Sequence[_StateValue] = ANY_STATE,
     target: _StateValue | State | None = None,
     on_error: _StateValue | None = None,
-    conditions: list[_Condition] | None = None,
-    permission: _Permission | None = None,
+    conditions: typing.Sequence[_Condition[_M]] | None = None,
+    permission: _Permission[_M] | None = None,
     custom: dict[str, typing.Any] | None = None,
 ) -> typing.Callable[[_TransitionF], _TransitionF]:
     """
@@ -722,10 +723,18 @@ def transition(
 
         method = typing.cast("_TransitionMethod", func)
         target_state = typing.cast("_StateValue", target)
+        typed_conditions = typing.cast("typing.Sequence[_Condition[_FSMModel]] | None", conditions)
+        typed_permission = typing.cast("_Permission[_FSMModel] | None", permission)
         if isinstance(source, list | tuple | set):
             for state in source:
                 fsm_meta.add_transition(
-                    method, state, target_state, on_error, conditions, permission, custom
+                    method,
+                    state,
+                    target_state,
+                    on_error,
+                    typed_conditions,
+                    typed_permission,
+                    custom,
                 )
         else:
             fsm_meta.add_transition(
@@ -733,8 +742,8 @@ def transition(
                 typing.cast("_StateValue", source),
                 target_state,
                 on_error,
-                conditions,
-                permission,
+                typed_conditions,
+                typed_permission,
                 custom,
             )
 
