@@ -138,3 +138,6 @@ tests/testapp/migrations/
 
 # Codex
 .codex
+
+# codex
+.codex/*
