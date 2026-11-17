@@ -9,6 +9,8 @@ Unreleased
   accepts ``by`` or ``**kwargs``. **Behavior change:** a decorator that wraps a transition
   without ``functools.wraps`` hides its real signature, so ``by`` is passed even if the wrapped
   method does not accept it and raises ``TypeError``; use ``functools.wraps``
+- Fix ``FSMKeyField`` raising ``KeyError`` instead of loading the value when the state
+  field is deferred (e.g. via ``.only()``/``.defer()``)
 
 
 django-fsm-2 4.3.0 2026-10-28

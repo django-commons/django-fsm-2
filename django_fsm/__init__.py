@@ -549,15 +549,10 @@ class FSMIntegerField(FSMFieldMixin, IntegerField):
     """
 
 
-# FSMFieldMixin.descriptor_class is a FSMFieldDescriptor, not the
-# ForeignKeyDeferredAttribute that ForeignKey declares.
 class FSMKeyField(FSMFieldMixin, ForeignKey):  # type: ignore[misc]
     """
     State Machine support for Django model
     """
-
-    def get_state(self, instance: _FSMModel) -> _StateValue | None:
-        return instance.__dict__[self.attname]  # type: ignore[no-any-return]
 
     def set_state(self, instance: _FSMModel, state: _StateValue) -> None:
         instance.__dict__[self.attname] = self.to_python(state)
