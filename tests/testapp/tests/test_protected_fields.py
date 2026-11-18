@@ -47,6 +47,16 @@ class TestDirectAccessModels(TestCase):
 
         assert instance.status == ApplicationState.NEW
 
+    def test_failed_refresh_from_db_keeps_field_protected(self):
+        instance = RefreshableModel.objects.create()
+        RefreshableModel.objects.filter(pk=instance.pk).delete()
+
+        with pytest.raises(RefreshableModel.DoesNotExist):
+            instance.refresh_from_db()
+
+        with pytest.raises(AttributeError):
+            RefreshableModel().status = "change"
+
     def test_concurrent_refresh_from_db(self):
         instance = RefreshableModel()
         assert instance.status == ApplicationState.NEW
