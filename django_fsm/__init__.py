@@ -582,10 +582,11 @@ class FSMModelMixin(_FSMModel):
         for f in protected_fields:
             setattr(self._meta.get_field(f), "protected", False)
 
-        super().refresh_from_db(*args, **kwargs)
-
-        for f in protected_fields:
-            setattr(self._meta.get_field(f), "protected", True)
+        try:
+            super().refresh_from_db(*args, **kwargs)
+        finally:
+            for f in protected_fields:
+                setattr(self._meta.get_field(f), "protected", True)
 
 
 class ConcurrentTransitionMixin(FSMModelMixin):
