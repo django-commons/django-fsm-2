@@ -151,8 +151,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Django FSM-log settings
+# django-fsm-log only tracks models covered by tests/testapp/tests/test_fsm_log.py,
+# models tracked by django_fsm.log are ignored to keep both solutions isolated.
 DJANGO_FSM_LOG_IGNORED_MODELS = (
-    # "tests.testapp.models.AdminBlogPost",
+    "tests.testapp.models.AdminBlogPost",
+    "tests.testapp.models.CharPkTrackedPost",
+    "tests.testapp.models.GenericTrackedPost",
+    "tests.testapp.models.IntegerPkTrackedPost",
+    "tests.testapp.models.TrackedPost",
+    "tests.testapp.models.UUIDPkTrackedPost",
     "tests.testapp.models.Application",
     "tests.testapp.models.BlogPost",
     "tests.testapp.models.DbState",
