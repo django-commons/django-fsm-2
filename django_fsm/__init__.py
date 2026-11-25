@@ -502,8 +502,7 @@ class FSMFieldMixin(_Field):
             partialmethod(get_available_user_FIELD_transitions, field=self),
         )
 
-    def _collect_transitions(self, *args: typing.Any, **kwargs: typing.Any) -> None:
-        sender = kwargs["sender"]
+    def _collect_transitions(self, sender: type[_FSMModel]) -> None:
 
         if not issubclass(sender, self.base_cls):
             return
