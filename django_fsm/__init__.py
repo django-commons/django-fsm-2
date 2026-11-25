@@ -501,8 +501,6 @@ class FSMFieldMixin(_Field):
             partialmethod(get_available_user_FIELD_transitions, field=self),
         )
 
-        class_prepared.connect(self._collect_transitions)
-
     def _collect_transitions(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         sender = kwargs["sender"]
 
@@ -530,6 +528,15 @@ class FSMFieldMixin(_Field):
             sender_transitions[method_name] = method
 
         self.transitions[sender] = sender_transitions
+
+
+def _collect_fsm_transitions(sender: type[_FSMModel], **kwargs: typing.Any) -> None:
+    for field in sender._meta.fields:
+        if isinstance(field, FSMFieldMixin):
+            field._collect_transitions(sender=sender)
+
+
+class_prepared.connect(_collect_fsm_transitions)
 
 
 class FSMField(FSMFieldMixin, CharField):
