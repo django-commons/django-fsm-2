@@ -17,6 +17,7 @@ from django.db.models import Field
 from django.db.models import QuerySet
 from django.db.models.query_utils import DeferredAttribute
 from django.db.models.signals import class_prepared
+from django.dispatch import receiver
 
 from .exceptions import ConcurrentTransition
 from .exceptions import InvalidResultState
@@ -530,13 +531,11 @@ class FSMFieldMixin(_Field):
         self.transitions[sender] = sender_transitions
 
 
+@receiver(class_prepared)
 def _collect_fsm_transitions(sender: type[_FSMModel], **kwargs: typing.Any) -> None:
     for field in sender._meta.fields:
         if isinstance(field, FSMFieldMixin):
             field._collect_transitions(sender=sender)
-
-
-class_prepared.connect(_collect_fsm_transitions)
 
 
 class FSMField(FSMFieldMixin, CharField):
