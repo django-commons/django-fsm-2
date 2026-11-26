@@ -11,6 +11,11 @@ Unreleased
   method does not accept it and raises ``TypeError``; use ``functools.wraps``
 - Fix ``FSMModelMixin.refresh_from_db`` leaving protected fields unprotected when the refresh
   raises, e.g. ``DoesNotExist`` after the row was deleted
+- Fix FSM fields connecting a new ``class_prepared`` receiver every time they are added to a
+  model class. Migrations re-render model classes from the migration state after each
+  operation, so receivers piled up and every ``class_prepared`` called all of them, making
+  ``migrate`` on an empty database slow down quadratically. Transitions are now collected by a
+  single module-level receiver
 
 
 django-fsm-2 4.3.0 2026-10-28
